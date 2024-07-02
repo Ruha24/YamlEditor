@@ -1,0 +1,26 @@
+armors:
+  farm:
+    ==: ArmorSet
+    color: "235, 152, 52"
+    minrebirth: 0
+    generation: FARM
+    helmet:
+      ==: Armor
+      display: "§7Шлем"
+      defence: 2.0
+      price: 0.0
+    chest:
+      ==: Armor
+      display: "§7Нагрудник"
+      defence: 2.0
+      price: 0.0
+    legs:
+      ==: Armor
+      display: "§7Штаны"
+      defence: 2.0
+      price: 0.0
+    boots:
+      ==: Armor
+      display: "§7Ботинки"
+      defence: 2.0
+      price: 0.0
