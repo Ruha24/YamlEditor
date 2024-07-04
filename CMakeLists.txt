@@ -38,6 +38,8 @@ set(PROJECT_SOURCES
         yandexapi.cpp
         yamlreader.h
         yamlreader.cpp
+        yamlnode.h
+        yamlnode.cpp
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

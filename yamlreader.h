@@ -2,12 +2,12 @@
 #define YAMLREADER_H
 
 #include <QFileInfo>
-#include <QMap>
-#include <QMessageBox>
 #include <QObject>
 #include <QString>
 #include "yaml-cpp/yaml.h"
 #include <fstream>
+
+#include "yamlnode.h"
 
 class YamlReader
 {
@@ -16,20 +16,15 @@ public:
 
     bool readFile(const QString &fileName);
 
-    QMap<QString, QString> getAllKeysAndValues() const;
-    QMap<QString, QMap<QString, QString>> getGroupedKeysAndValues() const;
+    YamlNode getRootNode() const;
 
-    void saveValues(const QMap<QString, QMap<QString, QString>> &groupedValues,
-                    const QString &filePath);
+    void saveValues(const YamlNode &rootNode, const QString &filePath);
 
 private:
-    QString findKey(const QStringList &keys, const QString &key, QMap<QString, QString> values);
-    void collectKeys(const YAML::Node &node,
-                     QStringList &keys,
-                     QMap<QString, QString> &values,
-                     const QString &prefix = "");
+    void collectKeys(const YAML::Node &node, YamlNode &yamlNode);
+    void buildNode(YAML::Emitter &out, const YamlNode &node);
 
-    QMap<QString, QString> values;
+    YamlNode root;
 };
 
 #endif // YAMLREADER_H

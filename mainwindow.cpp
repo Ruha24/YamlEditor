@@ -31,18 +31,6 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
     }
 }
 
-void MainWindow::setSpecialValue()
-{
-    for (auto it = updatedValues.begin(); it != updatedValues.end(); ++it) {
-        for (auto subIt = it.value().begin(); subIt != it.value().end(); ++subIt) {
-            if (subIt.key().contains("==")) {
-                ui->lineEdit->setText(subIt.value());
-                break;
-            }
-        }
-    }
-}
-
 void MainWindow::saveData()
 {
     QString fullPath = "ymlFiles/" + ui->fileNamecmb->currentText();
@@ -51,123 +39,69 @@ void MainWindow::saveData()
 
 void MainWindow::displayYamlData()
 {
-    if (mainWidget != nullptr) {
-        mainWidget->deleteLater();
-    }
-    mainWidget = new QWidget(this);
-    mainLayout = new QVBoxLayout(mainWidget);
+    clearScrollArea();
 
-    QLayoutItem *item;
-    while ((item = ui->verticalLayout_2->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
+    updatedValues = yamlReader->getRootNode();
+    displayedKeys.clear();
 
-    updatedValues.clear();
-
-    updatedValues = yamlReader->getGroupedKeysAndValues();
-
-    setSpecialValue();
-
-    QSet<QString> displayedKeys;
-    for (auto it = updatedValues.begin(); it != updatedValues.end(); ++it) {
-        QStringList parts = it.key().split('.');
-        QString currentPath = "";
-        for (int i = 0; i < parts.size(); ++i) {
-            if (!currentPath.isEmpty()) {
-                currentPath += ".";
-            }
-            currentPath += parts[i];
-            if (!displayedKeys.contains(currentPath)) {
-                displayedKeys.insert(currentPath);
-                QLabel *titleLabel = new QLabel(parts[i], this);
-                titleLabel->setStyleSheet("QLabel { font-size: 24px; color: rgb(98, 127, 255)}");
-                mainLayout->addWidget(titleLabel);
-                if (i == 0 || i == 1) {
-                    QFrame *lineD = new QFrame;
-                    titleLabel->setStyleSheet("QLabel { font-size: 24px; color: #36b578; }");
-                    lineD->setFrameShape(QFrame::HLine);
-                    lineD->setStyleSheet("QFrame { margin: 5px 0; }");
-                    mainLayout->addWidget(lineD);
-                }
-            }
-        }
-
-        QGridLayout *gridLayout = new QGridLayout();
-
-        int row = 0;
-        int column = 0;
-        for (auto subIt = it.value().begin(); subIt != it.value().end(); ++subIt) {
-            bool isChecked = checkBoxStates.contains(subIt.key()) ? checkBoxStates[subIt.key()]
-                                                                  : false;
-            if (isChecked) {
-                QLabel *keyLabel = new QLabel(subIt.key(), this);
-                keyLabel->setStyleSheet("QLabel {font-size: 18px;}");
-                QLineEdit *valueEdit = new QLineEdit(subIt.value(), this);
-                valueEdit->setStyleSheet("QLabel {font-size: 16px;}");
-
-                connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-                    updatedValues[it.key()][subIt.key()] = newValue;
-                });
-
-                gridLayout->addWidget(keyLabel, row, column);
-                gridLayout->addWidget(valueEdit, row, column + 1);
-
-                column += 2;
-                if (column >= 4) {
-                    column = 0;
-                    row++;
-                }
-            }
-        }
-        mainLayout->addLayout(gridLayout);
+    for (const auto &node : updatedValues.children) {
+        displayNode(node, "");
     }
 
     ui->verticalLayout_2->addWidget(mainWidget);
 }
 
-void MainWindow::displaykeys()
+void MainWindow::collectKeys(const YamlNode &node,
+                             QSet<QString> &topLevelKeys,
+                             QSet<QString> &subKeys)
 {
-    QLayoutItem *item;
-    while ((item = ui->gridLayout_2->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
+    QString key = node.key;
+
+    if (node.value.isEmpty()) {
+        topLevelKeys.insert(key);
+    } else {
+        subKeys.insert(key);
     }
 
-    int row = 0;
-    int col = 0;
+    for (const auto &subNode : node.children) {
+        collectKeys(subNode, topLevelKeys, subKeys);
+    }
+}
 
-    QSet<QString> keys;
-    for (auto it = updatedValues.begin(); it != updatedValues.end(); ++it) {
-        for (auto subIt = it.value().begin(); subIt != it.value().end(); ++subIt) {
-            if (keys.contains(subIt.key()))
-                continue;
+void MainWindow::displaykeys()
+{
+    clearKeysArea();
 
-            keys.insert(subIt.key());
+    int rowTopLevel = 0;
+    int colTopLevel = 0;
 
-            if (subIt.key().contains("=="))
-                continue;
+    int rowSubLevel = 0;
+    int colSubLevel = 0;
 
-            QCheckBox *checkBox = new QCheckBox(subIt.key(), this);
-            checkBox->setStyleSheet(
-                "QCheckBox{ font-size: 24px;} QCheckBox::indicator { width: 20px; height: "
-                "20px; "
-                "background-color: #525252; "
-                "color: #37A2C3; border: 1px solid #00AADF; border-radius: 10px; } "
-                "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
-                "#51B4D2; } ");
-            ui->gridLayout_2->addWidget(checkBox, row, col);
+    QSet<QString> topLevelKeys;
+    QSet<QString> subKeys;
 
-            checkBox->setChecked(true);
-            checkBoxStates[subIt.key()] = true;
+    for (const auto &node : updatedValues.children) {
+        collectKeys(node, topLevelKeys, subKeys);
+    }
 
-            connect(checkBox, &QCheckBox::stateChanged, this, &MainWindow::onCheckBoxStateChanged);
+    for (const QString &key : topLevelKeys) {
+        createCheckBox(key, rowTopLevel, colTopLevel, true);
 
-            col++;
-            if (col > 1) {
-                col = 0;
-                row++;
-            }
+        colTopLevel++;
+        if (colTopLevel > 1) {
+            colTopLevel = 0;
+            rowTopLevel++;
+        }
+    }
+
+    for (const QString &key : subKeys) {
+        createCheckBox(key, rowSubLevel, colSubLevel, false);
+
+        colSubLevel++;
+        if (colSubLevel > 1) {
+            colSubLevel = 0;
+            rowSubLevel++;
         }
     }
 
@@ -190,5 +124,136 @@ void MainWindow::onCheckBoxStateChanged(int state)
     if (checkBox) {
         QString key = checkBox->text();
         checkBoxStates[key] = (state == Qt::Checked);
+    }
+}
+
+void MainWindow::updateValue(const QString &path, const QString &newValue)
+{
+    QStringList keys = path.split('.');
+    YamlNode *currentNode = &updatedValues;
+
+    for (const QString &key : keys) {
+        bool found = false;
+        for (YamlNode &child : currentNode->children) {
+            if (child.key == key) {
+                currentNode = &child;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return;
+        }
+    }
+
+    currentNode->value = newValue;
+}
+
+void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
+{
+    QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
+
+    if (!displayedKeys.contains(currentPath)) {
+        displayedKeys.insert(currentPath);
+
+        QLabel *titleLabel = new QLabel(node.key, this);
+        titleLabel->setStyleSheet("QLabel { font-size: 24px; color: rgb(98, 127, 255)}");
+        mainLayout->addWidget(titleLabel);
+
+        if (parentPath.isEmpty()) {
+            QFrame *lineD = new QFrame;
+            lineD->setFrameShape(QFrame::HLine);
+            lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
+            mainLayout->addWidget(lineD);
+        }
+    }
+
+    QGridLayout *gridLayout = new QGridLayout();
+    int row = 0;
+    int column = 0;
+
+    for (const auto &child : node.children) {
+        QString key = child.key;
+        bool isChecked = checkBoxStates.contains(key) ? checkBoxStates[key] : false;
+
+        if (!isChecked)
+            continue;
+
+        QLabel *keyLabel = new QLabel(key, this);
+        keyLabel->setStyleSheet("QLabel {font-size: 18px;}");
+        QLineEdit *valueEdit = new QLineEdit(child.value, this);
+        valueEdit->setStyleSheet("QLineEdit {font-size: 16px; max-width: 200px;}");
+
+        QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+
+        connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+            updateValue(fullPath, newValue);
+        });
+
+        gridLayout->addWidget(keyLabel, row, column);
+        gridLayout->addWidget(valueEdit, row, column + 1);
+
+        column += 2;
+        if (column >= 4) {
+            column = 0;
+            row++;
+        }
+
+        if (!child.children.isEmpty()) {
+            displayNode(child, currentPath);
+        }
+    }
+
+    mainLayout->addLayout(gridLayout);
+}
+
+void MainWindow::createCheckBox(const QString &name, int row, int col, bool topLevelKey)
+{
+    QCheckBox *checkBox = new QCheckBox(name, this);
+    checkBox->setStyleSheet(
+        "QCheckBox{ font-size: 24px;} QCheckBox::indicator { width: 20px; height: "
+        "20px; "
+        "background-color: #525252; "
+        "color: #37A2C3; border: 1px solid #00AADF; border-radius: 10px; } "
+        "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
+        "#51B4D2; } ");
+
+    if (topLevelKey)
+        ui->gridLayout_4->addWidget(checkBox, row, col);
+    else
+        ui->gridLayout_2->addWidget(checkBox, row, col);
+
+    checkBox->setChecked(true);
+    checkBoxStates[name] = true;
+
+    connect(checkBox, &QCheckBox::stateChanged, this, &MainWindow::onCheckBoxStateChanged);
+}
+
+void MainWindow::clearKeysArea()
+{
+    QLayoutItem *item;
+    while ((item = ui->gridLayout_2->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
+    }
+
+    while ((item = ui->gridLayout_4->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
+    }
+}
+
+void MainWindow::clearScrollArea()
+{
+    if (mainWidget != nullptr) {
+        mainWidget->deleteLater();
+    }
+    mainWidget = new QWidget(this);
+    mainLayout = new QVBoxLayout(mainWidget);
+
+    QLayoutItem *item;
+    while ((item = ui->verticalLayout_2->takeAt(0)) != nullptr) {
+        delete item->widget();
+        delete item;
     }
 }

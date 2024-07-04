@@ -11,6 +11,8 @@
 #include <QSpacerItem>
 #include <QWidget>
 
+#include <QMouseEvent>
+
 #include "yamlreader.h"
 #include "yandexapi.h"
 
@@ -29,8 +31,6 @@ public:
 private slots:
     void on_fileNamecmb_currentIndexChanged(int index);
 
-    void setSpecialValue();
-
     void on_pushButton_clicked();
 
     void on_pushButton_2_clicked();
@@ -40,11 +40,19 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
-    QMap<QString, QMap<QString, QString>> updatedValues;
+    YamlNode updatedValues;
     QMap<QString, bool> checkBoxStates;
     QWidget *mainWidget = nullptr;
     QVBoxLayout *mainLayout = nullptr;
+    QSet<QString> displayedKeys;
 
+    void updateValue(const QString &path, const QString &newValue);
+    void displayNode(const YamlNode &node, const QString &parentPath);
+    void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
+
+    void createCheckBox(const QString &name, int row, int col, bool topLevelKey);
+    void clearKeysArea();
+    void clearScrollArea();
     void saveData();
     void displayYamlData();
     void displaykeys();

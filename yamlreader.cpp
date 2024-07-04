@@ -3,39 +3,28 @@
 
 YamlReader::YamlReader() {}
 
-void YamlReader::collectKeys(const YAML::Node &node,
-                             QStringList &keys,
-                             QMap<QString, QString> &values,
-                             const QString &prefix)
+void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
 {
     if (node.IsMap()) {
         for (const auto &kv : node) {
             QString key = QString::fromStdString(kv.first.as<std::string>());
-            QString fullKey = prefix.isEmpty() ? key : prefix + "." + key;
-            keys.append(fullKey);
+            YamlNode child(key);
+
             if (kv.second.IsScalar()) {
-                values[fullKey] = QString::fromStdString(kv.second.as<std::string>());
+                child.value = QString::fromStdString(kv.second.as<std::string>());
             } else {
-                collectKeys(kv.second, keys, values, fullKey);
+                collectKeys(kv.second, child);
             }
+
+            yamlNode.children.append(child);
         }
     } else if (node.IsSequence()) {
         for (std::size_t i = 0; i < node.size(); ++i) {
-            collectKeys(node[i], keys, values, prefix + "[" + QString::number(i) + "]");
+            YamlNode child;
+            collectKeys(node[i], child);
+            yamlNode.children.append(child);
         }
     }
-}
-
-QString YamlReader::findKey(const QStringList &keys,
-                            const QString &key,
-                            QMap<QString, QString> values)
-{
-    for (const QString &fullKey : keys) {
-        if (fullKey.endsWith(key)) {
-            return values.value(fullKey, "");
-        }
-    }
-    return QString();
 }
 
 bool YamlReader::readFile(const QString &fileName)
@@ -53,61 +42,44 @@ bool YamlReader::readFile(const QString &fileName)
         return false;
     }
 
-    QStringList keys;
+    root = YamlNode();
 
-    values.clear();
-
-    collectKeys(config, keys, values);
+    collectKeys(config, root);
 
     return true;
 }
 
-QMap<QString, QMap<QString, QString>> YamlReader::getGroupedKeysAndValues() const
+YamlNode YamlReader::getRootNode() const
 {
-    QMap<QString, QMap<QString, QString>> groupedValues;
-    for (auto it = values.begin(); it != values.end(); ++it) {
-        QStringList parts = it.key().split('.');
-        if (parts.size() > 2) {
-            QString rootKey = parts[0] + "." + parts[1] + "." + parts[2];
-            QString subKey = it.key().mid(rootKey.length() + 1);
-            groupedValues[rootKey][subKey] = it.value();
-        } else if (parts.size() == 2) {
-            QString rootKey = parts[0] + "." + parts[1];
-            groupedValues[rootKey][""] = it.value();
-        } else {
-            groupedValues[parts[0]][""] = it.value();
-        }
-    }
-    return groupedValues;
+    return root;
 }
 
-void YamlReader::saveValues(const QMap<QString, QMap<QString, QString>> &groupedValues,
-                            const QString &filePath)
+void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
+{
+    if (!node.children.isEmpty()) {
+        for (const auto &child : node.children) {
+            out << YAML::Key << child.key.toStdString();
+            out << YAML::Value;
+            if (!child.value.isEmpty()) {
+                out << child.value.toStdString();
+            } else {
+                out << YAML::BeginMap;
+                buildNode(out, child);
+                out << YAML::EndMap;
+            }
+        }
+    }
+}
+
+void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
 {
     YAML::Emitter out;
 
     out << YAML::BeginMap;
-
-    for (auto it = groupedValues.begin(); it != groupedValues.end(); ++it) {
-        out << YAML::Key << it.key().toStdString();
-        out << YAML::Value << YAML::BeginMap;
-
-        for (auto subIt = it.value().begin(); subIt != it.value().end(); ++subIt) {
-            out << YAML::Key << subIt.key().toStdString();
-            out << YAML::Value << subIt.value().toStdString();
-        }
-
-        out << YAML::EndMap;
-    }
-
+    buildNode(out, rootNode);
     out << YAML::EndMap;
 
-    std::ofstream fout(filePath.toStdString());
-    fout << out.c_str();
-    fout.close();
-}
-
-QMap<QString, QString> YamlReader::getAllKeysAndValues() const
-{
-    return values;
+    std::ofstream ofstream(filePath.toStdString());
+    ofstream << out.c_str();
+    ofstream.close();
 }
