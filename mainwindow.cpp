@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+#include <QPalette>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -180,9 +182,9 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
             continue;
 
         QLabel *keyLabel = new QLabel(key, this);
-        keyLabel->setStyleSheet("QLabel {font-size: 18px;}");
+        keyLabel->setStyleSheet("QLabel {font-size: 18px; color: white;}");
         QLineEdit *valueEdit = new QLineEdit(child.value, this);
-        valueEdit->setStyleSheet("QLineEdit {font-size: 16px; max-width: 200px;}");
+        valueEdit->setStyleSheet("QLineEdit {font-size: 16px;color: white; max-width: 200px;}");
 
         QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
@@ -223,8 +225,13 @@ void MainWindow::createCheckBox(const QString &name, int row, int col, bool topL
     else
         ui->gridLayout_2->addWidget(checkBox, row, col);
 
-    checkBox->setChecked(true);
-    checkBoxStates[name] = true;
+    if (name == "==") {
+        checkBox->setChecked(false);
+        checkBoxStates[name] = false;
+    } else {
+        checkBox->setChecked(true);
+        checkBoxStates[name] = true;
+    }
 
     connect(checkBox, &QCheckBox::stateChanged, this, &MainWindow::onCheckBoxStateChanged);
 }
