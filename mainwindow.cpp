@@ -155,7 +155,8 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
 {
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
-    if (!displayedKeys.contains(currentPath)) {
+    if (!displayedKeys.contains(currentPath)
+        && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
         displayedKeys.insert(currentPath);
 
         QLabel *titleLabel = new QLabel(node.key, this);
@@ -173,6 +174,7 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
     QGridLayout *gridLayout = new QGridLayout();
     int row = 0;
     int column = 0;
+    bool layoutAdded = false;
 
     for (const auto &child : node.children) {
         QString key = child.key;
@@ -181,27 +183,38 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
         if (!isChecked)
             continue;
 
-        QLabel *keyLabel = new QLabel(key, this);
-        keyLabel->setStyleSheet("QLabel {font-size: 18px; color: white;}");
-        QLineEdit *valueEdit = new QLineEdit(child.value, this);
-        valueEdit->setStyleSheet("QLineEdit {font-size: 16px;color: white; max-width: 200px;}");
+        bool hasChildren = !child.children.isEmpty();
+        bool hasValue = !child.value.trimmed().isEmpty();
 
-        QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+        if (hasChildren || hasValue) {
+            QLabel *keyLabel = new QLabel(key, this);
+            keyLabel->setStyleSheet("QLabel {font-size: 18px; color: white;}");
+            QLineEdit *valueEdit = new QLineEdit(child.value, this);
+            valueEdit->setStyleSheet(
+                "QLineEdit {font-size: 16px; color: white; max-width: 200px;}");
 
-        connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-            updateValue(fullPath, newValue);
-        });
+            QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
-        gridLayout->addWidget(keyLabel, row, column);
-        gridLayout->addWidget(valueEdit, row, column + 1);
+            connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+                updateValue(fullPath, newValue);
+            });
 
-        column += 2;
-        if (column >= 4) {
-            column = 0;
-            row++;
+            gridLayout->addWidget(keyLabel, row, column);
+            gridLayout->addWidget(valueEdit, row, column + 1);
+
+            column += 2;
+            if (column >= 4) {
+                column = 0;
+                row++;
+            }
         }
 
-        if (!child.children.isEmpty()) {
+        if (hasChildren) {
+            QLayoutItem *item;
+            while ((item = gridLayout->takeAt(0)) != nullptr) {
+                delete item->widget();
+                delete item;
+            }
             displayNode(child, currentPath);
         }
     }

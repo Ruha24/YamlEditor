@@ -61,6 +61,9 @@ void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
             out << YAML::Key << child.key.toStdString();
             out << YAML::Value;
             if (!child.value.isEmpty()) {
+                qDebug() << child.value.toStdString();
+                qDebug() << child.value;
+
                 out << child.value.toStdString();
             } else {
                 out << YAML::BeginMap;
