@@ -2,7 +2,6 @@
 #define YAMLNODE_H
 
 #include <QList>
-#include <QMap>
 
 class YamlNode
 {

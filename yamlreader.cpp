@@ -82,4 +82,6 @@ void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
     std::ofstream ofstream(filePath.toStdString());
     ofstream << out.c_str();
     ofstream.close();
+
+    root = rootNode;
 }

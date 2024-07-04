@@ -40,7 +40,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
-    YamlNode updatedValues;
+    YamlNode root;
     QMap<QString, bool> checkBoxStates;
     QWidget *mainWidget = nullptr;
     QVBoxLayout *mainLayout = nullptr;

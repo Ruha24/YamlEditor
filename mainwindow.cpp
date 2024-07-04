@@ -34,17 +34,17 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 void MainWindow::saveData()
 {
     QString fullPath = "ymlFiles/" + ui->fileNamecmb->currentText();
-    yamlReader->saveValues(updatedValues, fullPath);
+    yamlReader->saveValues(root, fullPath);
 }
 
 void MainWindow::displayYamlData()
 {
     clearScrollArea();
 
-    updatedValues = yamlReader->getRootNode();
+    root = yamlReader->getRootNode();
     displayedKeys.clear();
 
-    for (const auto &node : updatedValues.children) {
+    for (const auto &node : root.children) {
         displayNode(node, "");
     }
 
@@ -81,7 +81,7 @@ void MainWindow::displaykeys()
     QSet<QString> topLevelKeys;
     QSet<QString> subKeys;
 
-    for (const auto &node : updatedValues.children) {
+    for (const auto &node : root.children) {
         collectKeys(node, topLevelKeys, subKeys);
     }
 
@@ -130,7 +130,7 @@ void MainWindow::onCheckBoxStateChanged(int state)
 void MainWindow::updateValue(const QString &path, const QString &newValue)
 {
     QStringList keys = path.split('.');
-    YamlNode *currentNode = &updatedValues;
+    YamlNode *currentNode = &root;
 
     for (const QString &key : keys) {
         bool found = false;
