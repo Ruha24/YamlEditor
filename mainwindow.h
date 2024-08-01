@@ -11,8 +11,7 @@
 #include <QSpacerItem>
 #include <QWidget>
 
-#include <QMouseEvent>
-
+#include "addwindow.h"
 #include "yamlreader.h"
 #include "yandexapi.h"
 
@@ -37,6 +36,12 @@ private slots:
 
     void onCheckBoxStateChanged(int state);
 
+    void on_pushButton_3_clicked();
+
+    void handleDataAdded(int id, const QString &key, const QString &value);
+    void handleDataChanged(int id, const QString &key, const QString &value);
+    void handleSaveData(const QList<WidgetData> &widgetDataList);
+
 private:
     Ui::MainWindow *ui;
 
@@ -46,6 +51,10 @@ private:
     QVBoxLayout *mainLayout = nullptr;
     QSet<QString> displayedKeys;
 
+    QSet<QString> topLevelKeys;
+    QSet<QString> subKeys;
+
+    void addValue();
     void updateValue(const QString &path, const QString &newValue);
     void displayNode(const YamlNode &node, const QString &parentPath);
     void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);

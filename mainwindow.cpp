@@ -80,8 +80,8 @@ void MainWindow::displaykeys()
     int rowSubLevel = 0;
     int colSubLevel = 0;
 
-    QSet<QString> topLevelKeys;
-    QSet<QString> subKeys;
+    topLevelKeys.clear();
+    subKeys.clear();
 
     for (const auto &node : root.children) {
         collectKeys(node, topLevelKeys, subKeys);
@@ -129,6 +129,8 @@ void MainWindow::onCheckBoxStateChanged(int state)
     }
 }
 
+void MainWindow::addValue() {}
+
 void MainWindow::updateValue(const QString &path, const QString &newValue)
 {
     QStringList keys = path.split('.');
@@ -174,7 +176,6 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
     QGridLayout *gridLayout = new QGridLayout();
     int row = 0;
     int column = 0;
-    bool layoutAdded = false;
 
     for (const auto &child : node.children) {
         QString key = child.key;
@@ -275,5 +276,45 @@ void MainWindow::clearScrollArea()
     while ((item = ui->verticalLayout_2->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
+    }
+}
+
+void MainWindow::on_pushButton_3_clicked()
+{
+    if (topLevelKeys.isEmpty()) {
+        QMessageBox::information(this, "Error", "Select a config");
+        return;
+    }
+
+    AddWindow *addWindow = new AddWindow(this, topLevelKeys);
+
+    connect(addWindow, &AddWindow::saveData, this, &MainWindow::handleSaveData);
+    connect(addWindow, &AddWindow::dataAdded, this, &MainWindow::handleDataAdded);
+    connect(addWindow, &AddWindow::dataChanged, this, &MainWindow::handleDataChanged);
+
+    addWindow->show();
+}
+
+void MainWindow::handleDataAdded(int id, const QString &key, const QString &value)
+{
+    YamlNode newNode(key, value);
+    root.children.append(newNode);
+}
+
+void MainWindow::handleDataChanged(int id, const QString &key, const QString &value)
+{
+    for (YamlNode &child : root.children) {
+        if (child.key == key) {
+            child.value = value;
+            return;
+        }
+    }
+    root.children.append(YamlNode(key, value));
+}
+
+void MainWindow::handleSaveData(const QList<WidgetData> &widgetDataList)
+{
+    for (const WidgetData &data : widgetDataList) {
+        root.children.append(YamlNode(data.comboBox->currentText(), data.lineEdit->text()));
     }
 }

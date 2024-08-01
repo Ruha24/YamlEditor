@@ -40,6 +40,10 @@ set(PROJECT_SOURCES
         yamlreader.cpp
         yamlnode.h
         yamlnode.cpp
+        addwindow.h
+        addwindow.cpp
+        addwindow.ui
+        images.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

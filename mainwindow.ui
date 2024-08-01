@@ -23,7 +23,43 @@
 {
 	background-color: #464646;
 }
-</string>
+
+QScrollBar:vertical {
+  border-color: rgb(227, 227, 227);
+  border-width: 1px;
+  border-style: solid;
+
+  
+	background-color: rgb(177, 177, 177);
+  width: 15px;
+  margin: 21px 0 21px 0;
+}
+
+QScrollBar::handle:vertical {
+  background-color: rgb(177, 177, 177);
+  min-height: 25px;
+}
+
+ QScrollBar::add-line:vertical {
+    border: 1px solid grey;
+    background-color: rgb(241, 241, 241);
+    height: 20px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical {
+    border: 1px solid grey;
+    background-color: rgb(241, 241, 241);
+    height: 20px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+
+  QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+      background: none;
+  }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_6">
@@ -59,7 +95,13 @@
          <string notr="true">QLabel { color: white; }</string>
         </property>
         <property name="text">
-         <string>Конфиги</string>
+         <string>Сonfigs</string>
+        </property>
+        <property name="wordWrap">
+         <bool>false</bool>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse</set>
         </property>
        </widget>
       </item>
@@ -154,12 +196,12 @@ background: #51B4D2;
            <bool>true</bool>
           </property>
           <property name="styleSheet">
-           <string notr="true">QScrollArea QWidget
-{   
-	
+           <string notr="true">QScrollArea QWidget {   
 	background-color: rgb(48, 48, 48);
-    color:black;
-}</string>
+    color: black;
+}
+
+</string>
           </property>
           <property name="widgetResizable">
            <bool>true</bool>
@@ -173,7 +215,7 @@ background: #51B4D2;
              <x>0</x>
              <y>0</y>
              <width>686</width>
-             <height>291</height>
+             <height>342</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout">
@@ -190,6 +232,9 @@ background: #51B4D2;
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
+                </property>
                 <property name="sizeHint" stdset="0">
                  <size>
                   <width>40</width>
@@ -205,6 +250,9 @@ background: #51B4D2;
                <spacer name="horizontalSpacer_3">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                 <enum>QSizePolicy::Expanding</enum>
                 </property>
                 <property name="sizeHint" stdset="0">
                  <size>
@@ -238,7 +286,7 @@ background: #51B4D2;
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <spacer name="verticalSpacer_2">
@@ -283,7 +331,7 @@ background: #51B4D2;
              <string notr="true">QLabel {color: white; color: #51B4D2;} </string>
             </property>
             <property name="text">
-             <string>Ключи</string>
+             <string>Header keys</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -309,7 +357,7 @@ background: #51B4D2;
              <string notr="true">QLabel {color: white; color: #51B4D2;} </string>
             </property>
             <property name="text">
-             <string>Значения</string>
+             <string>Value keys</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -390,7 +438,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>231</height>
+                 <height>171</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_5">
@@ -444,7 +492,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>231</height>
+                 <height>171</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
@@ -485,8 +533,49 @@ background: #51B4D2;
        <number>15</number>
       </property>
       <property name="bottomMargin">
-       <number>0</number>
+       <number>10</number>
       </property>
+      <item>
+       <widget class="QPushButton" name="pushButton_3">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>160</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Montserrat</family>
+          <pointsize>13</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton
+{
+	background-color: #525252;
+	color: #37A2C3;
+	border: 3px solid #00AADF;
+	border-radius: 10px;
+}
+
+QPushButton:hover
+{
+	border: 4px solid #3CC7F2;
+	font-weight: bold;
+	color: #51B4D2;
+}</string>
+        </property>
+        <property name="text">
+         <string>Add key</string>
+        </property>
+       </widget>
+      </item>
       <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
@@ -537,7 +626,7 @@ QPushButton:hover
 }</string>
         </property>
         <property name="text">
-         <string>Отобразить</string>
+         <string>Display</string>
         </property>
        </widget>
       </item>
@@ -578,7 +667,7 @@ QPushButton:hover
 }</string>
         </property>
         <property name="text">
-         <string>Сохранить</string>
+         <string>Save</string>
         </property>
        </widget>
       </item>
