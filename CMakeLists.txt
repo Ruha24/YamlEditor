@@ -43,6 +43,9 @@ set(PROJECT_SOURCES
         addwindow.h
         addwindow.cpp
         addwindow.ui
+        searchingwindow.h
+        searchingwindow.cpp
+        searchingwindow.ui
         images.qrc
 )
 

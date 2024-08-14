@@ -9,6 +9,22 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    mainWidget = nullptr;
+    mainLayout = nullptr;
+
+    yandexApi = new YandexApi();
+    yamlReader = new YamlReader();
+
+    keyF11 = new QShortcut(this);
+    keyF11->setKey(Qt::Key_F11);
+
+    connect(keyF11, &QShortcut::activated, this, &MainWindow::slotShortcutF11);
+
+    keyCtrlF = new QShortcut(this);
+    keyCtrlF->setKey(Qt::CTRL | Qt::Key_F);
+
+    connect(keyCtrlF, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlF);
+
     yandexApi->getFiles([&](bool success) {
         if (success) {
             for (const QString &file : yandexApi->getListFileName()) {
@@ -47,7 +63,7 @@ void MainWindow::displayYamlData()
     displayedKeys.clear();
 
     for (const auto &node : root.children) {
-        displayNode(node, "");
+        displayNode(node, "", "");
     }
 
     ui->verticalLayout_2->addWidget(mainWidget);
@@ -67,6 +83,24 @@ void MainWindow::collectKeys(const YamlNode &node,
 
     for (const auto &subNode : node.children) {
         collectKeys(subNode, topLevelKeys, subKeys);
+    }
+}
+
+void MainWindow::slotShortcutCtrlF()
+{
+    searchingWindow *searchWnd = new searchingWindow();
+
+    connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
+
+    searchWnd->show();
+}
+
+void MainWindow::slotShortcutF11()
+{
+    if (this->isFullScreen()) {
+        this->showNormal();
+    } else {
+        this->showFullScreen();
     }
 }
 
@@ -129,8 +163,6 @@ void MainWindow::onCheckBoxStateChanged(int state)
     }
 }
 
-void MainWindow::addValue() {}
-
 void MainWindow::updateValue(const QString &path, const QString &newValue)
 {
     QStringList keys = path.split('.');
@@ -153,23 +185,33 @@ void MainWindow::updateValue(const QString &path, const QString &newValue)
     currentNode->value = newValue;
 }
 
-void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
+void MainWindow::displayNode(const YamlNode &node,
+                             const QString &parentPath,
+                             const QString &searchText)
 {
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
+    // Проверка на уникальность и наличие данных
     if (!displayedKeys.contains(currentPath)
         && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
         displayedKeys.insert(currentPath);
 
-        QLabel *titleLabel = new QLabel(node.key, this);
-        titleLabel->setStyleSheet("QLabel { font-size: 24px; color: rgb(98, 127, 255)}");
-        mainLayout->addWidget(titleLabel);
+        // Добавление заголовка узла, если он не пустой
+        if (!node.key.trimmed().isEmpty()) {
+            QLabel *titleLabel = new QLabel(node.key, this);
+            if (!searchText.isEmpty() && node.key.contains(searchText, Qt::CaseInsensitive)) {
+                foundWidgets.append(titleLabel);
+            }
+            titleLabel->setStyleSheet("QLabel { font-size: 24px; color: rgb(98, 127, 255); }");
 
-        if (parentPath.isEmpty()) {
-            QFrame *lineD = new QFrame;
-            lineD->setFrameShape(QFrame::HLine);
-            lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
-            mainLayout->addWidget(lineD);
+            mainLayout->addWidget(titleLabel);
+
+            if (parentPath.isEmpty()) {
+                QFrame *lineD = new QFrame;
+                lineD->setFrameShape(QFrame::HLine);
+                lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
+                mainLayout->addWidget(lineD);
+            }
         }
     }
 
@@ -187,12 +229,21 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
         bool hasChildren = !child.children.isEmpty();
         bool hasValue = !child.value.trimmed().isEmpty();
 
-        if (hasChildren || hasValue) {
+        if (!hasChildren && hasValue) {
             QLabel *keyLabel = new QLabel(key, this);
-            keyLabel->setStyleSheet("QLabel {font-size: 18px; color: white;}");
+            if (!searchText.isEmpty() && key.contains(searchText, Qt::CaseInsensitive)) {
+                foundWidgets.append(keyLabel);
+            }
+            keyLabel->setStyleSheet("QLabel { font-size: 18px; color: white; }");
+
+            gridLayout->addWidget(keyLabel, row, column);
+
             QLineEdit *valueEdit = new QLineEdit(child.value, this);
+            if (!searchText.isEmpty() && child.value.contains(searchText, Qt::CaseInsensitive)) {
+                foundWidgets.append(valueEdit);
+            }
             valueEdit->setStyleSheet(
-                "QLineEdit {font-size: 16px; color: white; max-width: 200px;}");
+                "QLineEdit { font-size: 16px; color: white; max-width: 200px; }");
 
             QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
@@ -200,7 +251,6 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
                 updateValue(fullPath, newValue);
             });
 
-            gridLayout->addWidget(keyLabel, row, column);
             gridLayout->addWidget(valueEdit, row, column + 1);
 
             column += 2;
@@ -211,16 +261,13 @@ void MainWindow::displayNode(const YamlNode &node, const QString &parentPath)
         }
 
         if (hasChildren) {
-            QLayoutItem *item;
-            while ((item = gridLayout->takeAt(0)) != nullptr) {
-                delete item->widget();
-                delete item;
-            }
-            displayNode(child, currentPath);
+            displayNode(child, currentPath, searchText);
         }
     }
 
-    mainLayout->addLayout(gridLayout);
+    if (gridLayout->count() > 0) {
+        mainLayout->addLayout(gridLayout);
+    }
 }
 
 void MainWindow::createCheckBox(const QString &name, int row, int col, bool topLevelKey)
@@ -269,6 +316,7 @@ void MainWindow::clearScrollArea()
     if (mainWidget != nullptr) {
         mainWidget->deleteLater();
     }
+
     mainWidget = new QWidget(this);
     mainLayout = new QVBoxLayout(mainWidget);
 
@@ -316,5 +364,76 @@ void MainWindow::handleSaveData(const QList<WidgetData> &widgetDataList)
 {
     for (const WidgetData &data : widgetDataList) {
         root.children.append(YamlNode(data.comboBox->currentText(), data.lineEdit->text()));
+    }
+}
+
+void MainWindow::searchingText(const QString &text)
+{
+    if (searching_text == text) {
+        currentFoundIndex++;
+        highlightCurrentFound();
+        return;
+    }
+
+    searching_text = text;
+
+    clearScrollArea();
+
+    displayedKeys.clear();
+    foundWidgets.clear();
+    currentFoundIndex = -1;
+
+    for (const auto &node : root.children) {
+        displayNode(node, "", text);
+    }
+
+    if (!foundWidgets.isEmpty()) {
+        currentFoundIndex = 0;
+        highlightCurrentFound();
+    }
+
+    ui->verticalLayout_2->addWidget(mainWidget);
+}
+
+void MainWindow::highlightCurrentFound()
+{
+    if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
+        QWidget *currentWidget = foundWidgets[currentFoundIndex];
+
+        if (!currentWidget) {
+            qWarning() << "Current widget is null!";
+            return;
+        }
+
+        if (previousWidget) {
+            previousWidget->setStyleSheet(previousWidgetOriginalStyleSheet);
+        }
+
+        QString currentStyleSheet = currentWidget->styleSheet();
+
+        previousWidget = currentWidget;
+        previousWidgetOriginalStyleSheet = currentStyleSheet;
+
+        static QRegularExpression regex("color:\\s*[^;]+;");
+        QString newColor = "color: blue;";
+
+        if (regex.match(currentStyleSheet).hasMatch()) {
+            currentStyleSheet.replace(regex, newColor);
+        } else {
+            currentStyleSheet += " " + newColor;
+        }
+
+        currentWidget->setStyleSheet(currentStyleSheet);
+
+        scrollIntoView(currentWidget);
+    } else {
+        QMessageBox::information(this, "Editor", "Can't find it \"" + searching_text + "\"");
+    }
+}
+
+void MainWindow::scrollIntoView(QWidget *widget)
+{
+    if (ui->scrollArea) {
+        ui->scrollArea->ensureWidgetVisible(widget);
     }
 }

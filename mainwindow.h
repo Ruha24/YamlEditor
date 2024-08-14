@@ -7,11 +7,15 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QRegularExpression>
+#include <QScrollBar>
 #include <QSettings>
+#include <QShortcut>
 #include <QSpacerItem>
 #include <QWidget>
 
 #include "addwindow.h"
+#include "searchingwindow.h"
 #include "yamlreader.h"
 #include "yandexapi.h"
 
@@ -41,23 +45,45 @@ private slots:
     void handleDataAdded(int id, const QString &key, const QString &value);
     void handleDataChanged(int id, const QString &key, const QString &value);
     void handleSaveData(const QList<WidgetData> &widgetDataList);
+    void searchingText(const QString &text);
 
 private:
+    void display(const YamlNode &node, const QString &parentPath, const QString &searchText);
+
     Ui::MainWindow *ui;
 
+    QShortcut *keyF11;
+    QShortcut *keyCtrlF;
+
+    QString searching_text;
+
+    YamlReader *yamlReader;
+    YandexApi *yandexApi;
+
+    QWidget *mainWidget;
+    QVBoxLayout *mainLayout;
+
+    QWidget *previousWidget = nullptr;
+    QString previousWidgetOriginalStyleSheet;
+
+    QSet<QString> displayedKeys;
     YamlNode root;
     QMap<QString, bool> checkBoxStates;
-    QWidget *mainWidget = nullptr;
-    QVBoxLayout *mainLayout = nullptr;
-    QSet<QString> displayedKeys;
-
     QSet<QString> topLevelKeys;
     QSet<QString> subKeys;
+    QList<QWidget *> foundWidgets;
+    int currentFoundIndex;
 
     void addValue();
     void updateValue(const QString &path, const QString &newValue);
-    void displayNode(const YamlNode &node, const QString &parentPath);
+    void displayNode(const YamlNode &node, const QString &parentPath, const QString &searchText);
     void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
+
+    void slotShortcutCtrlF();
+    void slotShortcutF11();
+
+    void highlightCurrentFound();
+    void scrollIntoView(QWidget *widget);
 
     void createCheckBox(const QString &name, int row, int col, bool topLevelKey);
     void clearKeysArea();
@@ -65,8 +91,5 @@ private:
     void saveData();
     void displayYamlData();
     void displaykeys();
-
-    YamlReader *yamlReader = new YamlReader();
-    YandexApi *yandexApi = new YandexApi();
 };
 #endif // MAINWINDOW_H
