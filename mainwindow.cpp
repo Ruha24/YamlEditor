@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     mainWidget = nullptr;
     mainLayout = nullptr;
+    treeWidget = nullptr;
 
     yandexApi = new YandexApi();
     yamlReader = new YamlReader();
@@ -62,11 +63,19 @@ void MainWindow::displayYamlData()
     root = yamlReader->getRootNode();
     displayedKeys.clear();
 
-    for (const auto &node : root.children) {
-        displayNode(node, "", "");
-    }
+    if (ui->treechb->isChecked()) {
+        ui->verticalLayout_2->addWidget(treeWidget);
 
-    ui->verticalLayout_2->addWidget(mainWidget);
+        for (const auto &node : root.children) {
+            displayTreeNode(node, "", "", nullptr, treeWidget);
+        }
+    } else if (ui->prettychb->isChecked()) {
+        for (const auto &node : root.children) {
+            displayNode(node, "", "");
+        }
+
+        ui->verticalLayout_2->addWidget(mainWidget);
+    }
 }
 
 void MainWindow::collectKeys(const YamlNode &node,
@@ -191,27 +200,24 @@ void MainWindow::displayNode(const YamlNode &node,
 {
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
-    // Проверка на уникальность и наличие данных
     if (!displayedKeys.contains(currentPath)
         && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
         displayedKeys.insert(currentPath);
 
-        // Добавление заголовка узла, если он не пустой
-        if (!node.key.trimmed().isEmpty()) {
-            QLabel *titleLabel = new QLabel(node.key, this);
-            if (!searchText.isEmpty() && node.key.contains(searchText, Qt::CaseInsensitive)) {
-                foundWidgets.append(titleLabel);
-            }
-            titleLabel->setStyleSheet("QLabel { font-size: 24px; color: rgb(98, 127, 255); }");
+        QLineEdit *title = new QLineEdit(node.key, this);
+        if (!searchText.isEmpty() && node.key.contains(searchText, Qt::CaseInsensitive)) {
+            foundWidgets.append(title);
+        }
+        title->setStyleSheet(
+            "QLineEdit { border: none; font-size: 24px; color: rgb(98, 127, 255); }");
 
-            mainLayout->addWidget(titleLabel);
+        mainLayout->addWidget(title);
 
-            if (parentPath.isEmpty()) {
-                QFrame *lineD = new QFrame;
-                lineD->setFrameShape(QFrame::HLine);
-                lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
-                mainLayout->addWidget(lineD);
-            }
+        if (parentPath.isEmpty()) {
+            QFrame *lineD = new QFrame;
+            lineD->setFrameShape(QFrame::HLine);
+            lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
+            mainLayout->addWidget(lineD);
         }
     }
 
@@ -230,20 +236,21 @@ void MainWindow::displayNode(const YamlNode &node,
         bool hasValue = !child.value.trimmed().isEmpty();
 
         if (!hasChildren && hasValue) {
-            QLabel *keyLabel = new QLabel(key, this);
+            QLineEdit *keyEdit = new QLineEdit(key, this);
             if (!searchText.isEmpty() && key.contains(searchText, Qt::CaseInsensitive)) {
-                foundWidgets.append(keyLabel);
+                foundWidgets.append(keyEdit);
             }
-            keyLabel->setStyleSheet("QLabel { font-size: 18px; color: white; }");
 
-            gridLayout->addWidget(keyLabel, row, column);
+            keyEdit->setStyleSheet("QLineEdit { border: none; font-size: 18px; color: white; }");
+
+            gridLayout->addWidget(keyEdit, row, column);
 
             QLineEdit *valueEdit = new QLineEdit(child.value, this);
             if (!searchText.isEmpty() && child.value.contains(searchText, Qt::CaseInsensitive)) {
                 foundWidgets.append(valueEdit);
             }
-            valueEdit->setStyleSheet(
-                "QLineEdit { font-size: 16px; color: white; max-width: 200px; }");
+            valueEdit->setStyleSheet("QLineEdit {  font-size: "
+                                     "16px; color: white; max-width: 200px; }");
 
             QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
@@ -267,6 +274,57 @@ void MainWindow::displayNode(const YamlNode &node,
 
     if (gridLayout->count() > 0) {
         mainLayout->addLayout(gridLayout);
+    }
+}
+
+void MainWindow::displayTreeNode(const YamlNode &node,
+                                 const QString &parentPath,
+                                 const QString &searchText,
+                                 QTreeWidgetItem *parentItem,
+                                 QTreeWidget *treeWidget)
+{
+    bool isChecked = checkBoxStates.contains(node.key) ? checkBoxStates[node.key] : false;
+
+    if (!isChecked) {
+        for (const auto &child : node.children) {
+            displayTreeNode(child, parentPath, searchText, parentItem, treeWidget);
+        }
+        return;
+    }
+
+    QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
+
+    QTreeWidgetItem *treeItem = new QTreeWidgetItem();
+    treeItem->setText(0, node.key);
+
+    if (parentItem) {
+        parentItem->addChild(treeItem);
+    } else {
+        treeWidget->addTopLevelItem(treeItem);
+    }
+
+    QLineEdit *keytxt = new QLineEdit(node.key, this);
+    keytxt->setStyleSheet("QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
+    treeWidget->setItemWidget(treeItem, 0, keytxt);
+
+    if (!searchText.isEmpty()
+        && (node.key.contains(searchText, Qt::CaseInsensitive)
+            || node.value.contains(searchText, Qt::CaseInsensitive))) {
+        foundWidgets.append(keytxt);
+    }
+
+    if (!node.value.trimmed().isEmpty()) {
+        QLineEdit *valuetxt = new QLineEdit(node.value, this);
+        valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
+        treeWidget->setItemWidget(treeItem, 1, valuetxt);
+
+        if (!searchText.isEmpty() && node.value.contains(searchText, Qt::CaseInsensitive)) {
+            foundWidgets.append(valuetxt);
+        }
+    }
+
+    for (const auto &child : node.children) {
+        displayTreeNode(child, currentPath, searchText, treeItem, treeWidget);
     }
 }
 
@@ -316,6 +374,19 @@ void MainWindow::clearScrollArea()
     if (mainWidget != nullptr) {
         mainWidget->deleteLater();
     }
+
+    if (treeWidget != nullptr) {
+        treeWidget->deleteLater();
+    }
+
+    treeWidget = new QTreeWidget(this);
+
+    treeWidget->setMinimumSize(600, 400);
+    treeWidget->setColumnCount(2);
+    treeWidget->setHeaderLabels(QStringList() << "Key"
+                                              << "Value");
+    treeWidget->setColumnWidth(0, 200);
+    treeWidget->setStyleSheet("QTreeWidget { font-size: 16px; }");
 
     mainWidget = new QWidget(this);
     mainLayout = new QVBoxLayout(mainWidget);
@@ -383,16 +454,26 @@ void MainWindow::searchingText(const QString &text)
     foundWidgets.clear();
     currentFoundIndex = -1;
 
-    for (const auto &node : root.children) {
-        displayNode(node, "", text);
+    if (ui->prettychb->isChecked()) {
+        isTree = false;
+        for (const auto &node : root.children) {
+            displayNode(node, "", text);
+        }
+
+        ui->verticalLayout_2->addWidget(mainWidget);
+    } else if (ui->treechb->isChecked()) {
+        isTree = true;
+        for (const auto &node : root.children) {
+            displayTreeNode(node, "", text, nullptr, treeWidget);
+        }
+
+        ui->verticalLayout_2->addWidget(treeWidget);
     }
 
     if (!foundWidgets.isEmpty()) {
         currentFoundIndex = 0;
         highlightCurrentFound();
     }
-
-    ui->verticalLayout_2->addWidget(mainWidget);
 }
 
 void MainWindow::highlightCurrentFound()
@@ -433,7 +514,39 @@ void MainWindow::highlightCurrentFound()
 
 void MainWindow::scrollIntoView(QWidget *widget)
 {
-    if (ui->scrollArea) {
+    if (ui->treechb->isChecked() && treeWidget) {
+        QTreeWidgetItemIterator it(treeWidget);
+        while (*it) {
+            QTreeWidgetItem *item = *it;
+
+            if (treeWidget->itemWidget(item, 0) == widget
+                || treeWidget->itemWidget(item, 1) == widget) {
+                treeWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
+
+                return;
+            }
+            ++it;
+        }
+    } else if (ui->scrollArea && ui->prettychb->isChecked()) {
+        qDebug() << "1";
         ui->scrollArea->ensureWidgetVisible(widget);
     }
+}
+
+void MainWindow::on_prettychb_toggled(bool checked)
+{
+    if (checked) {
+        ui->treechb->setChecked(false);
+    }
+
+    displayYamlData();
+}
+
+void MainWindow::on_treechb_toggled(bool checked)
+{
+    if (checked) {
+        ui->prettychb->setChecked(false);
+    }
+
+    displayYamlData();
 }

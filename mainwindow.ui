@@ -142,7 +142,7 @@ QScrollBar::sub-line:vertical {
       </item>
      </layout>
     </item>
-    <item row="1" column="0">
+    <item row="2" column="0">
      <widget class="QSplitter" name="splitter">
       <property name="styleSheet">
        <string notr="true">
@@ -215,7 +215,7 @@ background: #51B4D2;
              <x>0</x>
              <y>0</y>
              <width>686</width>
-             <height>342</height>
+             <height>313</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout">
@@ -438,7 +438,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>171</height>
+                 <height>151</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_5">
@@ -492,7 +492,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>171</height>
+                 <height>151</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
@@ -527,7 +527,7 @@ background: #51B4D2;
       </widget>
      </widget>
     </item>
-    <item row="2" column="0">
+    <item row="3" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <property name="topMargin">
        <number>15</number>
@@ -670,6 +670,110 @@ QPushButton:hover
          <string>Save</string>
         </property>
        </widget>
+      </item>
+     </layout>
+    </item>
+    <item row="1" column="0">
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <property name="sizeConstraint">
+       <enum>QLayout::SetMinimumSize</enum>
+      </property>
+      <property name="topMargin">
+       <number>10</number>
+      </property>
+      <property name="bottomMargin">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QCheckBox" name="prettychb">
+        <property name="font">
+         <font>
+          <family>Montserrat</family>
+          <pointsize>-1</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QCheckBox
+{ 
+	color: white;
+	font-size: 18px;
+}
+
+QCheckBox::indicator 
+{
+	width: 20px;
+	height: 20px; 
+	background-color: #525252; 
+	color: #37A2C3; 
+	border: 1px solid #00AADF; 
+	border-radius: 5px;
+} 
+
+QCheckBox::indicator:checked 
+{ 
+	border: 1px solid #3CC7F2;
+	background-color: #51B4D2;
+}</string>
+        </property>
+        <property name="text">
+         <string>Pretty</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="treechb">
+        <property name="font">
+         <font>
+          <family>Montserrat</family>
+          <pointsize>-1</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QCheckBox
+{ 
+	color: white;
+	font-size: 18px;
+}
+
+QCheckBox::indicator 
+{
+	width: 20px;
+	height: 20px; 
+	background-color: #525252; 
+	color: #37A2C3; 
+	border: 1px solid #00AADF; 
+	border-radius: 5px;
+} 
+
+QCheckBox::indicator:checked 
+{ 
+	border: 1px solid #3CC7F2;
+	background-color: #51B4D2;
+}</string>
+        </property>
+        <property name="text">
+         <string>Tree</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer_10">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
       </item>
      </layout>
     </item>

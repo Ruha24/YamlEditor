@@ -12,6 +12,9 @@
 #include <QSettings>
 #include <QShortcut>
 #include <QSpacerItem>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
+#include <QTreeWidgetItemIterator>
 #include <QWidget>
 
 #include "addwindow.h"
@@ -47,9 +50,11 @@ private slots:
     void handleSaveData(const QList<WidgetData> &widgetDataList);
     void searchingText(const QString &text);
 
-private:
-    void display(const YamlNode &node, const QString &parentPath, const QString &searchText);
+    void on_prettychb_toggled(bool checked);
 
+    void on_treechb_toggled(bool checked);
+
+private:
     Ui::MainWindow *ui;
 
     QShortcut *keyF11;
@@ -62,6 +67,7 @@ private:
 
     QWidget *mainWidget;
     QVBoxLayout *mainLayout;
+    QTreeWidget *treeWidget;
 
     QWidget *previousWidget = nullptr;
     QString previousWidgetOriginalStyleSheet;
@@ -73,10 +79,18 @@ private:
     QSet<QString> subKeys;
     QList<QWidget *> foundWidgets;
     int currentFoundIndex;
+    bool isTree;
 
     void addValue();
     void updateValue(const QString &path, const QString &newValue);
+
     void displayNode(const YamlNode &node, const QString &parentPath, const QString &searchText);
+    void displayTreeNode(const YamlNode &node,
+                         const QString &parentPath,
+                         const QString &searchText,
+                         QTreeWidgetItem *parentItem,
+                         QTreeWidget *treeWidget);
+
     void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
 
     void slotShortcutCtrlF();
