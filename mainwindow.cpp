@@ -286,9 +286,6 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     bool isChecked = checkBoxStates.contains(node.key) ? checkBoxStates[node.key] : false;
 
     if (!isChecked) {
-        for (const auto &child : node.children) {
-            displayTreeNode(child, parentPath, searchText, parentItem, treeWidget);
-        }
         return;
     }
 
