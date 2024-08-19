@@ -172,7 +172,7 @@ void MainWindow::onCheckBoxStateChanged(int state)
     }
 }
 
-void MainWindow::updateValue(const QString &path, const QString &newValue)
+void MainWindow::updateValue(const QString &path, const QString &newValue, bool isKey)
 {
     QStringList keys = path.split('.');
     YamlNode *currentNode = &root;
@@ -180,6 +180,7 @@ void MainWindow::updateValue(const QString &path, const QString &newValue)
     for (const QString &key : keys) {
         bool found = false;
         for (YamlNode &child : currentNode->children) {
+            qDebug() << "Inspecting child: " << child.key << " for key: " << key;
             if (child.key == key) {
                 currentNode = &child;
                 found = true;
@@ -187,11 +188,20 @@ void MainWindow::updateValue(const QString &path, const QString &newValue)
             }
         }
         if (!found) {
+            qDebug() << "Key not found: " << key << " in path: " << path;
             return;
         }
     }
 
-    currentNode->value = newValue;
+    qDebug() << "isKey: " << isKey << " key: " << currentNode->key << " newValue: " << newValue;
+
+    if (isKey)
+        currentNode->key = newValue;
+    else
+        currentNode->value = newValue;
+
+    qDebug() << "Update complete. New key: " << currentNode->key
+             << ", new value: " << currentNode->value;
 }
 
 void MainWindow::displayNode(const YamlNode &node,
@@ -211,14 +221,11 @@ void MainWindow::displayNode(const YamlNode &node,
         title->setStyleSheet(
             "QLineEdit { border: none; font-size: 24px; color: rgb(98, 127, 255); }");
 
-        mainLayout->addWidget(title);
+        connect(title, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+            updateValue(currentPath, newValue, true);
+        });
 
-        if (parentPath.isEmpty()) {
-            QFrame *lineD = new QFrame;
-            lineD->setFrameShape(QFrame::HLine);
-            lineD->setStyleSheet("QFrame { margin: 5px 0; background-color: #36b578; }");
-            mainLayout->addWidget(lineD);
-        }
+        mainLayout->addWidget(title);
     }
 
     QGridLayout *gridLayout = new QGridLayout();
@@ -227,6 +234,7 @@ void MainWindow::displayNode(const YamlNode &node,
 
     for (const auto &child : node.children) {
         QString key = child.key;
+        QString value = child.value;
         bool isChecked = checkBoxStates.contains(key) ? checkBoxStates[key] : false;
 
         if (!isChecked)
@@ -245,20 +253,25 @@ void MainWindow::displayNode(const YamlNode &node,
 
             gridLayout->addWidget(keyEdit, row, column);
 
+            QString keyPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+
+            connect(keyEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+                updateValue(keyPath, newValue, true);
+            });
+
             QLineEdit *valueEdit = new QLineEdit(child.value, this);
             if (!searchText.isEmpty() && child.value.contains(searchText, cs)) {
                 foundWidgets.append(valueEdit);
             }
+
             valueEdit->setStyleSheet("QLineEdit {  font-size: "
                                      "16px; color: white; max-width: 200px; }");
 
-            QString fullPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+            gridLayout->addWidget(valueEdit, row, column + 1);
 
             connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-                updateValue(fullPath, newValue);
+                updateValue(keyPath, newValue, false);
             });
-
-            gridLayout->addWidget(valueEdit, row, column + 1);
 
             column += 2;
             if (column >= 4) {
@@ -304,6 +317,10 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     keytxt->setStyleSheet("QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
     treeWidget->setItemWidget(treeItem, 0, keytxt);
 
+    connect(keytxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+        updateValue(currentPath, newValue, true);
+    });
+
     if (!searchText.isEmpty()
         && (node.key.contains(searchText, cs) || node.value.contains(searchText, cs))) {
         foundWidgets.append(keytxt);
@@ -313,6 +330,10 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         QLineEdit *valuetxt = new QLineEdit(node.value, this);
         valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
         treeWidget->setItemWidget(treeItem, 1, valuetxt);
+
+        connect(valuetxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+            updateValue(currentPath, newValue, false);
+        });
 
         if (!searchText.isEmpty() && node.value.contains(searchText, cs)) {
             foundWidgets.append(valuetxt);

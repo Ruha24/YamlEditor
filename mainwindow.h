@@ -76,7 +76,7 @@ private:
     int startingIndex;
     Qt::CaseSensitivity cs;
 
-    void updateValue(const QString &path, const QString &newValue);
+    void updateValue(const QString &path, const QString &newValue, bool isKey);
 
     void displayNode(const YamlNode &node, const QString &parentPath, const QString &searchText);
     void displayTreeNode(const YamlNode &node,
@@ -94,9 +94,12 @@ private:
     void scrollIntoView(QWidget *widget);
 
     void createCheckBox(const QString &name, int row, int col, bool topLevelKey);
+
     void clearKeysArea();
     void clearScrollArea();
+
     void saveData();
+
     void displayYamlData();
     void displaykeys();
 };
