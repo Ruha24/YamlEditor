@@ -394,45 +394,63 @@ void MainWindow::clearScrollArea()
     }
 }
 
-void MainWindow::searchingText(const QString &text, bool isSensitive)
+void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_downward)
 {
     Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-    if (searching_text == text && newCs == cs) {
-        currentFoundIndex++;
-        highlightCurrentFound();
+    if (searching_text != text || newCs != cs) {
+        cs = newCs;
+        searching_text = text;
+
+        clearScrollArea();
+        displayedKeys.clear();
+        foundWidgets.clear();
+        currentFoundIndex = -1;
+        startingIndex = -1;
+
+        if (ui->prettychb->isChecked()) {
+            for (const auto &node : root.children) {
+                displayNode(node, "", text);
+            }
+            ui->verticalLayout_2->addWidget(mainWidget);
+        } else if (ui->treechb->isChecked()) {
+            for (const auto &node : root.children) {
+                displayTreeNode(node, "", text, nullptr, treeWidget);
+            }
+            ui->verticalLayout_2->addWidget(treeWidget);
+        }
+
+        if (!foundWidgets.isEmpty()) {
+            currentFoundIndex = is_downward ? 0 : foundWidgets.size() - 1;
+            highlightCurrentFound();
+        }
         return;
     }
 
-    cs = newCs;
-    searching_text = text;
-
-    clearScrollArea();
-
-    displayedKeys.clear();
-    foundWidgets.clear();
-    currentFoundIndex = -1;
-
-    if (ui->prettychb->isChecked()) {
-        for (const auto &node : root.children) {
-            displayNode(node, "", text);
-        }
-
-        ui->verticalLayout_2->addWidget(mainWidget);
-    } else if (ui->treechb->isChecked()) {
-        for (const auto &node : root.children) {
-            displayTreeNode(node, "", text, nullptr, treeWidget);
-        }
-
-        ui->verticalLayout_2->addWidget(treeWidget);
+    if (startingIndex == -1) {
+        startingIndex = currentFoundIndex;
     }
 
-    if (!foundWidgets.isEmpty()) {
-        currentFoundIndex = 0;
-        highlightCurrentFound();
+    if (is_downward) {
+        currentFoundIndex++;
+        if (currentFoundIndex >= foundWidgets.size()) {
+            currentFoundIndex = 0;
+        }
+    } else {
+        currentFoundIndex--;
+        if (currentFoundIndex < 0) {
+            currentFoundIndex = foundWidgets.size() - 1;
+        }
     }
+
+    if (currentFoundIndex == startingIndex) {
+        QMessageBox::information(this, "Search", "Reached the end of the search results.");
+        startingIndex = -1;
+        return;
+    }
+
+    highlightCurrentFound();
 }
-
 void MainWindow::highlightCurrentFound()
 {
     if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
