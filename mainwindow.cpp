@@ -205,7 +205,7 @@ void MainWindow::displayNode(const YamlNode &node,
         displayedKeys.insert(currentPath);
 
         QLineEdit *title = new QLineEdit(node.key, this);
-        if (!searchText.isEmpty() && node.key.contains(searchText, Qt::CaseInsensitive)) {
+        if (!searchText.isEmpty() && node.key.contains(searchText, cs)) {
             foundWidgets.append(title);
         }
         title->setStyleSheet(
@@ -237,7 +237,7 @@ void MainWindow::displayNode(const YamlNode &node,
 
         if (!hasChildren && hasValue) {
             QLineEdit *keyEdit = new QLineEdit(key, this);
-            if (!searchText.isEmpty() && key.contains(searchText, Qt::CaseInsensitive)) {
+            if (!searchText.isEmpty() && key.contains(searchText, cs)) {
                 foundWidgets.append(keyEdit);
             }
 
@@ -246,7 +246,7 @@ void MainWindow::displayNode(const YamlNode &node,
             gridLayout->addWidget(keyEdit, row, column);
 
             QLineEdit *valueEdit = new QLineEdit(child.value, this);
-            if (!searchText.isEmpty() && child.value.contains(searchText, Qt::CaseInsensitive)) {
+            if (!searchText.isEmpty() && child.value.contains(searchText, cs)) {
                 foundWidgets.append(valueEdit);
             }
             valueEdit->setStyleSheet("QLineEdit {  font-size: "
@@ -305,8 +305,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     treeWidget->setItemWidget(treeItem, 0, keytxt);
 
     if (!searchText.isEmpty()
-        && (node.key.contains(searchText, Qt::CaseInsensitive)
-            || node.value.contains(searchText, Qt::CaseInsensitive))) {
+        && (node.key.contains(searchText, cs) || node.value.contains(searchText, cs))) {
         foundWidgets.append(keytxt);
     }
 
@@ -315,7 +314,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
         treeWidget->setItemWidget(treeItem, 1, valuetxt);
 
-        if (!searchText.isEmpty() && node.value.contains(searchText, Qt::CaseInsensitive)) {
+        if (!searchText.isEmpty() && node.value.contains(searchText, cs)) {
             foundWidgets.append(valuetxt);
         }
     }
@@ -395,14 +394,17 @@ void MainWindow::clearScrollArea()
     }
 }
 
-void MainWindow::searchingText(const QString &text)
+void MainWindow::searchingText(const QString &text, bool isSensitive)
 {
-    if (searching_text == text) {
+    Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+    if (searching_text == text && newCs == cs) {
         currentFoundIndex++;
         highlightCurrentFound();
         return;
     }
 
+    cs = newCs;
     searching_text = text;
 
     clearScrollArea();

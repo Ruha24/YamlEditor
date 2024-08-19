@@ -42,7 +42,7 @@ private slots:
 
     void onCheckBoxStateChanged(int state);
 
-    void searchingText(const QString &text);
+    void searchingText(const QString &text, bool isSensitive);
 
     void on_prettychb_toggled(bool checked);
 
@@ -73,6 +73,7 @@ private:
     QSet<QString> subKeys;
     QList<QWidget *> foundWidgets;
     int currentFoundIndex;
+    Qt::CaseSensitivity cs;
 
     void updateValue(const QString &path, const QString &newValue);
 

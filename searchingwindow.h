@@ -16,7 +16,7 @@ public:
     ~searchingWindow();
 
 signals:
-    void searchingText(const QString &text);
+    void searchingText(const QString &text, bool isSensitive);
 
 private slots:
     void on_searchingBtn_clicked();

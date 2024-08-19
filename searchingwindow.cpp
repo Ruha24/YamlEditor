@@ -15,7 +15,7 @@ searchingWindow::~searchingWindow()
 
 void searchingWindow::on_searchingBtn_clicked()
 {
-    emit searchingText(ui->lineEdit->text());
+    emit searchingText(ui->lineEdit->text(), ui->casechb->checkState());
 }
 
 void searchingWindow::on_cancelBtn_clicked()

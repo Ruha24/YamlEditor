@@ -64,6 +64,25 @@
     <string>Cancel</string>
    </property>
   </widget>
+  <widget class="QCheckBox" name="casechb">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>60</y>
+     <width>131</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Montserrat</family>
+     <pointsize>10</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Case sensitive</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
