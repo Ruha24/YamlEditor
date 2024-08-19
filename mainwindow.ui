@@ -536,47 +536,6 @@ background: #51B4D2;
        <number>10</number>
       </property>
       <item>
-       <widget class="QPushButton" name="pushButton_3">
-        <property name="minimumSize">
-         <size>
-          <width>160</width>
-          <height>40</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>160</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <family>Montserrat</family>
-          <pointsize>13</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton
-{
-	background-color: #525252;
-	color: #37A2C3;
-	border: 3px solid #00AADF;
-	border-radius: 10px;
-}
-
-QPushButton:hover
-{
-	border: 4px solid #3CC7F2;
-	font-weight: bold;
-	color: #51B4D2;
-}</string>
-        </property>
-        <property name="text">
-         <string>Add key</string>
-        </property>
-       </widget>
-      </item>
-      <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

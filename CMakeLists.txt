@@ -40,9 +40,6 @@ set(PROJECT_SOURCES
         yamlreader.cpp
         yamlnode.h
         yamlnode.cpp
-        addwindow.h
-        addwindow.cpp
-        addwindow.ui
         searchingwindow.h
         searchingwindow.cpp
         searchingwindow.ui

@@ -398,46 +398,6 @@ void MainWindow::clearScrollArea()
     }
 }
 
-void MainWindow::on_pushButton_3_clicked()
-{
-    if (topLevelKeys.isEmpty()) {
-        QMessageBox::information(this, "Error", "Select a config");
-        return;
-    }
-
-    AddWindow *addWindow = new AddWindow(this, topLevelKeys);
-
-    connect(addWindow, &AddWindow::saveData, this, &MainWindow::handleSaveData);
-    connect(addWindow, &AddWindow::dataAdded, this, &MainWindow::handleDataAdded);
-    connect(addWindow, &AddWindow::dataChanged, this, &MainWindow::handleDataChanged);
-
-    addWindow->show();
-}
-
-void MainWindow::handleDataAdded(int id, const QString &key, const QString &value)
-{
-    YamlNode newNode(key, value);
-    root.children.append(newNode);
-}
-
-void MainWindow::handleDataChanged(int id, const QString &key, const QString &value)
-{
-    for (YamlNode &child : root.children) {
-        if (child.key == key) {
-            child.value = value;
-            return;
-        }
-    }
-    root.children.append(YamlNode(key, value));
-}
-
-void MainWindow::handleSaveData(const QList<WidgetData> &widgetDataList)
-{
-    for (const WidgetData &data : widgetDataList) {
-        root.children.append(YamlNode(data.comboBox->currentText(), data.lineEdit->text()));
-    }
-}
-
 void MainWindow::searchingText(const QString &text)
 {
     if (searching_text == text) {
@@ -455,14 +415,12 @@ void MainWindow::searchingText(const QString &text)
     currentFoundIndex = -1;
 
     if (ui->prettychb->isChecked()) {
-        isTree = false;
         for (const auto &node : root.children) {
             displayNode(node, "", text);
         }
 
         ui->verticalLayout_2->addWidget(mainWidget);
     } else if (ui->treechb->isChecked()) {
-        isTree = true;
         for (const auto &node : root.children) {
             displayTreeNode(node, "", text, nullptr, treeWidget);
         }

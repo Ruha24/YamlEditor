@@ -17,7 +17,6 @@
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
 
-#include "addwindow.h"
 #include "searchingwindow.h"
 #include "yamlreader.h"
 #include "yandexapi.h"
@@ -43,11 +42,6 @@ private slots:
 
     void onCheckBoxStateChanged(int state);
 
-    void on_pushButton_3_clicked();
-
-    void handleDataAdded(int id, const QString &key, const QString &value);
-    void handleDataChanged(int id, const QString &key, const QString &value);
-    void handleSaveData(const QList<WidgetData> &widgetDataList);
     void searchingText(const QString &text);
 
     void on_prettychb_toggled(bool checked);
@@ -79,9 +73,7 @@ private:
     QSet<QString> subKeys;
     QList<QWidget *> foundWidgets;
     int currentFoundIndex;
-    bool isTree;
 
-    void addValue();
     void updateValue(const QString &path, const QString &newValue);
 
     void displayNode(const YamlNode &node, const QString &parentPath, const QString &searchText);
