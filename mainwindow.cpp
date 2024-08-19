@@ -26,6 +26,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(keyCtrlF, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlF);
 
+    keyCtrlS = new QShortcut(this);
+    keyCtrlS->setKey(Qt::CTRL | Qt::Key_S);
+
+    connect(keyCtrlS, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlS);
+
     yandexApi->getFiles([&](bool success) {
         if (success) {
             for (const QString &file : yandexApi->getListFileName()) {
@@ -113,6 +118,11 @@ void MainWindow::slotShortcutF11()
     }
 }
 
+void MainWindow::slotShortcutCtrlS()
+{
+    saveData();
+}
+
 void MainWindow::displaykeys()
 {
     clearKeysArea();
@@ -180,7 +190,6 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
     for (const QString &key : keys) {
         bool found = false;
         for (YamlNode &child : currentNode->children) {
-            qDebug() << "Inspecting child: " << child.key << " for key: " << key;
             if (child.key == key) {
                 currentNode = &child;
                 found = true;
@@ -188,20 +197,14 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
             }
         }
         if (!found) {
-            qDebug() << "Key not found: " << key << " in path: " << path;
             return;
         }
     }
-
-    qDebug() << "isKey: " << isKey << " key: " << currentNode->key << " newValue: " << newValue;
 
     if (isKey)
         currentNode->key = newValue;
     else
         currentNode->value = newValue;
-
-    qDebug() << "Update complete. New key: " << currentNode->key
-             << ", new value: " << currentNode->value;
 }
 
 void MainWindow::displayNode(const YamlNode &node,

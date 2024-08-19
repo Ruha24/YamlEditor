@@ -53,6 +53,7 @@ private:
 
     QShortcut *keyF11;
     QShortcut *keyCtrlF;
+    QShortcut *keyCtrlS;
 
     QString searching_text;
 
@@ -89,6 +90,7 @@ private:
 
     void slotShortcutCtrlF();
     void slotShortcutF11();
+    void slotShortcutCtrlS();
 
     void highlightCurrentFound();
     void scrollIntoView(QWidget *widget);
