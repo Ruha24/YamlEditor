@@ -49,6 +49,18 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 {
     ui->fileNamecmb->setCurrentIndex(index);
 
+    if (!root.children.isEmpty()) {
+        QMessageBox::StandardButton reply = QMessageBox::question(this,
+                                                                  "Save File",
+                                                                  "Do you want to save the file?",
+                                                                  QMessageBox::Yes | QMessageBox::No,
+                                                                  QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            saveData();
+        }
+    }
+
     if (yamlReader->readFile(ui->fileNamecmb->currentText())) {
         displayYamlData();
         displaykeys();
