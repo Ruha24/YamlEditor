@@ -480,13 +480,11 @@ void MainWindow::scrollIntoView(QWidget *widget)
             if (treeWidget->itemWidget(item, 0) == widget
                 || treeWidget->itemWidget(item, 1) == widget) {
                 treeWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
-
                 return;
             }
             ++it;
         }
     } else if (ui->scrollArea && ui->prettychb->isChecked()) {
-        qDebug() << "1";
         ui->scrollArea->ensureWidgetVisible(widget);
     }
 }
@@ -497,6 +495,8 @@ void MainWindow::on_prettychb_toggled(bool checked)
         ui->treechb->setChecked(false);
     }
 
+    searching_text = "";
+
     displayYamlData();
 }
 
@@ -505,6 +505,8 @@ void MainWindow::on_treechb_toggled(bool checked)
     if (checked) {
         ui->prettychb->setChecked(false);
     }
+
+    searching_text = "";
 
     displayYamlData();
 }
