@@ -16,6 +16,12 @@ MainWindow::MainWindow(QWidget *parent)
     yandexApi = new YandexApi();
     yamlReader = new YamlReader();
 
+    connect(yamlReader, &YamlReader::fileUploaded, this, [&](bool success) {
+        if (success) {
+            QMessageBox::information(this, "Saving", "Your file is saved");
+        }
+    });
+
     keyF11 = new QShortcut(this);
     keyF11->setKey(Qt::Key_F11);
 
@@ -78,6 +84,8 @@ MainWindow::MainWindow(QWidget *parent)
                 }
             }
         }
+
+        delete fileSystem;
     });
 }
 

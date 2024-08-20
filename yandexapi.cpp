@@ -41,7 +41,7 @@ void YandexApi::downloadFile(const QString &url, const QString &filePath)
     });
 }
 
-void YandexApi::uploadFile(const QString &filePath)
+void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> callback)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -82,10 +82,12 @@ void YandexApi::uploadFile(const QString &filePath)
         QNetworkRequest uploadRequest((QUrl(uploadUrl)));
         QNetworkReply *uploadReply = uploadManager->put(uploadRequest, fileData);
 
-        QObject::connect(uploadReply, &QNetworkReply::finished, [uploadReply]() {
+        QObject::connect(uploadReply, &QNetworkReply::finished, [uploadReply, callback]() {
             if (uploadReply->error() != QNetworkReply::NoError) {
+                callback(true);
                 qDebug() << "Error uploading file:" << uploadReply->errorString();
-            }
+            } else
+                callback(true);
             uploadReply->deleteLater();
         });
 
@@ -126,8 +128,6 @@ void YandexApi::getFiles(std::function<void(bool)> callback)
                 QString filePath = QString("ymlFiles/%1").arg(fileName);
 
                 QString suffixFile = QFileInfo(fileName).suffix();
-
-                qDebug() << suffixFile;
 
                 if (suffixFile == ".yaml" || suffixFile == ".yml")
                     downloadFile(downloadUrl, filePath);

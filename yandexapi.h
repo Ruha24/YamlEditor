@@ -15,6 +15,7 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QUrlQuery>
+#include <QtAlgorithms>
 
 class YandexApi
 {
@@ -23,7 +24,7 @@ public:
 
     void downloadFile(const QString &url, const QString &filePath);
 
-    void uploadFile(const QString &filePath);
+    void uploadFile(const QString &filePath, std::function<void(bool)> callback);
 
     void getFiles(std::function<void(bool)> callback);
 

@@ -10,8 +10,10 @@
 #include "yamlnode.h"
 #include "yandexapi.h"
 
-class YamlReader
+class YamlReader : public QObject
 {
+    Q_OBJECT
+
 public:
     YamlReader();
 
@@ -20,6 +22,9 @@ public:
     YamlNode getRootNode() const;
 
     void saveValues(const YamlNode &rootNode, const QString &filePath);
+
+signals:
+    void fileUploaded(bool success);
 
 private:
     void collectKeys(const YAML::Node &node, YamlNode &yamlNode);

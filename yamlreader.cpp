@@ -87,7 +87,10 @@ void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
 
     root = rootNode;
 
-    qDebug() << filePath;
-
-    yndApi->uploadFile(filePath);
+    yndApi->uploadFile(filePath, [&](bool success) {
+        if (success)
+            emit fileUploaded(true);
+        else
+            emit fileUploaded(true);
+    });
 }
