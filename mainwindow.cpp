@@ -32,9 +32,50 @@ MainWindow::MainWindow(QWidget *parent)
     connect(keyCtrlS, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlS);
 
     yandexApi->getFiles([&](bool success) {
+        FileSystem *fileSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
+
         if (success) {
-            for (const QString &file : yandexApi->getListFileName()) {
-                ui->fileNamecmb->addItem(file);
+            QList<QString> localFiles = fileSystem->getFiles();
+            QList<QString> yandexFiles = yandexApi->getListFileName();
+
+            if (localFiles.isEmpty()) {
+                for (const QString &yandexFile : yandexFiles) {
+                    ui->fileNamecmb->addItem(yandexFile);
+                }
+            } else {
+                for (const QString &localFile : localFiles) {
+                    QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
+                    QString localHash = fileSystem->calculateFileCheckSum(localFilePath);
+
+                    bool foundMatch = false;
+
+                    for (const QString &yandexFile : yandexFiles) {
+                        if (localFile == yandexFile) {
+                            QString yandexFilePath = QDir::currentPath() + "/ymlFiles/"
+                                                     + yandexFile;
+                            QString yandexHash = fileSystem->calculateFileCheckSum(yandexFilePath);
+
+                            if (localHash == yandexHash) {
+                                ui->fileNamecmb->addItem(localFile);
+                            } else {
+                                ui->fileNamecmb->addItem(yandexFile);
+                            }
+
+                            foundMatch = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundMatch) {
+                        ui->fileNamecmb->addItem(localFile);
+                    }
+                }
+
+                for (const QString &yandexFile : yandexFiles) {
+                    if (!localFiles.contains(yandexFile)) {
+                        ui->fileNamecmb->addItem(yandexFile);
+                    }
+                }
             }
         }
     });
@@ -69,7 +110,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 
 void MainWindow::saveData()
 {
-    QString fullPath = "ymlFiles/" + ui->fileNamecmb->currentText();
+    QString fullPath = QDir::currentPath() + "/ymlFiles/" + ui->fileNamecmb->currentText();
     yamlReader->saveValues(root, fullPath);
 }
 

@@ -58,7 +58,7 @@ void YandexApi::uploadFile(const QString &filePath)
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QUrl url("https://cloud-api.yandex.net/v1/disk/resources/upload");
     QUrlQuery query;
-    query.addQueryItem("path", "/ymlFiles/" + filename);
+    query.addQueryItem("path", "/YamlFiles/" + filename);
     query.addQueryItem("overwrite", "true");
     url.setQuery(query);
 
@@ -78,14 +78,13 @@ void YandexApi::uploadFile(const QString &filePath)
         QJsonObject jsonObject = jsonResponse.object();
         QString uploadUrl = jsonObject["href"].toString();
 
+        QNetworkAccessManager *uploadManager = new QNetworkAccessManager();
         QNetworkRequest uploadRequest((QUrl(uploadUrl)));
-        QNetworkReply *uploadReply = manager->put(uploadRequest, fileData);
+        QNetworkReply *uploadReply = uploadManager->put(uploadRequest, fileData);
 
         QObject::connect(uploadReply, &QNetworkReply::finished, [uploadReply]() {
             if (uploadReply->error() != QNetworkReply::NoError) {
                 qDebug() << "Error uploading file:" << uploadReply->errorString();
-            } else {
-                qDebug() << "Файл успешно обновлён";
             }
             uploadReply->deleteLater();
         });
@@ -126,7 +125,12 @@ void YandexApi::getFiles(std::function<void(bool)> callback)
                 QString downloadUrl = item["file"].toString();
                 QString filePath = QString("ymlFiles/%1").arg(fileName);
 
-                downloadFile(downloadUrl, filePath);
+                QString suffixFile = QFileInfo(fileName).suffix();
+
+                qDebug() << suffixFile;
+
+                if (suffixFile == ".yaml" || suffixFile == ".yml")
+                    downloadFile(downloadUrl, filePath);
             }
         }
 

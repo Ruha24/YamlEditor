@@ -17,6 +17,7 @@
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
 
+#include "filesystem.h"
 #include "searchingwindow.h"
 #include "yamlreader.h"
 #include "yandexapi.h"

@@ -5,15 +5,16 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMessageBox>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QObject>
 #include <QUrlQuery>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
 
 class YandexApi
 {
@@ -28,9 +29,13 @@ public:
 
     QList<QString> getListFileName() const;
 
+private slots:
+    void onUploadLinkReceived();
+    void onUploadFinished();
+
 private:
     const QString accessToken = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
-
+    QString currentFilePath;
     QList<QString> listFileName;
 };
 

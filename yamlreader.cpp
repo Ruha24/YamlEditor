@@ -1,7 +1,9 @@
 #include "yamlreader.h"
-#include "qdebug.h"
 
-YamlReader::YamlReader() {}
+YamlReader::YamlReader()
+{
+    yndApi = new YandexApi();
+}
 
 void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
 {
@@ -84,4 +86,8 @@ void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
     ofstream.close();
 
     root = rootNode;
+
+    qDebug() << filePath;
+
+    yndApi->uploadFile(filePath);
 }

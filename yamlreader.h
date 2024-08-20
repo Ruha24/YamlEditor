@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include "yamlnode.h"
+#include "yandexapi.h"
 
 class YamlReader
 {
@@ -25,6 +26,8 @@ private:
     void buildNode(YAML::Emitter &out, const YamlNode &node);
 
     YamlNode root;
+
+    YandexApi *yndApi;
 };
 
 #endif // YAMLREADER_H
