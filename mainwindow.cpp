@@ -37,6 +37,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(keyCtrlS, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlS);
 
+    keyCtrlH = new QShortcut(this);
+    keyCtrlH->setKey(Qt::CTRL | Qt::Key_H);
+
+    connect(keyCtrlH, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlH);
+
     yandexApi->getFiles([&](bool success) {
         FileSystem *fileSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
 
@@ -198,6 +203,17 @@ void MainWindow::slotShortcutF11()
 void MainWindow::slotShortcutCtrlS()
 {
     saveData(ui->fileNamecmb->currentText());
+}
+
+void MainWindow::slotShortcutCtrlH()
+{
+    if (replaceWnd)
+        replaceWnd->activateWindow();
+    else {
+        replaceWnd = new ReplaceWindow();
+
+        replaceWnd->show();
+    }
 }
 
 void MainWindow::displaykeys()

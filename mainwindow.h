@@ -18,6 +18,7 @@
 #include <QWidget>
 
 #include "filesystem.h"
+#include "replacewindow.h"
 #include "searchingwindow.h"
 #include "yamlreader.h"
 #include "yandexapi.h"
@@ -55,6 +56,9 @@ private:
     QShortcut *keyF11;
     QShortcut *keyCtrlF;
     QShortcut *keyCtrlS;
+    QShortcut *keyCtrlH;
+
+    ReplaceWindow *replaceWnd = nullptr;
 
     searchingWindow *searchWnd = nullptr;
     QString searching_text;
@@ -95,6 +99,7 @@ private:
     void slotShortcutCtrlF();
     void slotShortcutF11();
     void slotShortcutCtrlS();
+    void slotShortcutCtrlH();
 
     void highlightCurrentFound();
     void scrollIntoView(QWidget *widget);
