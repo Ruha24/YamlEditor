@@ -175,11 +175,15 @@ void MainWindow::readFile()
 
 void MainWindow::slotShortcutCtrlF()
 {
-    searchingWindow *searchWnd = new searchingWindow();
+    if (searchWnd)
+        searchWnd->activateWindow();
+    else {
+        searchWnd = new searchingWindow();
 
-    connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
+        connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
 
-    searchWnd->show();
+        searchWnd->show();
+    }
 }
 
 void MainWindow::slotShortcutF11()
@@ -535,15 +539,11 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
         if (currentFoundIndex >= foundWidgets.size()) {
             currentFoundIndex = 0;
         }
-        qDebug() << "down";
-
     } else {
         currentFoundIndex--;
         if (currentFoundIndex < 0) {
             currentFoundIndex = foundWidgets.size() - 1;
         }
-
-        qDebug() << "up";
     }
 
     if (currentFoundIndex == startingIndex) {

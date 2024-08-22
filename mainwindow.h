@@ -56,6 +56,7 @@ private:
     QShortcut *keyCtrlF;
     QShortcut *keyCtrlS;
 
+    searchingWindow *searchWnd = nullptr;
     QString searching_text;
 
     YamlReader *yamlReader;
