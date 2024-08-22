@@ -167,8 +167,6 @@ void MainWindow::collectKeys(const YamlNode &node,
 
 void MainWindow::readFile()
 {
-    qDebug() << ui->fileNamecmb->currentText();
-
     if (yamlReader->readFile(ui->fileNamecmb->currentText())) {
         displayYamlData();
         displaykeys();
@@ -337,8 +335,8 @@ void MainWindow::displayNode(const YamlNode &node,
                 updateValue(keyPath, newValue, true);
             });
 
-            QLineEdit *valueEdit = new QLineEdit(child.value, this);
-            if (!searchText.isEmpty() && child.value.contains(searchText, cs)) {
+            QLineEdit *valueEdit = new QLineEdit(value, this);
+            if (!searchText.isEmpty() && value.contains(searchText, cs)) {
                 foundWidgets.append(valueEdit);
             }
 
@@ -506,6 +504,7 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
         foundWidgets.clear();
         currentFoundIndex = -1;
         startingIndex = -1;
+        previousWidget = nullptr;
 
         if (ui->prettychb->isChecked()) {
             for (const auto &node : root.children) {
@@ -528,6 +527,7 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
 
     if (startingIndex == -1) {
         startingIndex = currentFoundIndex;
+        qDebug() << startingIndex;
     }
 
     if (is_downward) {
@@ -535,11 +535,15 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
         if (currentFoundIndex >= foundWidgets.size()) {
             currentFoundIndex = 0;
         }
+        qDebug() << "down";
+
     } else {
         currentFoundIndex--;
         if (currentFoundIndex < 0) {
             currentFoundIndex = foundWidgets.size() - 1;
         }
+
+        qDebug() << "up";
     }
 
     if (currentFoundIndex == startingIndex) {
@@ -581,6 +585,7 @@ void MainWindow::highlightCurrentFound()
         currentWidget->setStyleSheet(currentStyleSheet);
 
         scrollIntoView(currentWidget);
+
     } else {
         QMessageBox::information(this, "Editor", "Can't find it \"" + searching_text + "\"");
     }
