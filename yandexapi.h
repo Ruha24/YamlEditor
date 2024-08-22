@@ -38,6 +38,8 @@ private:
     const QString accessToken = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
     QString currentFilePath;
     QList<QString> listFileName;
+
+    QString folderPath = QDir::currentPath() + "/ymlFiles/";
 };
 
 #endif // YANDEXAPI_H

@@ -67,6 +67,7 @@ private:
 
     QWidget *previousWidget = nullptr;
     QString previousWidgetOriginalStyleSheet;
+    QString previousTextCmb;
 
     QSet<QString> displayedKeys;
     YamlNode root;
@@ -88,6 +89,7 @@ private:
                          QTreeWidget *treeWidget);
 
     void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
+    void readFile();
 
     void slotShortcutCtrlF();
     void slotShortcutF11();
@@ -101,7 +103,7 @@ private:
     void clearKeysArea();
     void clearScrollArea();
 
-    void saveData();
+    void saveData(const QString &fileName);
 
     void displayYamlData();
     void displaykeys();

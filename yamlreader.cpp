@@ -33,14 +33,10 @@ bool YamlReader::readFile(const QString &fileName)
 {
     QFileInfo file(fileName);
 
-    QString fileExtension = file.suffix();
+    YAML::Node config = YAML::LoadFile(QDir::currentPath().toStdString() + "/ymlFiles/"
+                                       + fileName.toStdString());
 
-    if (fileExtension != "yml" && fileExtension != "yaml")
-        return false;
-
-    YAML::Node config = YAML::LoadFile("ymlFiles/" + fileName.toStdString());
-
-    if (config.IsNull()) {
+    if (config.IsNull() || !config.IsDefined()) {
         return false;
     }
 
@@ -84,8 +80,6 @@ void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
     std::ofstream ofstream(filePath.toStdString());
     ofstream << out.c_str();
     ofstream.close();
-
-    root = rootNode;
 
     yndApi->uploadFile(filePath, [&](bool success) {
         if (success)

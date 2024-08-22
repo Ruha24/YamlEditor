@@ -87,6 +87,8 @@ MainWindow::MainWindow(QWidget *parent)
 
         delete fileSystem;
     });
+
+    previousTextCmb = ui->fileNamecmb->currentText();
 }
 
 MainWindow::~MainWindow()
@@ -106,20 +108,22 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
                                                                   QMessageBox::No);
 
         if (reply == QMessageBox::Yes) {
-            saveData();
+            saveData(previousTextCmb);
         }
     }
 
-    if (yamlReader->readFile(ui->fileNamecmb->currentText())) {
-        displayYamlData();
-        displaykeys();
-    }
+    previousTextCmb = ui->fileNamecmb->currentText();
+
+    readFile();
 }
 
-void MainWindow::saveData()
+void MainWindow::saveData(const QString &fileName)
 {
-    QString fullPath = QDir::currentPath() + "/ymlFiles/" + ui->fileNamecmb->currentText();
+    QString fullPath = QDir::currentPath() + "/ymlFiles/" + fileName;
+
     yamlReader->saveValues(root, fullPath);
+
+    root = YamlNode();
 }
 
 void MainWindow::displayYamlData()
@@ -161,6 +165,16 @@ void MainWindow::collectKeys(const YamlNode &node,
     }
 }
 
+void MainWindow::readFile()
+{
+    qDebug() << ui->fileNamecmb->currentText();
+
+    if (yamlReader->readFile(ui->fileNamecmb->currentText())) {
+        displayYamlData();
+        displaykeys();
+    }
+}
+
 void MainWindow::slotShortcutCtrlF()
 {
     searchingWindow *searchWnd = new searchingWindow();
@@ -181,7 +195,7 @@ void MainWindow::slotShortcutF11()
 
 void MainWindow::slotShortcutCtrlS()
 {
-    saveData();
+    saveData(ui->fileNamecmb->currentText());
 }
 
 void MainWindow::displaykeys()
@@ -226,7 +240,7 @@ void MainWindow::displaykeys()
 
 void MainWindow::on_pushButton_clicked()
 {
-    saveData();
+    saveData(ui->fileNamecmb->currentText());
 }
 
 void MainWindow::on_pushButton_2_clicked()
