@@ -46,6 +46,10 @@ private slots:
 
     void searchingText(const QString &text, bool isSensitive, bool is_downward);
 
+    void searchReplaceText(const QString &text, bool isSensitive);
+
+    void replaceText(const QString &findText, const QString &replaceText, bool allText);
+
     void on_prettychb_toggled(bool checked);
 
     void on_treechb_toggled(bool checked);
@@ -59,6 +63,7 @@ private:
     QShortcut *keyCtrlH;
 
     ReplaceWindow *replaceWnd = nullptr;
+    void replaceInWidget(QWidget *widget, const QString &findText, const QString &replaceText);
 
     searchingWindow *searchWnd = nullptr;
     QString searching_text;

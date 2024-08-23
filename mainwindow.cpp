@@ -127,8 +127,6 @@ void MainWindow::saveData(const QString &fileName)
     QString fullPath = QDir::currentPath() + "/ymlFiles/" + fileName;
 
     yamlReader->saveValues(root, fullPath);
-
-    root = YamlNode();
 }
 
 void MainWindow::displayYamlData()
@@ -211,6 +209,10 @@ void MainWindow::slotShortcutCtrlH()
         replaceWnd->activateWindow();
     else {
         replaceWnd = new ReplaceWindow();
+
+        connect(replaceWnd, &ReplaceWindow::searchReplaceText, this, &MainWindow::searchReplaceText);
+
+        connect(replaceWnd, &ReplaceWindow::replaceText, this, &MainWindow::replaceText);
 
         replaceWnd->show();
     }
@@ -547,7 +549,6 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
 
     if (startingIndex == -1) {
         startingIndex = currentFoundIndex;
-        qDebug() << startingIndex;
     }
 
     if (is_downward) {
@@ -569,6 +570,74 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
     }
 
     highlightCurrentFound();
+}
+
+void MainWindow::searchReplaceText(const QString &text, bool isSensitive)
+{
+    Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+
+    if (searching_text != text || newCs != cs) {
+        cs = newCs;
+        searching_text = text;
+
+        clearScrollArea();
+        displayedKeys.clear();
+        foundWidgets.clear();
+        currentFoundIndex = -1;
+        startingIndex = -1;
+        previousWidget = nullptr;
+
+        if (ui->prettychb->isChecked()) {
+            for (const auto &node : root.children) {
+                displayNode(node, "", text);
+            }
+            ui->verticalLayout_2->addWidget(mainWidget);
+        } else if (ui->treechb->isChecked()) {
+            for (const auto &node : root.children) {
+                displayTreeNode(node, "", text, nullptr, treeWidget);
+            }
+            ui->verticalLayout_2->addWidget(treeWidget);
+        }
+
+        if (!foundWidgets.isEmpty()) {
+            currentFoundIndex = 0;
+            highlightCurrentFound();
+        }
+        return;
+    }
+
+    if (startingIndex == -1) {
+        startingIndex = currentFoundIndex;
+    }
+
+    currentFoundIndex++;
+
+    if (currentFoundIndex >= foundWidgets.size()) {
+        currentFoundIndex = 0;
+    }
+
+    if (currentFoundIndex == startingIndex) {
+        startingIndex = -1;
+        return;
+    }
+
+    highlightCurrentFound();
+}
+
+void MainWindow::replaceText(const QString &findText, const QString &replaceText, bool allText)
+{
+    searchReplaceText(findText, cs);
+
+    if (allText) {
+        for (QWidget *widget : foundWidgets) {
+            replaceInWidget(widget, findText, replaceText);
+        }
+    } else {
+        if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
+            QWidget *currentWidget = foundWidgets[currentFoundIndex];
+            replaceInWidget(currentWidget, findText, replaceText);
+        }
+    }
 }
 void MainWindow::highlightCurrentFound()
 {
@@ -646,4 +715,18 @@ void MainWindow::on_treechb_toggled(bool checked)
     searching_text = "";
 
     displayYamlData();
+}
+
+void MainWindow::replaceInWidget(QWidget *widget,
+                                 const QString &findText,
+                                 const QString &replaceText)
+{
+    if (!widget)
+        return;
+
+    if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
+        QString text = lineEdit->text();
+        text.replace(findText, replaceText, cs);
+        lineEdit->setText(text);
+    }
 }
