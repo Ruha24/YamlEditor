@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>350</width>
-    <height>146</height>
+    <height>156</height>
    </rect>
   </property>
   <property name="font">
@@ -74,7 +74,7 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>110</y>
+     <y>100</y>
      <width>131</width>
      <height>22</height>
     </rect>
@@ -93,7 +93,7 @@
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>50</y>
+     <y>55</y>
      <width>101</width>
      <height>25</height>
     </rect>
@@ -106,7 +106,7 @@
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>80</y>
+     <y>87</y>
      <width>101</width>
      <height>25</height>
     </rect>
@@ -119,13 +119,32 @@
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>110</y>
+     <y>120</y>
      <width>101</width>
      <height>25</height>
     </rect>
    </property>
    <property name="text">
     <string>Cancel</string>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="casechb_2">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>125</y>
+     <width>131</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Montserrat</family>
+     <pointsize>11</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Regex</string>
    </property>
   </widget>
  </widget>

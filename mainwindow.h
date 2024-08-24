@@ -44,11 +44,14 @@ private slots:
 
     void onCheckBoxStateChanged(int state);
 
-    void searchingText(const QString &text, bool isSensitive, bool is_downward);
+    void searchingText(const QString &text, bool isSensitive, bool is_downward, bool useRegex);
 
-    void searchReplaceText(const QString &text, bool isSensitive);
+    void searchReplaceText(const QString &text, bool isSensitive, bool useRegex);
 
-    void replaceText(const QString &findText, const QString &replaceText, bool allText);
+    void replaceText(const QString &findText,
+                     const QString &replaceText,
+                     bool allText,
+                     bool useRegex);
 
     void on_prettychb_toggled(bool checked);
 
@@ -60,10 +63,15 @@ private:
     QShortcut *keyF11;
     QShortcut *keyCtrlF;
     QShortcut *keyCtrlS;
-    QShortcut *keyCtrlH;
+    QShortcut *keyCtrlR;
+
+    QRegularExpression searchingRegex;
 
     ReplaceWindow *replaceWnd = nullptr;
-    void replaceInWidget(QWidget *widget, const QString &findText, const QString &replaceText);
+    void replaceInWidget(QWidget *widget,
+                         const QString &findText,
+                         const QString &replaceText,
+                         bool useRegex);
 
     searchingWindow *searchWnd = nullptr;
     QString searching_text;
@@ -91,12 +99,16 @@ private:
 
     void updateValue(const QString &path, const QString &newValue, bool isKey);
 
-    void displayNode(const YamlNode &node, const QString &parentPath, const QString &searchText);
+    void displayNode(const YamlNode &node,
+                     const QString &parentPath,
+                     const QString &searchText,
+                     bool useRegex);
     void displayTreeNode(const YamlNode &node,
                          const QString &parentPath,
                          const QString &searchText,
                          QTreeWidgetItem *parentItem,
-                         QTreeWidget *treeWidget);
+                         QTreeWidget *treeWidget,
+                         bool useRegex);
 
     void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
     void readFile();
@@ -104,7 +116,7 @@ private:
     void slotShortcutCtrlF();
     void slotShortcutF11();
     void slotShortcutCtrlS();
-    void slotShortcutCtrlH();
+    void slotShortcutCtrlR();
 
     void highlightCurrentFound();
     void scrollIntoView(QWidget *widget);

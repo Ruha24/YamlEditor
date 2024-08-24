@@ -37,10 +37,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(keyCtrlS, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlS);
 
-    keyCtrlH = new QShortcut(this);
-    keyCtrlH->setKey(Qt::CTRL | Qt::Key_H);
+    keyCtrlR = new QShortcut(this);
+    keyCtrlR->setKey(Qt::CTRL | Qt::Key_R);
 
-    connect(keyCtrlH, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlH);
+    connect(keyCtrlR, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlR);
 
     yandexApi->getFiles([&](bool success) {
         FileSystem *fileSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
@@ -140,11 +140,11 @@ void MainWindow::displayYamlData()
         ui->verticalLayout_2->addWidget(treeWidget);
 
         for (const auto &node : root.children) {
-            displayTreeNode(node, "", "", nullptr, treeWidget);
+            displayTreeNode(node, "", "", nullptr, treeWidget, false);
         }
     } else if (ui->prettychb->isChecked()) {
         for (const auto &node : root.children) {
-            displayNode(node, "", "");
+            displayNode(node, "", "", false);
         }
 
         ui->verticalLayout_2->addWidget(mainWidget);
@@ -203,7 +203,7 @@ void MainWindow::slotShortcutCtrlS()
     saveData(ui->fileNamecmb->currentText());
 }
 
-void MainWindow::slotShortcutCtrlH()
+void MainWindow::slotShortcutCtrlR()
 {
     if (replaceWnd)
         replaceWnd->activateWindow();
@@ -304,16 +304,29 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
 
 void MainWindow::displayNode(const YamlNode &node,
                              const QString &parentPath,
-                             const QString &searchText)
+                             const QString &searchText,
+                             bool useRegex)
 {
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
+
+    QRegularExpression regex;
+    if (useRegex && !searchText.isEmpty()) {
+        QRegularExpression::PatternOption option = cs == Qt::CaseSensitive
+                                                       ? QRegularExpression::NoPatternOption
+                                                       : QRegularExpression::CaseInsensitiveOption;
+        regex = QRegularExpression(searchText, option);
+    }
 
     if (!displayedKeys.contains(currentPath)
         && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
         displayedKeys.insert(currentPath);
 
         QLineEdit *title = new QLineEdit(node.key, this);
-        if (!searchText.isEmpty() && node.key.contains(searchText, cs)) {
+
+        bool matchFound = useRegex ? regex.match(node.key).hasMatch()
+                                   : node.key.contains(searchText, cs);
+
+        if (!searchText.isEmpty() && matchFound) {
             foundWidgets.append(title);
         }
         title->setStyleSheet(
@@ -343,7 +356,9 @@ void MainWindow::displayNode(const YamlNode &node,
 
         if (!hasChildren && hasValue) {
             QLineEdit *keyEdit = new QLineEdit(key, this);
-            if (!searchText.isEmpty() && key.contains(searchText, cs)) {
+
+            bool matchFound = useRegex ? regex.match(key).hasMatch() : key.contains(searchText, cs);
+            if (!searchText.isEmpty() && matchFound) {
                 foundWidgets.append(keyEdit);
             }
 
@@ -358,7 +373,9 @@ void MainWindow::displayNode(const YamlNode &node,
             });
 
             QLineEdit *valueEdit = new QLineEdit(value, this);
-            if (!searchText.isEmpty() && value.contains(searchText, cs)) {
+
+            matchFound = useRegex ? regex.match(value).hasMatch() : value.contains(searchText, cs);
+            if (!searchText.isEmpty() && matchFound) {
                 foundWidgets.append(valueEdit);
             }
 
@@ -379,7 +396,7 @@ void MainWindow::displayNode(const YamlNode &node,
         }
 
         if (hasChildren) {
-            displayNode(child, currentPath, searchText);
+            displayNode(child, currentPath, searchText, useRegex);
         }
     }
 
@@ -392,7 +409,8 @@ void MainWindow::displayTreeNode(const YamlNode &node,
                                  const QString &parentPath,
                                  const QString &searchText,
                                  QTreeWidgetItem *parentItem,
-                                 QTreeWidget *treeWidget)
+                                 QTreeWidget *treeWidget,
+                                 bool useRegex)
 {
     bool isChecked = checkBoxStates.contains(node.key) ? checkBoxStates[node.key] : false;
 
@@ -419,8 +437,22 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         updateValue(currentPath, newValue, true);
     });
 
-    if (!searchText.isEmpty()
-        && (node.key.contains(searchText, cs) || node.value.contains(searchText, cs))) {
+    bool keyMatches = false;
+    bool valueMatches = false;
+
+    if (useRegex) {
+        QRegularExpression regex(searchText,
+                                 cs ? QRegularExpression::NoPatternOption
+                                    : QRegularExpression::CaseInsensitiveOption);
+
+        keyMatches = regex.match(node.key).hasMatch();
+        valueMatches = regex.match(node.value).hasMatch();
+    } else {
+        keyMatches = node.key.contains(searchText, cs);
+        valueMatches = node.value.contains(searchText, cs);
+    }
+
+    if (!searchText.isEmpty() && (keyMatches || valueMatches)) {
         foundWidgets.append(keytxt);
     }
 
@@ -433,16 +465,15 @@ void MainWindow::displayTreeNode(const YamlNode &node,
             updateValue(currentPath, newValue, false);
         });
 
-        if (!searchText.isEmpty() && node.value.contains(searchText, cs)) {
+        if (!searchText.isEmpty() && valueMatches) {
             foundWidgets.append(valuetxt);
         }
     }
 
     for (const auto &child : node.children) {
-        displayTreeNode(child, currentPath, searchText, treeItem, treeWidget);
+        displayTreeNode(child, currentPath, searchText, treeItem, treeWidget, useRegex);
     }
 }
-
 void MainWindow::createCheckBox(const QString &name, int row, int col, bool topLevelKey)
 {
     QCheckBox *checkBox = new QCheckBox(name, this);
@@ -513,13 +544,26 @@ void MainWindow::clearScrollArea()
     }
 }
 
-void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_downward)
+void MainWindow::searchingText(const QString &text,
+                               bool isSensitive,
+                               bool is_downward,
+                               bool useRegex)
 {
     Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-    if (searching_text != text || newCs != cs) {
+    QRegularExpression regex;
+    if (useRegex) {
+        QRegularExpression::PatternOption option = isSensitive
+                                                       ? QRegularExpression::NoPatternOption
+                                                       : QRegularExpression::CaseInsensitiveOption;
+        regex = QRegularExpression(text, option);
+    }
+
+    if ((useRegex && regex.pattern() != searchingRegex.pattern())
+        || (!useRegex && searching_text != text) || newCs != cs) {
         cs = newCs;
         searching_text = text;
+        searchingRegex = regex;
 
         clearScrollArea();
         displayedKeys.clear();
@@ -530,12 +574,12 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
 
         if (ui->prettychb->isChecked()) {
             for (const auto &node : root.children) {
-                displayNode(node, "", text);
+                displayNode(node, "", text, useRegex);
             }
             ui->verticalLayout_2->addWidget(mainWidget);
         } else if (ui->treechb->isChecked()) {
             for (const auto &node : root.children) {
-                displayTreeNode(node, "", text, nullptr, treeWidget);
+                displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
             ui->verticalLayout_2->addWidget(treeWidget);
         }
@@ -572,13 +616,23 @@ void MainWindow::searchingText(const QString &text, bool isSensitive, bool is_do
     highlightCurrentFound();
 }
 
-void MainWindow::searchReplaceText(const QString &text, bool isSensitive)
+void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool useRegex)
 {
     Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
-    if (searching_text != text || newCs != cs) {
+    QRegularExpression regex;
+    if (useRegex) {
+        QRegularExpression::PatternOption option = isSensitive
+                                                       ? QRegularExpression::NoPatternOption
+                                                       : QRegularExpression::CaseInsensitiveOption;
+        regex = QRegularExpression(text, option);
+    }
+
+    if ((useRegex && regex.pattern() != searchingRegex.pattern())
+        || (!useRegex && searching_text != text) || newCs != cs) {
         cs = newCs;
         searching_text = text;
+        searchingRegex = regex;
 
         clearScrollArea();
         displayedKeys.clear();
@@ -589,12 +643,12 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive)
 
         if (ui->prettychb->isChecked()) {
             for (const auto &node : root.children) {
-                displayNode(node, "", text);
+                displayNode(node, "", text, useRegex);
             }
             ui->verticalLayout_2->addWidget(mainWidget);
         } else if (ui->treechb->isChecked()) {
             for (const auto &node : root.children) {
-                displayTreeNode(node, "", text, nullptr, treeWidget);
+                displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
             ui->verticalLayout_2->addWidget(treeWidget);
         }
@@ -624,18 +678,21 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive)
     highlightCurrentFound();
 }
 
-void MainWindow::replaceText(const QString &findText, const QString &replaceText, bool allText)
+void MainWindow::replaceText(const QString &findText,
+                             const QString &replaceText,
+                             bool allText,
+                             bool useRegex)
 {
-    searchReplaceText(findText, cs);
+    searchReplaceText(findText, cs, useRegex);
 
     if (allText) {
         for (QWidget *widget : foundWidgets) {
-            replaceInWidget(widget, findText, replaceText);
+            replaceInWidget(widget, findText, replaceText, useRegex);
         }
     } else {
         if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
             QWidget *currentWidget = foundWidgets[currentFoundIndex];
-            replaceInWidget(currentWidget, findText, replaceText);
+            replaceInWidget(currentWidget, findText, replaceText, useRegex);
         }
     }
 }
@@ -719,14 +776,19 @@ void MainWindow::on_treechb_toggled(bool checked)
 
 void MainWindow::replaceInWidget(QWidget *widget,
                                  const QString &findText,
-                                 const QString &replaceText)
+                                 const QString &replaceText,
+                                 bool useRegex)
 {
     if (!widget)
         return;
 
     if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
         QString text = lineEdit->text();
-        text.replace(findText, replaceText, cs);
+        if (useRegex) {
+            text.replace(searchingRegex, replaceText);
+        } else {
+            text.replace(findText, replaceText, cs);
+        }
         lineEdit->setText(text);
     }
 }

@@ -16,9 +16,12 @@ public:
     ~ReplaceWindow();
 
 signals:
-    void searchReplaceText(const QString &text, bool isSensitive);
+    void searchReplaceText(const QString &text, bool isSensitive, bool useRegex);
 
-    void replaceText(const QString &findText, const QString &replaceText, bool allText);
+    void replaceText(const QString &findText,
+                     const QString &replaceText,
+                     bool allText,
+                     bool useRegex);
 
 private slots:
     void on_searchbtn_clicked();
