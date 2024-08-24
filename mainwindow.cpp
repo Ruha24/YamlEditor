@@ -452,7 +452,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         valueMatches = node.value.contains(searchText, cs);
     }
 
-    if (!searchText.isEmpty() && (keyMatches || valueMatches)) {
+    if (!searchText.isEmpty() && keyMatches) {
         foundWidgets.append(keytxt);
     }
 
