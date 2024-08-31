@@ -17,6 +17,7 @@
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
 
+#include "customlineedit.h"
 #include "filesystem.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
@@ -36,6 +37,9 @@ public:
     ~MainWindow();
 
 private slots:
+    void handleAddKeyValue(QString path, QString newValue, bool isKey);
+    void handleDeleteElement(QString path, bool isKey);
+
     void on_fileNamecmb_currentIndexChanged(int index);
 
     void on_pushButton_clicked();

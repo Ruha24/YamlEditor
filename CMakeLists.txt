@@ -48,6 +48,11 @@ set(PROJECT_SOURCES
         replacewindow.h
         replacewindow.cpp
         replacewindow.ui
+        customlineedit.h
+        customlineedit.cpp
+        editwidget.h
+        editwidget.cpp
+        editwidget.ui
         images.qrc
 )
 

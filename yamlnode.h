@@ -12,6 +12,16 @@ public:
 
     YamlNode();
     YamlNode(const QString &key, const QString &value = "");
+
+    YamlNode *findNodeByKey(const QString &searchKey);
+
+    void addKeyWithValue(const QString &key, const QString &value);
+
+    void addValueToKey(const QString &key, const QString &value);
+
+    void removeKey(const QString &key);
+
+    void removeValue(const QString &value);
 };
 
 #endif // YAMLNODE_H

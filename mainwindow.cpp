@@ -302,6 +302,32 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
         currentNode->value = newValue;
 }
 
+void MainWindow::handleAddKeyValue(QString path, QString newValue, bool isKey)
+{
+    if (isKey) {
+        root.addValueToKey(path, newValue);
+    } else {
+        root.addKeyWithValue(path, newValue);
+    }
+
+    saveData(previousTextCmb);
+
+    readFile();
+}
+
+void MainWindow::handleDeleteElement(QString path, bool isKey)
+{
+    if (isKey) {
+        root.removeKey(path);
+    } else {
+        root.removeValue(path);
+    }
+
+    saveData(previousTextCmb);
+
+    readFile();
+}
+
 void MainWindow::displayNode(const YamlNode &node,
                              const QString &parentPath,
                              const QString &searchText,
@@ -321,10 +347,14 @@ void MainWindow::displayNode(const YamlNode &node,
         && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
         displayedKeys.insert(currentPath);
 
-        QLineEdit *title = new QLineEdit(node.key, this);
+        CustomLineEdit *title = new CustomLineEdit(this, currentPath, true);
+        title->setText(node.key);
 
         bool matchFound = useRegex ? regex.match(node.key).hasMatch()
                                    : node.key.contains(searchText, cs);
+
+        connect(title, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
+        connect(title, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
 
         if (!searchText.isEmpty() && matchFound) {
             foundWidgets.append(title);
@@ -355,7 +385,10 @@ void MainWindow::displayNode(const YamlNode &node,
         bool hasValue = !child.value.trimmed().isEmpty();
 
         if (!hasChildren && hasValue) {
-            QLineEdit *keyEdit = new QLineEdit(key, this);
+            QString keyPath = currentPath.isEmpty() ? key : currentPath + "." + key;
+
+            CustomLineEdit *keyEdit = new CustomLineEdit(this, keyPath, true);
+            keyEdit->setText(key);
 
             bool matchFound = useRegex ? regex.match(key).hasMatch() : key.contains(searchText, cs);
             if (!searchText.isEmpty() && matchFound) {
@@ -366,13 +399,15 @@ void MainWindow::displayNode(const YamlNode &node,
 
             gridLayout->addWidget(keyEdit, row, column);
 
-            QString keyPath = currentPath.isEmpty() ? key : currentPath + "." + key;
-
             connect(keyEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
                 updateValue(keyPath, newValue, true);
             });
 
-            QLineEdit *valueEdit = new QLineEdit(value, this);
+            connect(keyEdit, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
+            connect(keyEdit, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
+
+            CustomLineEdit *valueEdit = new CustomLineEdit(this, keyPath);
+            valueEdit->setText(value);
 
             matchFound = useRegex ? regex.match(value).hasMatch() : value.contains(searchText, cs);
             if (!searchText.isEmpty() && matchFound) {
@@ -381,6 +416,12 @@ void MainWindow::displayNode(const YamlNode &node,
 
             valueEdit->setStyleSheet("QLineEdit {  font-size: "
                                      "16px; color: white; max-width: 200px; }");
+
+            connect(valueEdit, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
+            connect(valueEdit,
+                    &CustomLineEdit::deleteElement,
+                    this,
+                    &MainWindow::handleDeleteElement);
 
             gridLayout->addWidget(valueEdit, row, column + 1);
 
@@ -429,9 +470,13 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         treeWidget->addTopLevelItem(treeItem);
     }
 
-    QLineEdit *keytxt = new QLineEdit(node.key, this);
+    CustomLineEdit *keytxt = new CustomLineEdit(this, currentPath, true);
+    keytxt->setText(node.key);
     keytxt->setStyleSheet("QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
     treeWidget->setItemWidget(treeItem, 0, keytxt);
+
+    connect(keytxt, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
+    connect(keytxt, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
 
     connect(keytxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
         updateValue(currentPath, newValue, true);
@@ -457,9 +502,13 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     }
 
     if (!node.value.trimmed().isEmpty()) {
-        QLineEdit *valuetxt = new QLineEdit(node.value, this);
+        CustomLineEdit *valuetxt = new CustomLineEdit(this, currentPath, false);
+        valuetxt->setText(node.value);
         valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
         treeWidget->setItemWidget(treeItem, 1, valuetxt);
+
+        connect(valuetxt, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
+        connect(valuetxt, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
 
         connect(valuetxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
             updateValue(currentPath, newValue, false);
@@ -474,6 +523,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         displayTreeNode(child, currentPath, searchText, treeItem, treeWidget, useRegex);
     }
 }
+
 void MainWindow::createCheckBox(const QString &name, int row, int col, bool topLevelKey)
 {
     QCheckBox *checkBox = new QCheckBox(name, this);
