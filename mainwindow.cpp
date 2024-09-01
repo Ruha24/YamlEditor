@@ -178,9 +178,14 @@ void MainWindow::readFile()
 
 void MainWindow::slotShortcutCtrlF()
 {
-    if (searchWnd)
+    if (replaceWnd) {
+        replaceWnd->close();
+        replaceWnd = nullptr;
+    }
+
+    if (searchWnd) {
         searchWnd->activateWindow();
-    else {
+    } else {
         searchWnd = new searchingWindow();
 
         connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
@@ -205,6 +210,10 @@ void MainWindow::slotShortcutCtrlS()
 
 void MainWindow::slotShortcutCtrlR()
 {
+    if (searchWnd) {
+        searchWnd->close();
+        searchWnd = nullptr;
+    }
     if (replaceWnd)
         replaceWnd->activateWindow();
     else {

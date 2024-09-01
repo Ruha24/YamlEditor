@@ -8,6 +8,7 @@ editwidget::editwidget(CustomLineEdit *lineEdit, QWidget *parent)
     , lineEdit(lineEdit)
 {
     ui->setupUi(this);
+    setWindowFlags(Qt::Dialog);
 }
 
 editwidget::~editwidget()
