@@ -851,3 +851,8 @@ void MainWindow::replaceInWidget(QWidget *widget,
         lineEdit->setText(text);
     }
 }
+
+void MainWindow::on_OpenFolderYmlFilebtn_clicked()
+{
+    QDesktopServices::openUrl(QDir::currentPath() + "/ymlFiles");
+}

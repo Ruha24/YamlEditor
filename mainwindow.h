@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QCheckBox>
+#include <QDesktopServices>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -60,6 +61,8 @@ private slots:
     void on_prettychb_toggled(bool checked);
 
     void on_treechb_toggled(bool checked);
+
+    void on_OpenFolderYmlFilebtn_clicked();
 
 private:
     Ui::MainWindow *ui;

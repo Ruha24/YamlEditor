@@ -140,6 +140,47 @@ QScrollBar::sub-line:vertical {
         </property>
        </spacer>
       </item>
+      <item>
+       <widget class="QPushButton" name="OpenFolderYmlFilebtn">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>160</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Montserrat</family>
+          <pointsize>13</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton
+{
+	background-color: #525252;
+	color: #37A2C3;
+	border: 3px solid #00AADF;
+	border-radius: 10px;
+}
+
+QPushButton:hover
+{
+	border: 4px solid #3CC7F2;
+	font-weight: bold;
+	color: #51B4D2;
+}</string>
+        </property>
+        <property name="text">
+         <string>Open folder</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </item>
     <item row="2" column="0">
@@ -215,7 +256,7 @@ background: #51B4D2;
              <x>0</x>
              <y>0</y>
              <width>686</width>
-             <height>313</height>
+             <height>305</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout">
@@ -438,7 +479,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>151</height>
+                 <height>146</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_5">
@@ -492,7 +533,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>320</width>
-                 <height>151</height>
+                 <height>146</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
