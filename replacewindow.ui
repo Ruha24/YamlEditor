@@ -10,6 +10,18 @@
     <height>156</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>350</width>
+    <height>156</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>350</width>
+    <height>156</height>
+   </size>
+  </property>
   <property name="font">
    <font>
     <family>Montserrat</family>

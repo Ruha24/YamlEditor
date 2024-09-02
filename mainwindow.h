@@ -109,7 +109,8 @@ private:
     void displayNode(const YamlNode &node,
                      const QString &parentPath,
                      const QString &searchText,
-                     bool useRegex);
+                     bool useRegex,
+                     int depth = 0);
     void displayTreeNode(const YamlNode &node,
                          const QString &parentPath,
                          const QString &searchText,

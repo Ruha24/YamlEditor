@@ -137,11 +137,11 @@ void MainWindow::displayYamlData()
     displayedKeys.clear();
 
     if (ui->treechb->isChecked()) {
-        ui->verticalLayout_2->addWidget(treeWidget);
-
         for (const auto &node : root.children) {
             displayTreeNode(node, "", "", nullptr, treeWidget, false);
         }
+
+        ui->gridLayout->addWidget(treeWidget);
     } else if (ui->prettychb->isChecked()) {
         for (const auto &node : root.children) {
             displayNode(node, "", "", false);
@@ -340,7 +340,8 @@ void MainWindow::handleDeleteElement(QString path, bool isKey)
 void MainWindow::displayNode(const YamlNode &node,
                              const QString &parentPath,
                              const QString &searchText,
-                             bool useRegex)
+                             bool useRegex,
+                             int depth)
 {
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
@@ -358,6 +359,10 @@ void MainWindow::displayNode(const YamlNode &node,
 
         CustomLineEdit *title = new CustomLineEdit(this, currentPath, true);
         title->setText(node.key);
+
+        QMargins margins = title->contentsMargins();
+        margins.setLeft(depth * 20);
+        title->setContentsMargins(margins);
 
         bool matchFound = useRegex ? regex.match(node.key).hasMatch()
                                    : node.key.contains(searchText, cs);
@@ -399,6 +404,10 @@ void MainWindow::displayNode(const YamlNode &node,
             CustomLineEdit *keyEdit = new CustomLineEdit(this, keyPath, true);
             keyEdit->setText(key);
 
+            QMargins keyMargins = keyEdit->contentsMargins();
+            keyMargins.setLeft(depth * 20);
+            keyEdit->setContentsMargins(keyMargins);
+
             bool matchFound = useRegex ? regex.match(key).hasMatch() : key.contains(searchText, cs);
             if (!searchText.isEmpty() && matchFound) {
                 foundWidgets.append(keyEdit);
@@ -423,8 +432,12 @@ void MainWindow::displayNode(const YamlNode &node,
                 foundWidgets.append(valueEdit);
             }
 
-            valueEdit->setStyleSheet("QLineEdit {  font-size: "
-                                     "16px; color: white; max-width: 200px; }");
+            QMargins valueMargins = valueEdit->contentsMargins();
+            valueMargins.setLeft(depth * 20);
+            valueEdit->setContentsMargins(valueMargins);
+
+            valueEdit->setStyleSheet(
+                "QLineEdit {  font-size: 16px; color: white; max-width: 200px; }");
 
             connect(valueEdit, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
             connect(valueEdit,
@@ -446,7 +459,7 @@ void MainWindow::displayNode(const YamlNode &node,
         }
 
         if (hasChildren) {
-            displayNode(child, currentPath, searchText, useRegex);
+            displayNode(child, currentPath, searchText, useRegex, depth + 1);
         }
     }
 
@@ -507,8 +520,6 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     }
 
     if (!searchText.isEmpty() && keyMatches) {
-        qDebug() << keyMatches << " -- " << keytxt->text();
-
         foundWidgets.append(keytxt);
     }
 
@@ -526,7 +537,6 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         });
 
         if (!searchText.isEmpty() && valueMatches) {
-            qDebug() << valueMatches << " -- " << valuetxt->text();
             foundWidgets.append(valuetxt);
         }
     }
@@ -643,7 +653,7 @@ void MainWindow::searchingText(const QString &text,
             for (const auto &node : root.children) {
                 displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
-            ui->verticalLayout_2->addWidget(treeWidget);
+            ui->gridLayout->addWidget(treeWidget);
         }
 
         if (!foundWidgets.isEmpty()) {
@@ -712,7 +722,7 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
             for (const auto &node : root.children) {
                 displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
-            ui->verticalLayout_2->addWidget(treeWidget);
+            ui->gridLayout->addWidget(treeWidget);
         }
 
         if (!foundWidgets.isEmpty()) {
@@ -848,8 +858,6 @@ void MainWindow::replaceInWidget(QWidget *widget,
 
     if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
         QString text = lineEdit->text();
-
-        qDebug() << text << " --- " << replaceText;
 
         if (useRegex) {
             text.replace(searchingRegex, replaceText);
