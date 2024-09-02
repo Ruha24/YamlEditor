@@ -507,6 +507,8 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     }
 
     if (!searchText.isEmpty() && keyMatches) {
+        qDebug() << keyMatches << " -- " << keytxt->text();
+
         foundWidgets.append(keytxt);
     }
 
@@ -524,6 +526,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         });
 
         if (!searchText.isEmpty() && valueMatches) {
+            qDebug() << valueMatches << " -- " << valuetxt->text();
             foundWidgets.append(valuetxt);
         }
     }
@@ -748,6 +751,8 @@ void MainWindow::replaceText(const QString &findText,
         for (QWidget *widget : foundWidgets) {
             replaceInWidget(widget, findText, replaceText, useRegex);
         }
+
+        searching_text = "";
     } else {
         if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
             QWidget *currentWidget = foundWidgets[currentFoundIndex];
@@ -843,6 +848,9 @@ void MainWindow::replaceInWidget(QWidget *widget,
 
     if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
         QString text = lineEdit->text();
+
+        qDebug() << text << " --- " << replaceText;
+
         if (useRegex) {
             text.replace(searchingRegex, replaceText);
         } else {
