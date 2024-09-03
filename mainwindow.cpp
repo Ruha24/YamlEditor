@@ -396,13 +396,17 @@ void MainWindow::displayNode(const YamlNode &node,
             continue;
 
         bool hasChildren = !child.children.isEmpty();
-        bool hasValue = !child.value.trimmed().isEmpty();
 
-        if (!hasChildren && hasValue) {
+        if (!hasChildren) {
             QString keyPath = currentPath.isEmpty() ? key : currentPath + "." + key;
 
             CustomLineEdit *keyEdit = new CustomLineEdit(this, keyPath, true);
-            keyEdit->setText(key);
+
+            if (key.isEmpty()) {
+                keyEdit->setText("-");
+                keyEdit->setReadOnly(true);
+            } else
+                keyEdit->setText(key);
 
             QMargins keyMargins = keyEdit->contentsMargins();
             keyMargins.setLeft(depth * 20);
@@ -493,7 +497,13 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     }
 
     CustomLineEdit *keytxt = new CustomLineEdit(this, currentPath, true);
-    keytxt->setText(node.key);
+
+    if (node.key.isEmpty()) {
+        keytxt->setText("-");
+        keytxt->setReadOnly(true);
+    } else {
+        keytxt->setText(node.key);
+    }
     keytxt->setStyleSheet("QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
     treeWidget->setItemWidget(treeItem, 0, keytxt);
 
@@ -523,7 +533,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
         foundWidgets.append(keytxt);
     }
 
-    if (!node.value.trimmed().isEmpty()) {
+    if (!node.value.isEmpty() || node.children.isEmpty()) {
         CustomLineEdit *valuetxt = new CustomLineEdit(this, currentPath, false);
         valuetxt->setText(node.value);
         valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");

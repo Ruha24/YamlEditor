@@ -9,6 +9,7 @@ public:
     QList<YamlNode> children;
     QString value;
     QString key;
+    bool isSequence = false;
 
     YamlNode();
     YamlNode(const QString &key, const QString &value = "");

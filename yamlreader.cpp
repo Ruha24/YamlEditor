@@ -13,7 +13,17 @@ void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
             YamlNode child(key);
 
             if (kv.second.IsScalar()) {
-                child.value = QString::fromStdString(kv.second.as<std::string>());
+                QString value = QString::fromStdString(kv.second.as<std::string>());
+                child.value = value.isEmpty() ? "" : value;
+            } else if (kv.second.IsSequence()) {
+                for (std::size_t i = 0; i < kv.second.size(); ++i) {
+                    YamlNode seqChild;
+                    if (kv.second[i].IsScalar()) {
+                        QString value = QString::fromStdString(kv.second[i].as<std::string>());
+                        seqChild.value = value == "" ? "" : value;
+                    }
+                    child.children.append(seqChild);
+                }
             } else {
                 collectKeys(kv.second, child);
             }
@@ -25,7 +35,8 @@ void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
             YamlNode child;
 
             if (node[i].IsScalar()) {
-                child.value = QString::fromStdString(node[i].as<std::string>());
+                QString value = QString::fromStdString(node[i].as<std::string>());
+                child.value = value.isEmpty() ? "" : value;
             } else {
                 collectKeys(node[i], child);
             }
@@ -66,29 +77,31 @@ void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
             out << YAML::Value;
 
             if (!child.children.isEmpty()) {
-                out << YAML::BeginMap;
-                buildNode(out, child);
-                out << YAML::EndMap;
+                if (!child.children[0].key.isEmpty()) {
+                    out << YAML::BeginMap;
+                    buildNode(out, child);
+                    out << YAML::EndMap;
+                } else {
+                    out << YAML::BeginSeq;
+                    for (const auto &element : child.children) {
+                        out << YAML::DoubleQuoted << element.value.toStdString();
+                    }
+                    out << YAML::EndSeq;
+                }
             } else if (!child.value.isEmpty()) {
-                if (child.value.contains('\n') || child.value.contains(':')
-                    || child.value.contains('{') || child.value.contains('}')
-                    || child.value.contains('[') || child.value.contains(']')
-                    || child.value.contains('"')) {
+                if (child.value.contains(':') || child.value.contains('{')
+                    || child.value.contains('}') || child.value.contains('[')
+                    || child.value.contains(']')) {
                     out << YAML::DoubleQuoted << child.value.toStdString();
                 } else {
                     out << child.value.toStdString();
                 }
             } else {
-                out << YAML::Flow << YAML::BeginSeq;
-                for (const auto &element : child.children) {
-                    out << YAML::DoubleQuoted << element.value.toStdString();
-                }
-                out << YAML::EndSeq;
+                out << YAML::DoubleQuoted << "";
             }
         }
     }
 }
-
 void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
 {
     YAML::Emitter out;
