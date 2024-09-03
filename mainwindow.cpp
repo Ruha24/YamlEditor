@@ -13,6 +13,8 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout = nullptr;
     treeWidget = nullptr;
 
+    ui->stackedWidget->setCurrentIndex(0);
+
     yandexApi = new YandexApi();
     yamlReader = new YamlReader();
 
@@ -141,7 +143,7 @@ void MainWindow::displayYamlData()
             displayTreeNode(node, "", "", nullptr, treeWidget, false);
         }
 
-        ui->gridLayout->addWidget(treeWidget);
+        ui->verticalLayout_3->addWidget(treeWidget);
     } else if (ui->prettychb->isChecked()) {
         for (const auto &node : root.children) {
             displayNode(node, "", "", false);
@@ -609,12 +611,13 @@ void MainWindow::clearScrollArea()
 
     treeWidget = new QTreeWidget(this);
 
-    treeWidget->setMinimumSize(600, 400);
     treeWidget->setColumnCount(2);
     treeWidget->setHeaderLabels(QStringList() << "Key"
                                               << "Value");
     treeWidget->setColumnWidth(0, 200);
-    treeWidget->setStyleSheet("QTreeWidget { font-size: 16px; }");
+    treeWidget->setStyleSheet("QHeaderView {background-color: rgb(48, "
+                              "48, 48); color: black;} QWidget {background-color: rgb(48, "
+                              "48, 48); color: black;}");
 
     mainWidget = new QWidget(this);
     mainLayout = new QVBoxLayout(mainWidget);
@@ -663,7 +666,7 @@ void MainWindow::searchingText(const QString &text,
             for (const auto &node : root.children) {
                 displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
-            ui->gridLayout->addWidget(treeWidget);
+            ui->verticalLayout_3->addWidget(treeWidget);
         }
 
         if (!foundWidgets.isEmpty()) {
@@ -842,6 +845,8 @@ void MainWindow::on_prettychb_toggled(bool checked)
         ui->treechb->setChecked(false);
     }
 
+    ui->stackedWidget->setCurrentIndex(0);
+
     searching_text = "";
 
     displayYamlData();
@@ -852,6 +857,8 @@ void MainWindow::on_treechb_toggled(bool checked)
     if (checked) {
         ui->prettychb->setChecked(false);
     }
+
+    ui->stackedWidget->setCurrentIndex(1);
 
     searching_text = "";
 
