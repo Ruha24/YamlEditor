@@ -153,20 +153,20 @@ void MainWindow::displayYamlData()
     }
 }
 
-void MainWindow::collectKeys(const YamlNode &node,
-                             QSet<QString> &topLevelKeys,
-                             QSet<QString> &subKeys)
+void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
 {
     QString key = node.key;
+    QString value = node.value;
 
-    if (node.value.isEmpty()) {
-        topLevelKeys.insert(key);
-    } else {
-        subKeys.insert(key);
+    if (key.isEmpty())
+        key = "-";
+
+    if (node.children.isEmpty()) {
+        keys.insert(key);
     }
 
     for (const auto &subNode : node.children) {
-        collectKeys(subNode, topLevelKeys, subKeys);
+        collectKeys(subNode, keys);
     }
 }
 
@@ -233,36 +233,22 @@ void MainWindow::displaykeys()
 {
     clearKeysArea();
 
-    int rowTopLevel = 0;
-    int colTopLevel = 0;
+    int row_lvl = 0;
+    int col_lvl = 0;
 
-    int rowSubLevel = 0;
-    int colSubLevel = 0;
-
-    topLevelKeys.clear();
-    subKeys.clear();
+    keys.clear();
 
     for (const auto &node : root.children) {
-        collectKeys(node, topLevelKeys, subKeys);
+        collectKeys(node, keys);
     }
 
-    for (const QString &key : topLevelKeys) {
-        createCheckBox(key, rowTopLevel, colTopLevel, true);
+    for (const QString &key : qAsConst(keys)) {
+        createCheckBox(key, row_lvl, col_lvl);
 
-        colTopLevel++;
-        if (colTopLevel > 1) {
-            colTopLevel = 0;
-            rowTopLevel++;
-        }
-    }
-
-    for (const QString &key : subKeys) {
-        createCheckBox(key, rowSubLevel, colSubLevel, false);
-
-        colSubLevel++;
-        if (colSubLevel > 1) {
-            colSubLevel = 0;
-            rowSubLevel++;
+        col_lvl++;
+        if (col_lvl > 1) {
+            col_lvl = 0;
+            row_lvl++;
         }
     }
 
@@ -392,10 +378,10 @@ void MainWindow::displayNode(const YamlNode &node,
     for (const auto &child : node.children) {
         QString key = child.key;
         QString value = child.value;
-        bool isChecked = checkBoxStates.contains(key) ? checkBoxStates[key] : false;
 
-        if (!isChecked)
+        if (checkBoxStates.contains(key) && !checkBoxStates[key]) {
             continue;
+        }
 
         bool hasChildren = !child.children.isEmpty();
 
@@ -481,9 +467,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
                                  QTreeWidget *treeWidget,
                                  bool useRegex)
 {
-    bool isChecked = checkBoxStates.contains(node.key) ? checkBoxStates[node.key] : false;
-
-    if (!isChecked) {
+    if (checkBoxStates.contains(node.key) && !checkBoxStates[node.key]) {
         return;
     }
 
@@ -558,7 +542,7 @@ void MainWindow::displayTreeNode(const YamlNode &node,
     }
 }
 
-void MainWindow::createCheckBox(const QString &name, int row, int col, bool topLevelKey)
+void MainWindow::createCheckBox(const QString &name, int row, int col)
 {
     QCheckBox *checkBox = new QCheckBox(name, this);
     checkBox->setStyleSheet(
@@ -569,10 +553,9 @@ void MainWindow::createCheckBox(const QString &name, int row, int col, bool topL
         "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
         "#51B4D2; } ");
 
-    if (topLevelKey)
-        ui->gridLayout_4->addWidget(checkBox, row, col);
-    else
-        ui->gridLayout_2->addWidget(checkBox, row, col);
+    qDebug() << name;
+
+    ui->gridLayout_2->addWidget(checkBox, row, col);
 
     if (name == "==") {
         checkBox->setChecked(false);
@@ -589,11 +572,6 @@ void MainWindow::clearKeysArea()
 {
     QLayoutItem *item;
     while ((item = ui->gridLayout_2->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
-
-    while ((item = ui->gridLayout_4->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }

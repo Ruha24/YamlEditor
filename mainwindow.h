@@ -97,8 +97,7 @@ private:
     QSet<QString> displayedKeys;
     YamlNode root;
     QMap<QString, bool> checkBoxStates;
-    QSet<QString> topLevelKeys;
-    QSet<QString> subKeys;
+    QSet<QString> keys;
     QList<QWidget *> foundWidgets;
     int currentFoundIndex;
     int startingIndex;
@@ -118,7 +117,7 @@ private:
                          QTreeWidget *treeWidget,
                          bool useRegex);
 
-    void collectKeys(const YamlNode &node, QSet<QString> &topLevelKeys, QSet<QString> &subKeys);
+    void collectKeys(const YamlNode &node, QSet<QString> &keys);
     void readFile();
 
     void slotShortcutCtrlF();
@@ -129,7 +128,7 @@ private:
     void highlightCurrentFound();
     void scrollIntoView(QWidget *widget);
 
-    void createCheckBox(const QString &name, int row, int col, bool topLevelKey);
+    void createCheckBox(const QString &name, int row, int col);
 
     void clearKeysArea();
     void clearScrollArea();
