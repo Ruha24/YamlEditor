@@ -708,7 +708,7 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
             for (const auto &node : root.children) {
                 displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
             }
-            ui->gridLayout->addWidget(treeWidget);
+            ui->verticalLayout_3->addWidget(treeWidget);
         }
 
         if (!foundWidgets.isEmpty()) {
