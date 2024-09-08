@@ -3,6 +3,7 @@
 
 #include <QCheckBox>
 #include <QDesktopServices>
+#include <QFileSystemWatcher>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -101,7 +102,14 @@ private:
     QList<QWidget *> foundWidgets;
     int currentFoundIndex;
     int startingIndex;
+    bool isUpdateFile = false;
     Qt::CaseSensitivity cs;
+
+    FileSystem *fileLocalSystem;
+    QList<QString> localFiles;
+
+    QFileSystemWatcher *fileWatcher;
+    void onFolderChanged(const QString &path);
 
     void updateValue(const QString &path, const QString &newValue, bool isKey);
 
@@ -134,6 +142,8 @@ private:
     void clearScrollArea();
 
     void saveData(const QString &fileName);
+
+    void uploadFileOnCmb(const QString &file);
 
     void displayYamlData();
     void displaykeys();

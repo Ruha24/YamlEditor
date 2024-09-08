@@ -14,30 +14,30 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QThreadPool>
 #include <QUrlQuery>
 #include <QtAlgorithms>
+#include "filedownloadtask.h"
 
-class YandexApi
+class YandexApi : public QObject
 {
+    Q_OBJECT
+
 public:
     YandexApi();
 
-    void downloadFile(const QString &url, const QString &filePath);
-
     void uploadFile(const QString &filePath, std::function<void(bool)> callback);
 
-    void getFiles(std::function<void(bool)> callback);
+    void getFiles();
 
     QList<QString> getListFileName() const;
 
-private slots:
-    void onUploadLinkReceived();
-    void onUploadFinished();
+signals:
+    void newFile(const QString &fileName);
 
 private:
     const QString accessToken = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
     QString currentFilePath;
-    QList<QString> listFileName;
 
     QString folderPath = QDir::currentPath() + "/ymlFiles/";
 };

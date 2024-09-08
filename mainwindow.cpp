@@ -1,8 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-#include <QPalette>
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -44,58 +42,21 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(keyCtrlR, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlR);
 
-    yandexApi->getFiles([&](bool success) {
-        FileSystem *fileSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
+    fileLocalSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
 
-        if (success) {
-            QList<QString> localFiles = fileSystem->getFiles();
-            QList<QString> yandexFiles = yandexApi->getListFileName();
+    localFiles = fileLocalSystem->getFiles();
 
-            if (localFiles.isEmpty()) {
-                for (const QString &yandexFile : yandexFiles) {
-                    ui->fileNamecmb->addItem(yandexFile);
-                }
-            } else {
-                for (const QString &localFile : localFiles) {
-                    QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
-                    QString localHash = fileSystem->calculateFileCheckSum(localFilePath);
+    connect(yandexApi, &YandexApi::newFile, this, &MainWindow::uploadFileOnCmb);
 
-                    bool foundMatch = false;
-
-                    for (const QString &yandexFile : yandexFiles) {
-                        if (localFile == yandexFile) {
-                            QString yandexFilePath = QDir::currentPath() + "/ymlFiles/"
-                                                     + yandexFile;
-                            QString yandexHash = fileSystem->calculateFileCheckSum(yandexFilePath);
-
-                            if (localHash == yandexHash) {
-                                ui->fileNamecmb->addItem(localFile);
-                            } else {
-                                ui->fileNamecmb->addItem(yandexFile);
-                            }
-
-                            foundMatch = true;
-                            break;
-                        }
-                    }
-
-                    if (!foundMatch) {
-                        ui->fileNamecmb->addItem(localFile);
-                    }
-                }
-
-                for (const QString &yandexFile : yandexFiles) {
-                    if (!localFiles.contains(yandexFile)) {
-                        ui->fileNamecmb->addItem(yandexFile);
-                    }
-                }
-            }
-        }
-
-        delete fileSystem;
-    });
+    yandexApi->getFiles();
 
     previousTextCmb = ui->fileNamecmb->currentText();
+
+    fileWatcher = new QFileSystemWatcher();
+
+    fileWatcher->addPath(QDir::currentPath() + "/ymlFiles");
+
+    connect(fileWatcher, &QFileSystemWatcher::directoryChanged, this, &MainWindow::onFolderChanged);
 }
 
 MainWindow::~MainWindow()
@@ -107,7 +68,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 {
     ui->fileNamecmb->setCurrentIndex(index);
 
-    if (!root.children.isEmpty()) {
+    if (isUpdateFile && !root.children.isEmpty()) {
         QMessageBox::StandardButton reply = QMessageBox::question(this,
                                                                   "Save File",
                                                                   "Do you want to save the file?",
@@ -126,9 +87,43 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 
 void MainWindow::saveData(const QString &fileName)
 {
-    QString fullPath = QDir::currentPath() + "/ymlFiles/" + fileName;
+    if (isUpdateFile) {
+        QString fullPath = QDir::currentPath() + "/ymlFiles/" + fileName;
 
-    yamlReader->saveValues(root, fullPath);
+        yamlReader->saveValues(root, fullPath);
+
+        isUpdateFile = false;
+    }
+}
+
+void MainWindow::uploadFileOnCmb(const QString &file)
+{
+    QString filePath = QDir::currentPath() + "/ymlFiles/" + file;
+    QString fileHash = fileLocalSystem->calculateFileCheckSum(filePath);
+
+    bool fileExists = false;
+
+    if (localFiles.isEmpty()) {
+        ui->fileNamecmb->addItem(file);
+        localFiles.append(file);
+    } else {
+        for (const QString &localFile : localFiles) {
+            QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
+            QString localHash = fileLocalSystem->calculateFileCheckSum(localFilePath);
+
+            if (localFile == file && localHash == fileHash) {
+                ui->fileNamecmb->addItem(localFile);
+                fileExists = true;
+                break;
+            }
+        }
+
+        if (!fileExists) {
+            if (ui->fileNamecmb->findText(file) == -1) {
+                ui->fileNamecmb->addItem(file);
+            }
+        }
+    }
 }
 
 void MainWindow::displayYamlData()
@@ -297,6 +292,8 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
         currentNode->key = newValue;
     else
         currentNode->value = newValue;
+
+    isUpdateFile = true;
 }
 
 void MainWindow::handleAddKeyValue(QString path, QString newValue, bool isKey)
@@ -553,8 +550,6 @@ void MainWindow::createCheckBox(const QString &name, int row, int col)
         "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
         "#51B4D2; } ");
 
-    qDebug() << name;
-
     ui->gridLayout_2->addWidget(checkBox, row, col);
 
     if (name == "==") {
@@ -761,6 +756,7 @@ void MainWindow::replaceText(const QString &findText,
         }
     }
 }
+
 void MainWindow::highlightCurrentFound()
 {
     if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
@@ -860,6 +856,27 @@ void MainWindow::replaceInWidget(QWidget *widget,
             text.replace(findText, replaceText, cs);
         }
         lineEdit->setText(text);
+    }
+}
+
+void MainWindow::onFolderChanged(const QString &path)
+{
+    QDir dir(path);
+    QStringList files = dir.entryList(QStringList() << "*.yaml"
+                                                    << "*.yml",
+                                      QDir::Files);
+
+    for (const QString &file : files) {
+        if (ui->fileNamecmb->findText(file) == -1)
+            ui->fileNamecmb->addItem(file);
+    }
+
+    for (int i = 0; i < ui->fileNamecmb->count(); ++i) {
+        QString comboFile = ui->fileNamecmb->itemText(i);
+        if (!files.contains(comboFile)) {
+            ui->fileNamecmb->removeItem(i);
+            --i;
+        }
     }
 }
 

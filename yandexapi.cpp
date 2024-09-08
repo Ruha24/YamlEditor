@@ -8,43 +8,6 @@ YandexApi::YandexApi()
     }
 }
 
-void YandexApi::downloadFile(const QString &url, const QString &filePath)
-{
-    QNetworkAccessManager *manager = new QNetworkAccessManager();
-    QNetworkRequest request;
-    request.setUrl(QUrl(url));
-    request.setRawHeader("Authorization", QString("OAuth %1").arg(accessToken).toUtf8());
-
-    QNetworkReply *reply = manager->get(request);
-    QObject::connect(reply, &QNetworkReply::finished, [=]() {
-        if (reply->error() != QNetworkReply::NoError) {
-            qDebug() << "Error downloading file:" << reply->errorString();
-            reply->deleteLater();
-            manager->deleteLater();
-            return;
-        }
-
-        QFile file(filePath);
-
-        QFileInfo fileInfo(filePath);
-
-        if (file.open(QIODevice::WriteOnly)) {
-            file.write(reply->readAll());
-            file.close();
-        } else {
-            qDebug() << "Error opening file for writing:" << filePath;
-            reply->deleteLater();
-            manager->deleteLater();
-            return;
-        }
-
-        listFileName.append(fileInfo.fileName());
-
-        reply->deleteLater();
-        manager->deleteLater();
-    });
-}
-
 void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> callback)
 {
     QFile file(filePath);
@@ -99,7 +62,7 @@ void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> ca
     });
 }
 
-void YandexApi::getFiles(std::function<void(bool)> callback)
+void YandexApi::getFiles()
 {
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest request;
@@ -111,9 +74,6 @@ void YandexApi::getFiles(std::function<void(bool)> callback)
     QObject::connect(reply, &QNetworkReply::finished, [=]() {
         if (reply->error() != QNetworkReply::NoError) {
             qDebug() << "Error:" << reply->errorString();
-            qDebug() << "Response code:"
-                     << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-            qDebug() << "Response body:" << reply->readAll();
             return;
         }
 
@@ -122,29 +82,31 @@ void YandexApi::getFiles(std::function<void(bool)> callback)
         QJsonObject jsonObject = jsonResponse.object();
         QJsonArray items = jsonObject["_embedded"].toObject()["items"].toArray();
 
+        QThreadPool *threadPool = QThreadPool::globalInstance();
+
         for (const QJsonValue &value : items) {
             QJsonObject item = value.toObject();
 
             if (item["type"].toString() == "file") {
                 QString fileName = item["name"].toString();
-                QString downloadUrl = item["file"].toString();
-                QString filePath = folderPath + fileName;
-
                 QString suffixFile = QFileInfo(fileName).suffix();
 
-                if (suffixFile == "yaml" || suffixFile == "yml")
-                    downloadFile(downloadUrl, filePath);
+                if (suffixFile == "yaml" || suffixFile == "yml") {
+                    QString downloadUrl = item["file"].toString();
+                    QString filePath = folderPath + fileName;
+
+                    FileDownloadTask *task = new FileDownloadTask(downloadUrl,
+                                                                  filePath,
+                                                                  accessToken);
+                    QObject::connect(task,
+                                     &FileDownloadTask::fileDownloaded,
+                                     [=](const QString &fileName) { emit newFile(fileName); });
+                    threadPool->start(task);
+                }
             }
         }
-
-        callback(true);
 
         reply->deleteLater();
         manager->deleteLater();
     });
-}
-
-QList<QString> YandexApi::getListFileName() const
-{
-    return listFileName;
 }

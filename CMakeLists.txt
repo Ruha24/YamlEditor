@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Concurrent)
 
 
 include(FetchContent)
@@ -53,6 +53,8 @@ set(PROJECT_SOURCES
         editwidget.h
         editwidget.cpp
         editwidget.ui
+        filedownloadtask.h
+        filedownloadtask.cpp
         images.qrc
 )
 
@@ -79,7 +81,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent)
 
 set_target_properties(editor PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
