@@ -185,6 +185,10 @@ void MainWindow::slotShortcutCtrlF()
     } else {
         searchWnd = new searchingWindow();
 
+        searchWnd->setAttribute(Qt::WA_DeleteOnClose);
+
+        connect(searchWnd, &QObject::destroyed, this, [=]() { searchWnd = nullptr; });
+
         connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
 
         searchWnd->show();
@@ -211,10 +215,15 @@ void MainWindow::slotShortcutCtrlR()
         searchWnd->close();
         searchWnd = nullptr;
     }
+
     if (replaceWnd)
         replaceWnd->activateWindow();
     else {
         replaceWnd = new ReplaceWindow();
+
+        replaceWnd->setAttribute(Qt::WA_DeleteOnClose);
+
+        connect(replaceWnd, &QObject::destroyed, this, [=]() { replaceWnd = nullptr; });
 
         connect(replaceWnd, &ReplaceWindow::searchReplaceText, this, &MainWindow::searchReplaceText);
 
