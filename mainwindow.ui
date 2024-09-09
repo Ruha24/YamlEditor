@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Editor</string>
+   <string>Editor 1.1.0</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow {
@@ -505,7 +505,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>668</width>
-                 <height>286</height>
+                 <height>297</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout">
@@ -737,7 +737,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>694</width>
-                 <height>147</height>
+                 <height>136</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">

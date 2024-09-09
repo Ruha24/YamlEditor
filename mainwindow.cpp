@@ -316,6 +316,8 @@ void MainWindow::handleAddKeyValue(QString path, QString newValue, bool isKey)
         root.addKeyWithValue(path, newValue);
     }
 
+    isUpdateFile = true;
+
     saveData(previousTextCmb);
 
     readFile();
@@ -328,6 +330,8 @@ void MainWindow::handleDeleteElement(QString path, bool isKey)
     } else {
         root.removeValue(path);
     }
+
+    isUpdateFile = true;
 
     saveData(previousTextCmb);
 
