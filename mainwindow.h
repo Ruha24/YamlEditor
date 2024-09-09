@@ -18,6 +18,7 @@
 #include <QTreeWidgetItem>
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
+#include <QtAlgorithms>
 
 #include "customlineedit.h"
 #include "filesystem.h"

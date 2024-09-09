@@ -246,7 +246,10 @@ void MainWindow::displaykeys()
         collectKeys(node, keys);
     }
 
-    for (const QString &key : qAsConst(keys)) {
+    QList<QString> sortedKeys = keys.values();
+    std::sort(sortedKeys.begin(), sortedKeys.end());
+
+    for (const QString &key : sortedKeys) {
         createCheckBox(key, row_lvl, col_lvl);
 
         col_lvl++;
