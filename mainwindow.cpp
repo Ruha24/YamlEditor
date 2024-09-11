@@ -419,7 +419,7 @@ void MainWindow::displayNode(const YamlNode &node,
             }
 
             keyEdit->setStyleSheet("QLineEdit { border: none; font-size: 18px; color: white; }");
-
+            keyEdit->setMaximumWidth(150);
             gridLayout->addWidget(keyEdit, row, column);
 
             connect(keyEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
