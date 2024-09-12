@@ -60,10 +60,6 @@ private slots:
                      bool allText,
                      bool useRegex);
 
-    void on_prettychb_toggled(bool checked);
-
-    void on_treechb_toggled(bool checked);
-
     void on_OpenFolderYmlFilebtn_clicked();
 
 private:
@@ -88,15 +84,12 @@ private:
     YamlReader *yamlReader;
     YandexApi *yandexApi;
 
-    QWidget *mainWidget;
-    QVBoxLayout *mainLayout;
-    QTreeWidget *treeWidget;
+    QTreeWidget *treeWidget = nullptr;
 
     QWidget *previousWidget = nullptr;
     QString previousWidgetOriginalStyleSheet;
     QString previousTextCmb;
 
-    QSet<QString> displayedKeys;
     YamlNode root;
     QMap<QString, bool> checkBoxStates;
     QSet<QString> keys;
@@ -113,12 +106,9 @@ private:
     void onFolderChanged(const QString &path);
 
     void updateValue(const QString &path, const QString &newValue, bool isKey);
-
-    void displayNode(const YamlNode &node,
-                     const QString &parentPath,
-                     const QString &searchText,
-                     bool useRegex,
-                     int depth = 0);
+    void displaykeys();
+    void saveData(const QString &fileName);
+    void displayYamlData();
     void displayTreeNode(const YamlNode &node,
                          const QString &parentPath,
                          const QString &searchText,
@@ -140,13 +130,8 @@ private:
     void createCheckBox(const QString &name, int row, int col);
 
     void clearKeysArea();
-    void clearScrollArea();
-
-    void saveData(const QString &fileName);
+    void clearTreeWidget();
 
     void uploadFileOnCmb(const QString &file);
-
-    void displayYamlData();
-    void displaykeys();
 };
 #endif // MAINWINDOW_H

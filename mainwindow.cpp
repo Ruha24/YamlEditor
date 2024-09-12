@@ -7,12 +7,6 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    mainWidget = nullptr;
-    mainLayout = nullptr;
-    treeWidget = nullptr;
-
-    ui->stackedWidget->setCurrentIndex(0);
-
     yandexApi = new YandexApi();
     yamlReader = new YamlReader();
 
@@ -128,24 +122,15 @@ void MainWindow::uploadFileOnCmb(const QString &file)
 
 void MainWindow::displayYamlData()
 {
-    clearScrollArea();
+    clearTreeWidget();
 
     root = yamlReader->getRootNode();
-    displayedKeys.clear();
 
-    if (ui->treechb->isChecked()) {
-        for (const auto &node : root.children) {
-            displayTreeNode(node, "", "", nullptr, treeWidget, false);
-        }
-
-        ui->verticalLayout_3->addWidget(treeWidget);
-    } else if (ui->prettychb->isChecked()) {
-        for (const auto &node : root.children) {
-            displayNode(node, "", "", false);
-        }
-
-        ui->verticalLayout_2->addWidget(mainWidget);
+    for (const auto &node : root.children) {
+        displayTreeNode(node, "", "", nullptr, treeWidget, false);
     }
+
+    ui->verticalLayout_3->addWidget(treeWidget);
 }
 
 void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
@@ -338,141 +323,6 @@ void MainWindow::handleDeleteElement(QString path, bool isKey)
     readFile();
 }
 
-void MainWindow::displayNode(const YamlNode &node,
-                             const QString &parentPath,
-                             const QString &searchText,
-                             bool useRegex,
-                             int depth)
-{
-    QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
-
-    QRegularExpression regex;
-    if (useRegex && !searchText.isEmpty()) {
-        QRegularExpression::PatternOption option = cs == Qt::CaseSensitive
-                                                       ? QRegularExpression::NoPatternOption
-                                                       : QRegularExpression::CaseInsensitiveOption;
-        regex = QRegularExpression(searchText, option);
-    }
-
-    if (!displayedKeys.contains(currentPath)
-        && (!node.children.isEmpty() || !node.value.trimmed().isEmpty())) {
-        displayedKeys.insert(currentPath);
-
-        CustomLineEdit *title = new CustomLineEdit(this, currentPath, true);
-        title->setText(node.key);
-
-        QMargins margins = title->contentsMargins();
-        margins.setLeft(depth * 20);
-        title->setContentsMargins(margins);
-
-        bool matchFound = useRegex ? regex.match(node.key).hasMatch()
-                                   : node.key.contains(searchText, cs);
-
-        connect(title, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
-        connect(title, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
-
-        if (!searchText.isEmpty() && matchFound) {
-            foundWidgets.append(title);
-        }
-        title->setStyleSheet(
-            "QLineEdit { border: none; font-size: 24px; color: rgb(98, 127, 255); }");
-
-        connect(title, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-            updateValue(currentPath, newValue, true);
-        });
-
-        mainLayout->addWidget(title);
-    }
-
-    QGridLayout *gridLayout = new QGridLayout();
-    int row = 0;
-    int column = 0;
-
-    for (const auto &child : node.children) {
-        QString key = child.key;
-        QString value = child.value;
-
-        if (checkBoxStates.contains(key) && !checkBoxStates[key]) {
-            continue;
-        }
-
-        bool hasChildren = !child.children.isEmpty();
-
-        if (!hasChildren) {
-            QString keyPath = currentPath.isEmpty() ? key : currentPath + "." + key;
-
-            CustomLineEdit *keyEdit = new CustomLineEdit(this, keyPath, true);
-
-            if (key.isEmpty()) {
-                keyEdit->setText("-");
-                keyEdit->setReadOnly(true);
-            } else
-                keyEdit->setText(key);
-
-            QMargins keyMargins = keyEdit->contentsMargins();
-            keyMargins.setLeft(depth * 20);
-            keyEdit->setContentsMargins(keyMargins);
-
-            bool matchFound = useRegex ? regex.match(key).hasMatch() : key.contains(searchText, cs);
-            if (!searchText.isEmpty() && matchFound) {
-                foundWidgets.append(keyEdit);
-            }
-
-            keyEdit->setStyleSheet("QLineEdit { border: none; font-size: 18px; color: white; }");
-            keyEdit->setMaximumWidth(150);
-            gridLayout->addWidget(keyEdit, row, column);
-
-            connect(keyEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-                updateValue(keyPath, newValue, true);
-            });
-
-            connect(keyEdit, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
-            connect(keyEdit, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
-
-            CustomLineEdit *valueEdit = new CustomLineEdit(this, keyPath);
-            valueEdit->setText(value);
-
-            matchFound = useRegex ? regex.match(value).hasMatch() : value.contains(searchText, cs);
-            if (!searchText.isEmpty() && matchFound) {
-                foundWidgets.append(valueEdit);
-            }
-
-            QMargins valueMargins = valueEdit->contentsMargins();
-            valueMargins.setLeft(depth * 20);
-            valueEdit->setContentsMargins(valueMargins);
-
-            valueEdit->setStyleSheet(
-                "QLineEdit {  font-size: 16px; color: white; max-width: 200px; }");
-
-            connect(valueEdit, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
-            connect(valueEdit,
-                    &CustomLineEdit::deleteElement,
-                    this,
-                    &MainWindow::handleDeleteElement);
-
-            gridLayout->addWidget(valueEdit, row, column + 1);
-
-            connect(valueEdit, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-                updateValue(keyPath, newValue, false);
-            });
-
-            column += 2;
-            if (column >= 4) {
-                column = 0;
-                row++;
-            }
-        }
-
-        if (hasChildren) {
-            displayNode(child, currentPath, searchText, useRegex, depth + 1);
-        }
-    }
-
-    if (gridLayout->count() > 0) {
-        mainLayout->addLayout(gridLayout);
-    }
-}
-
 void MainWindow::displayTreeNode(const YamlNode &node,
                                  const QString &parentPath,
                                  const QString &searchText,
@@ -588,12 +438,8 @@ void MainWindow::clearKeysArea()
     }
 }
 
-void MainWindow::clearScrollArea()
+void MainWindow::clearTreeWidget()
 {
-    if (mainWidget != nullptr) {
-        mainWidget->deleteLater();
-    }
-
     if (treeWidget != nullptr) {
         treeWidget->deleteLater();
     }
@@ -607,15 +453,6 @@ void MainWindow::clearScrollArea()
     treeWidget->setStyleSheet("QHeaderView {background-color: rgb(48, "
                               "48, 48); color: black;} QWidget {background-color: rgb(48, "
                               "48, 48); color: black;}");
-
-    mainWidget = new QWidget(this);
-    mainLayout = new QVBoxLayout(mainWidget);
-
-    QLayoutItem *item;
-    while ((item = ui->verticalLayout_2->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
 }
 
 void MainWindow::searchingText(const QString &text,
@@ -639,24 +476,17 @@ void MainWindow::searchingText(const QString &text,
         searching_text = text;
         searchingRegex = regex;
 
-        clearScrollArea();
-        displayedKeys.clear();
+        clearTreeWidget();
         foundWidgets.clear();
         currentFoundIndex = -1;
         startingIndex = -1;
         previousWidget = nullptr;
 
-        if (ui->prettychb->isChecked()) {
-            for (const auto &node : root.children) {
-                displayNode(node, "", text, useRegex);
-            }
-            ui->verticalLayout_2->addWidget(mainWidget);
-        } else if (ui->treechb->isChecked()) {
-            for (const auto &node : root.children) {
-                displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
-            }
-            ui->verticalLayout_3->addWidget(treeWidget);
+        for (const auto &node : root.children) {
+            displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
+
+        ui->verticalLayout_3->addWidget(treeWidget);
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = is_downward ? 0 : foundWidgets.size() - 1;
@@ -708,24 +538,16 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
         searching_text = text;
         searchingRegex = regex;
 
-        clearScrollArea();
-        displayedKeys.clear();
+        clearTreeWidget();
         foundWidgets.clear();
         currentFoundIndex = -1;
         startingIndex = -1;
         previousWidget = nullptr;
 
-        if (ui->prettychb->isChecked()) {
-            for (const auto &node : root.children) {
-                displayNode(node, "", text, useRegex);
-            }
-            ui->verticalLayout_2->addWidget(mainWidget);
-        } else if (ui->treechb->isChecked()) {
-            for (const auto &node : root.children) {
-                displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
-            }
-            ui->verticalLayout_3->addWidget(treeWidget);
+        for (const auto &node : root.children) {
+            displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
+        ui->verticalLayout_3->addWidget(treeWidget);
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = 0;
@@ -812,47 +634,16 @@ void MainWindow::highlightCurrentFound()
 
 void MainWindow::scrollIntoView(QWidget *widget)
 {
-    if (ui->treechb->isChecked() && treeWidget) {
-        QTreeWidgetItemIterator it(treeWidget);
-        while (*it) {
-            QTreeWidgetItem *item = *it;
+    QTreeWidgetItemIterator it(treeWidget);
+    while (*it) {
+        QTreeWidgetItem *item = *it;
 
-            if (treeWidget->itemWidget(item, 0) == widget
-                || treeWidget->itemWidget(item, 1) == widget) {
-                treeWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
-                return;
-            }
-            ++it;
+        if (treeWidget->itemWidget(item, 0) == widget || treeWidget->itemWidget(item, 1) == widget) {
+            treeWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
+            return;
         }
-    } else if (ui->scrollArea && ui->prettychb->isChecked()) {
-        ui->scrollArea->ensureWidgetVisible(widget);
+        ++it;
     }
-}
-
-void MainWindow::on_prettychb_toggled(bool checked)
-{
-    if (checked) {
-        ui->treechb->setChecked(false);
-    }
-
-    ui->stackedWidget->setCurrentIndex(0);
-
-    searching_text = "";
-
-    displayYamlData();
-}
-
-void MainWindow::on_treechb_toggled(bool checked)
-{
-    if (checked) {
-        ui->prettychb->setChecked(false);
-    }
-
-    ui->stackedWidget->setCurrentIndex(1);
-
-    searching_text = "";
-
-    displayYamlData();
 }
 
 void MainWindow::replaceInWidget(QWidget *widget,

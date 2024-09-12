@@ -216,7 +216,7 @@ QPushButton:hover
       </item>
      </layout>
     </item>
-    <item row="3" column="0">
+    <item row="2" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <property name="topMargin">
        <number>15</number>
@@ -322,110 +322,6 @@ QPushButton:hover
      </layout>
     </item>
     <item row="1" column="0">
-     <layout class="QHBoxLayout" name="horizontalLayout_6">
-      <property name="spacing">
-       <number>10</number>
-      </property>
-      <property name="sizeConstraint">
-       <enum>QLayout::SetMinimumSize</enum>
-      </property>
-      <property name="topMargin">
-       <number>10</number>
-      </property>
-      <property name="bottomMargin">
-       <number>10</number>
-      </property>
-      <item>
-       <widget class="QCheckBox" name="prettychb">
-        <property name="font">
-         <font>
-          <family>Montserrat</family>
-          <pointsize>-1</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QCheckBox
-{ 
-	color: white;
-	font-size: 18px;
-}
-
-QCheckBox::indicator 
-{
-	width: 20px;
-	height: 20px; 
-	background-color: #525252; 
-	color: #37A2C3; 
-	border: 1px solid #00AADF; 
-	border-radius: 5px;
-} 
-
-QCheckBox::indicator:checked 
-{ 
-	border: 1px solid #3CC7F2;
-	background-color: #51B4D2;
-}</string>
-        </property>
-        <property name="text">
-         <string>Pretty</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="treechb">
-        <property name="font">
-         <font>
-          <family>Montserrat</family>
-          <pointsize>-1</pointsize>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QCheckBox
-{ 
-	color: white;
-	font-size: 18px;
-}
-
-QCheckBox::indicator 
-{
-	width: 20px;
-	height: 20px; 
-	background-color: #525252; 
-	color: #37A2C3; 
-	border: 1px solid #00AADF; 
-	border-radius: 5px;
-} 
-
-QCheckBox::indicator:checked 
-{ 
-	border: 1px solid #3CC7F2;
-	background-color: #51B4D2;
-}</string>
-        </property>
-        <property name="text">
-         <string>Tree</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_10">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </item>
-    <item row="2" column="0">
      <widget class="QSplitter" name="splitter">
       <property name="styleSheet">
        <string notr="true">
@@ -462,132 +358,29 @@ background: #51B4D2;
          </spacer>
         </item>
         <item>
-         <widget class="QStackedWidget" name="stackedWidget">
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="styleSheet">
+           <string notr="true">QTabWidget::pane {border: 1px solid black;
+    background: rgb(48, 48, 48);
+}</string>
+          </property>
           <property name="currentIndex">
            <number>0</number>
           </property>
-          <widget class="QWidget" name="page">
-           <layout class="QGridLayout" name="gridLayout_7">
-            <item row="0" column="0">
-             <widget class="QScrollArea" name="scrollArea">
-              <property name="minimumSize">
-               <size>
-                <width>399</width>
-                <height>200</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="mouseTracking">
-               <bool>true</bool>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QScrollArea QWidget {   
-	background-color: rgb(48, 48, 48);
-    color: black;
-}
-
-</string>
-              </property>
-              <property name="widgetResizable">
-               <bool>true</bool>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignCenter</set>
-              </property>
-              <widget class="QWidget" name="scrollAreaWidgetContents">
-               <property name="geometry">
-                <rect>
-                 <x>0</x>
-                 <y>0</y>
-                 <width>668</width>
-                 <height>297</height>
-                </rect>
-               </property>
-               <layout class="QGridLayout" name="gridLayout">
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QHBoxLayout" name="horizontalLayout_3">
-                  <property name="leftMargin">
-                   <number>0</number>
-                  </property>
-                  <property name="rightMargin">
-                   <number>0</number>
-                  </property>
-                  <item>
-                   <spacer name="horizontalSpacer_4">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeType">
-                     <enum>QSizePolicy::Expanding</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>40</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                  <item>
-                   <layout class="QVBoxLayout" name="verticalLayout_2">
-                    <property name="spacing">
-                     <number>0</number>
-                    </property>
-                    <property name="sizeConstraint">
-                     <enum>QLayout::SetNoConstraint</enum>
-                    </property>
-                   </layout>
-                  </item>
-                  <item>
-                   <spacer name="horizontalSpacer_3">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeType">
-                     <enum>QSizePolicy::Expanding</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>40</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </widget>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="page_2">
-           <layout class="QGridLayout" name="gridLayout_8">
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>Tab 1</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout">
             <item row="0" column="0">
              <layout class="QVBoxLayout" name="verticalLayout_3"/>
             </item>
            </layout>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <attribute name="title">
+            <string>Tab 2</string>
+           </attribute>
           </widget>
          </widget>
         </item>
@@ -737,7 +530,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>694</width>
-                 <height>136</height>
+                 <height>155</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
