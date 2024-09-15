@@ -42,6 +42,7 @@ public:
 private slots:
     void handleAddKeyValue(QString path, QString newValue, bool isKey);
     void handleDeleteElement(QString path, bool isKey);
+    void closeTab(int index);
 
     void on_fileNamecmb_currentIndexChanged(int index);
 

@@ -51,6 +51,7 @@ MainWindow::MainWindow(QWidget *parent)
     fileWatcher->addPath(QDir::currentPath() + "/ymlFiles");
 
     connect(fileWatcher, &QFileSystemWatcher::directoryChanged, this, &MainWindow::onFolderChanged);
+    connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTab);
 }
 
 MainWindow::~MainWindow()
@@ -98,8 +99,8 @@ void MainWindow::uploadFileOnCmb(const QString &file)
     bool fileExists = false;
 
     if (localFiles.isEmpty()) {
-        qDebug() << file;
         ui->fileNamecmb->addItem(file);
+        localFiles.append(file);
     } else {
         for (const QString &localFile : localFiles) {
             QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
@@ -114,12 +115,27 @@ void MainWindow::uploadFileOnCmb(const QString &file)
 
         if (!fileExists) {
             if (ui->fileNamecmb->findText(file) == -1) {
+                localFiles.append(file);
                 ui->fileNamecmb->addItem(file);
             }
         }
     }
 }
 
+void MainWindow::closeTab(int index)
+{
+    if (index >= 0 && index < ui->tabWidget->count()) {
+        QString fileName = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
+
+        saveData(fileName);
+
+        nodes.remove(fileName);
+
+        QWidget *tab = ui->tabWidget->widget(index);
+        ui->tabWidget->removeTab(index);
+        delete tab;
+    }
+}
 void MainWindow::displayYamlData()
 {
     root = yamlReader->getRootNode();
@@ -511,7 +527,20 @@ void MainWindow::searchingText(const QString &text,
             displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
 
-        //        ui->verticalLayout_3->addWidget(treeWidget);
+        QWidget *currentTab = ui->tabWidget->currentWidget();
+
+        if (currentTab) {
+            QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(currentTab->layout());
+            if (layout) {
+                QLayoutItem *item;
+                while ((item = layout->takeAt(0)) != nullptr) {
+                    delete item->widget();
+                    delete item;
+                }
+
+                layout->addWidget(treeWidget);
+            }
+        }
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = is_downward ? 0 : foundWidgets.size() - 1;
@@ -572,7 +601,21 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
         for (const auto &node : root.children) {
             displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
-        // ui->verticalLayout_3->addWidget(treeWidget);
+
+        QWidget *currentTab = ui->tabWidget->currentWidget();
+
+        if (currentTab) {
+            QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(currentTab->layout());
+            if (layout) {
+                QLayoutItem *item;
+                while ((item = layout->takeAt(0)) != nullptr) {
+                    delete item->widget();
+                    delete item;
+                }
+
+                layout->addWidget(treeWidget);
+            }
+        }
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = 0;
