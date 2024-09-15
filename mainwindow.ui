@@ -365,23 +365,8 @@ background: #51B4D2;
 }</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>-1</number>
           </property>
-          <widget class="QWidget" name="tab">
-           <attribute name="title">
-            <string>Tab 1</string>
-           </attribute>
-           <layout class="QGridLayout" name="gridLayout">
-            <item row="0" column="0">
-             <layout class="QVBoxLayout" name="verticalLayout_3"/>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="tab_2">
-           <attribute name="title">
-            <string>Tab 2</string>
-           </attribute>
-          </widget>
          </widget>
         </item>
         <item>
@@ -530,7 +515,7 @@ background: #51B4D2;
                  <x>0</x>
                  <y>0</y>
                  <width>694</width>
-                 <height>155</height>
+                 <height>327</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">

@@ -98,8 +98,8 @@ void MainWindow::uploadFileOnCmb(const QString &file)
     bool fileExists = false;
 
     if (localFiles.isEmpty()) {
+        qDebug() << file;
         ui->fileNamecmb->addItem(file);
-        localFiles.append(file);
     } else {
         for (const QString &localFile : localFiles) {
             QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
@@ -122,15 +122,34 @@ void MainWindow::uploadFileOnCmb(const QString &file)
 
 void MainWindow::displayYamlData()
 {
-    clearTreeWidget();
-
     root = yamlReader->getRootNode();
+
+    displaykeys(root);
+
+    QWidget *newTab = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(newTab);
+
+    clearTreeWidget();
 
     for (const auto &node : root.children) {
         displayTreeNode(node, "", "", nullptr, treeWidget, false);
     }
 
-    ui->verticalLayout_3->addWidget(treeWidget);
+    layout->addWidget(treeWidget);
+    newTab->setLayout(layout);
+
+    ui->tabWidget->addTab(newTab, ui->fileNamecmb->currentText());
+    ui->tabWidget->setCurrentWidget(newTab);
+}
+
+int MainWindow::findTabByName(const QString &fileName)
+{
+    for (int i = 0; i < ui->tabWidget->count(); ++i) {
+        if (ui->tabWidget->tabText(i) == fileName) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
@@ -152,10 +171,21 @@ void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
 
 void MainWindow::readFile()
 {
-    if (yamlReader->readFile(ui->fileNamecmb->currentText())) {
-        displayYamlData();
-        displaykeys();
+    QString fileName = ui->fileNamecmb->currentText();
+
+    int existingTabIndex = findTabByName(fileName);
+
+    if (existingTabIndex != -1) {
+        root = nodes.value(fileName);
+        displaykeys(root);
+        ui->tabWidget->setCurrentIndex(existingTabIndex);
+    } else {
+        if (yamlReader->readFile(fileName)) {
+            displayYamlData();
+        }
     }
+
+    nodes.insert(fileName, root);
 }
 
 void MainWindow::slotShortcutCtrlF()
@@ -218,7 +248,7 @@ void MainWindow::slotShortcutCtrlR()
     }
 }
 
-void MainWindow::displaykeys()
+void MainWindow::displaykeys(YamlNode root)
 {
     clearKeysArea();
 
@@ -243,8 +273,6 @@ void MainWindow::displaykeys()
             row_lvl++;
         }
     }
-
-    displayYamlData();
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -440,9 +468,6 @@ void MainWindow::clearKeysArea()
 
 void MainWindow::clearTreeWidget()
 {
-    if (treeWidget != nullptr) {
-        treeWidget->deleteLater();
-    }
 
     treeWidget = new QTreeWidget(this);
 
@@ -486,7 +511,7 @@ void MainWindow::searchingText(const QString &text,
             displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
 
-        ui->verticalLayout_3->addWidget(treeWidget);
+        //        ui->verticalLayout_3->addWidget(treeWidget);
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = is_downward ? 0 : foundWidgets.size() - 1;
@@ -547,7 +572,7 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
         for (const auto &node : root.children) {
             displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
         }
-        ui->verticalLayout_3->addWidget(treeWidget);
+        // ui->verticalLayout_3->addWidget(treeWidget);
 
         if (!foundWidgets.isEmpty()) {
             currentFoundIndex = 0;
@@ -690,4 +715,13 @@ void MainWindow::onFolderChanged(const QString &path)
 void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 {
     QDesktopServices::openUrl(QDir::currentPath() + "/ymlFiles");
+}
+
+void MainWindow::on_tabWidget_currentChanged(int index)
+{
+    QString fileName = ui->tabWidget->tabText(index);
+    if (nodes.contains(fileName)) {
+        root = nodes.value(fileName);
+        displaykeys(root);
+    }
 }

@@ -62,6 +62,8 @@ private slots:
 
     void on_OpenFolderYmlFilebtn_clicked();
 
+    void on_tabWidget_currentChanged(int index);
+
 private:
     Ui::MainWindow *ui;
 
@@ -85,6 +87,8 @@ private:
     YandexApi *yandexApi;
 
     QTreeWidget *treeWidget = nullptr;
+    int findTabByName(const QString &fileName);
+    QMap<QString, YamlNode> nodes;
 
     QWidget *previousWidget = nullptr;
     QString previousWidgetOriginalStyleSheet;
@@ -106,7 +110,7 @@ private:
     void onFolderChanged(const QString &path);
 
     void updateValue(const QString &path, const QString &newValue, bool isKey);
-    void displaykeys();
+    void displaykeys(YamlNode root);
     void saveData(const QString &fileName);
     void displayYamlData();
     void displayTreeNode(const YamlNode &node,
