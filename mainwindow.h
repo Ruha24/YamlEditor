@@ -20,12 +20,12 @@
 #include <QWidget>
 #include <QtAlgorithms>
 
-#include "customlineedit.h"
-#include "filesystem.h"
+#include "api/yandex/yandexapi.h"
+#include "customWidget/customlineedit.h"
+#include "files/filesystem.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
-#include "yamlreader.h"
-#include "yandexapi.h"
+#include "yaml/yamlreader.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

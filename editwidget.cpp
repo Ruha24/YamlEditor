@@ -1,5 +1,5 @@
 #include "editwidget.h"
-#include "CustomLineEdit.h"
+#include "customWidget/customlineedit.h"
 #include "ui_editwidget.h"
 
 editwidget::editwidget(CustomLineEdit *lineEdit, QWidget *parent)

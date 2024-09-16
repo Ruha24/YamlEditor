@@ -7,8 +7,8 @@
 #include "yaml-cpp/yaml.h"
 #include <fstream>
 
+#include "../api/yandex/yandexapi.h"
 #include "yamlnode.h"
-#include "yandexapi.h"
 
 class YamlReader : public QObject
 {

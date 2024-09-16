@@ -34,27 +34,27 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
-        yandexapi.h
-        yandexapi.cpp
-        yamlreader.h
-        yamlreader.cpp
-        yamlnode.h
-        yamlnode.cpp
+        api/yandex/yandexapi.h
+        api/yandex/yandexapi.cpp
+        yaml/yamlreader.h
+        yaml/yamlreader.cpp
+        yaml/yamlnode.h
+        yaml/yamlnode.cpp
         searchingwindow.h
         searchingwindow.cpp
         searchingwindow.ui
-        filesystem.h
-        filesystem.cpp
+        files/filesystem.h
+        files/filesystem.cpp
         replacewindow.h
         replacewindow.cpp
         replacewindow.ui
-        customlineedit.h
-        customlineedit.cpp
+        customWidget/customlineedit.h
+        customWidget/customlineedit.cpp
         editwidget.h
         editwidget.cpp
         editwidget.ui
-        filedownloadtask.h
-        filedownloadtask.cpp
+        files/filedownloadtask.h
+        files/filedownloadtask.cpp
         images.qrc
 )
 

@@ -9,7 +9,7 @@
 #include <QObject>
 #include "qlineedit.h"
 
-#include "editwidget.h"
+#include "../editwidget.h"
 
 class CustomLineEdit : public QLineEdit
 {

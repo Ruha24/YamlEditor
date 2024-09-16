@@ -17,7 +17,8 @@
 #include <QThreadPool>
 #include <QUrlQuery>
 #include <QtAlgorithms>
-#include "filedownloadtask.h"
+
+#include "../../files/filedownloadtask.h"
 
 class YandexApi : public QObject
 {
