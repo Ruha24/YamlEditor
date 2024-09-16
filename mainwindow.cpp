@@ -6,6 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setAcceptDrops(true);
 
     yandexApi = new YandexApi();
     yamlReader = new YamlReader();
@@ -57,6 +58,30 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+
+    if (mimeData->hasUrls()) {
+        QList<QUrl> urlList = mimeData->urls();
+
+        for (const QUrl &url : urlList) {
+            QString fileName = url.fileName();
+
+            QString suffixFile = QFileInfo(fileName).suffix();
+
+            if (suffixFile == "yaml" || suffixFile == "yml")
+                if (ui->fileNamecmb->findText(fileName) == -1)
+                    ui->fileNamecmb->addItem(fileName);
+        }
+    }
 }
 
 void MainWindow::on_fileNamecmb_currentIndexChanged(int index)

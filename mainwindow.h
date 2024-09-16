@@ -3,12 +3,14 @@
 
 #include <QCheckBox>
 #include <QDesktopServices>
+#include <QDragEnterEvent>
 #include <QFileSystemWatcher>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMimeData>
 #include <QRegularExpression>
 #include <QScrollBar>
 #include <QSettings>
@@ -23,9 +25,9 @@
 #include "api/yandex/yandexapi.h"
 #include "customWidget/customlineedit.h"
 #include "files/filesystem.h"
+#include "files/yaml/yamlreader.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
-#include "yaml/yamlreader.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -38,6 +40,10 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+protected:
+    void dragEnterEvent(QDragEnterEvent *event);
+    void dropEvent(QDropEvent *event);
 
 private slots:
     void handleAddKeyValue(QString path, QString newValue, bool isKey);

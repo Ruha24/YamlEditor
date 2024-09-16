@@ -36,10 +36,10 @@ set(PROJECT_SOURCES
         mainwindow.ui
         api/yandex/yandexapi.h
         api/yandex/yandexapi.cpp
-        yaml/yamlreader.h
-        yaml/yamlreader.cpp
-        yaml/yamlnode.h
-        yaml/yamlnode.cpp
+        files/yaml/yamlreader.h
+        files/yaml/yamlreader.cpp
+        files/yaml/yamlnode.h
+        files/yaml/yamlnode.cpp
         searchingwindow.h
         searchingwindow.cpp
         searchingwindow.ui
