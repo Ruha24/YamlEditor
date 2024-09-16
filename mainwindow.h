@@ -137,6 +137,8 @@ private:
     void clearKeysArea();
     void clearTreeWidget();
 
+    void removeTab(const QString &tabText);
+
     void uploadFileOnCmb(const QString &file);
 };
 #endif // MAINWINDOW_H

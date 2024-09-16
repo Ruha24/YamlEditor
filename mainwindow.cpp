@@ -496,6 +496,24 @@ void MainWindow::clearTreeWidget()
                               "48, 48); color: black;}");
 }
 
+void MainWindow::removeTab(const QString &tabText)
+{
+    int index = -1;
+
+    for (int i = 0; i < ui->tabWidget->count(); ++i) {
+        if (ui->tabWidget->tabText(i) == tabText) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index != -1) {
+        ui->tabWidget->removeTab(index);
+    } else {
+        qDebug() << "Tab with text" << tabText << "not found!";
+    }
+}
+
 void MainWindow::searchingText(const QString &text,
                                bool isSensitive,
                                bool is_downward,
@@ -750,6 +768,7 @@ void MainWindow::onFolderChanged(const QString &path)
         QString comboFile = ui->fileNamecmb->itemText(i);
         if (!files.contains(comboFile)) {
             ui->fileNamecmb->removeItem(i);
+            removeTab(comboFile);
             --i;
         }
     }
@@ -763,6 +782,9 @@ void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
     QString fileName = ui->tabWidget->tabText(index);
+
+    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(fileName));
+
     if (nodes.contains(fileName)) {
         root = nodes.value(fileName);
         displaykeys(root);
