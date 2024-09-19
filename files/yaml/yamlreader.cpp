@@ -2,10 +2,10 @@
 
 YamlReader::YamlReader()
 {
-    yndApi = new YandexApi();
+    yandex_api = new YandexApi();
 }
 
-void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
+void YamlReader::CollectKeys(const YAML::Node &node, YamlNode &yamlNode)
 {
     if (node.IsMap()) {
         for (const auto &kv : node) {
@@ -17,15 +17,15 @@ void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
                 child.value = value.isEmpty() ? "" : value;
             } else if (kv.second.IsSequence()) {
                 for (std::size_t i = 0; i < kv.second.size(); ++i) {
-                    YamlNode seqChild;
+                    YamlNode seq_child;
                     if (kv.second[i].IsScalar()) {
                         QString value = QString::fromStdString(kv.second[i].as<std::string>());
-                        seqChild.value = value == "" ? "" : value;
+                        seq_child.value = value == "" ? "" : value;
                     }
-                    child.children.append(seqChild);
+                    child.children.append(seq_child);
                 }
             } else {
-                collectKeys(kv.second, child);
+                CollectKeys(kv.second, child);
             }
 
             yamlNode.children.append(child);
@@ -38,7 +38,7 @@ void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
                 QString value = QString::fromStdString(node[i].as<std::string>());
                 child.value = value.isEmpty() ? "" : value;
             } else {
-                collectKeys(node[i], child);
+                CollectKeys(node[i], child);
             }
 
             yamlNode.children.append(child);
@@ -46,7 +46,7 @@ void YamlReader::collectKeys(const YAML::Node &node, YamlNode &yamlNode)
     }
 }
 
-bool YamlReader::readFile(const QString &fileName)
+bool YamlReader::ReadFile(const QString &fileName)
 {
     QFileInfo file(fileName);
 
@@ -59,17 +59,17 @@ bool YamlReader::readFile(const QString &fileName)
 
     root = YamlNode();
 
-    collectKeys(config, root);
+    CollectKeys(config, root);
 
     return true;
 }
 
-YamlNode YamlReader::getRootNode() const
+YamlNode YamlReader::GetRootNode() const
 {
     return root;
 }
 
-void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
+void YamlReader::BuildNode(YAML::Emitter &out, const YamlNode &node)
 {
     if (!node.children.isEmpty()) {
         for (const auto &child : node.children) {
@@ -79,7 +79,7 @@ void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
             if (!child.children.isEmpty()) {
                 if (!child.children[0].key.isEmpty()) {
                     out << YAML::BeginMap;
-                    buildNode(out, child);
+                    BuildNode(out, child);
                     out << YAML::EndMap;
                 } else {
                     out << YAML::BeginSeq;
@@ -102,22 +102,22 @@ void YamlReader::buildNode(YAML::Emitter &out, const YamlNode &node)
         }
     }
 }
-void YamlReader::saveValues(const YamlNode &rootNode, const QString &filePath)
+void YamlReader::SaveValues(const YamlNode &rootNode, const QString &filePath)
 {
     YAML::Emitter out;
 
     out << YAML::BeginMap;
-    buildNode(out, rootNode);
+    BuildNode(out, rootNode);
     out << YAML::EndMap;
 
     std::ofstream ofstream(filePath.toStdString());
     ofstream << out.c_str();
     ofstream.close();
 
-    yndApi->uploadFile(filePath, [&](bool success) {
+    yandex_api->UploadFile(filePath, [&](bool success) {
         if (success)
-            emit fileUploaded(true);
+            emit FileUploaded(true);
         else
-            emit fileUploaded(true);
+            emit FileUploaded(true);
     });
 }

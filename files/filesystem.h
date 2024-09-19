@@ -13,21 +13,19 @@ class FileSystem
 public:
     FileSystem(const QString &path);
 
-    bool checkFolder();
-    bool instanceFolder();
+    bool CheckFolder(const QString &path);
+    bool InstanceFolder(const QString &path);
 
-    QString calculateFileCheckSum(
-        const QString &filePath,
+    QString CalculateFileCheckSum(
+        const QString &file_path,
         QCryptographicHash::Algorithm algorithm = QCryptographicHash::Sha256);
 
     QList<QString> getFiles();
 
 private:
-    void getAllFiles();
+    void GetFilesDirectory(const QString &path_dir);
 
-    const QString &path;
-
-    QList<QString> files;
+    QList<QString> list_files_info;
 };
 
 #endif // FILESYSTEM_H

@@ -27,20 +27,20 @@ class YandexApi : public QObject
 public:
     YandexApi();
 
-    void uploadFile(const QString &filePath, std::function<void(bool)> callback);
+    void UploadFile(const QString &filePath, std::function<void(bool)> callback);
 
-    void getFiles();
+    void GetFiles();
 
-    QList<QString> getListFileName() const;
+    QList<QString> GetListFileName() const;
 
 signals:
-    void newFile(const QString &fileName);
+    void NewFile(const QString &fileName);
 
 private:
-    const QString accessToken = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
-    QString currentFilePath;
+    const QString access_token = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
+    QString current_file_path;
 
-    QString folderPath = QDir::currentPath() + "/ymlFiles/";
+    QString folder_path = QDir::currentPath() + "/ymlFiles/";
 };
 
 #endif // YANDEXAPI_H

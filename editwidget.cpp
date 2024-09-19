@@ -5,7 +5,7 @@
 editwidget::editwidget(CustomLineEdit *lineEdit, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::editwidget)
-    , lineEdit(lineEdit)
+    , line_edit(lineEdit)
 {
     ui->setupUi(this);
     setWindowFlags(Qt::Dialog);
@@ -18,16 +18,16 @@ editwidget::~editwidget()
 
 void editwidget::on_addbtn_clicked()
 {
-    QString currentText = lineEdit->text();
-    QString path = lineEdit->getCurrentPath();
-    if (currentText.isEmpty()) {
+    QString current_text = line_edit->text();
+    QString path = line_edit->GetCurrentPath();
+    if (current_text.isEmpty()) {
         return;
     }
 
-    QString newValue = QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
+    QString new_value = QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
 
-    if (!newValue.isEmpty()) {
-        emit addKeyValue(path, newValue);
+    if (!new_value.isEmpty()) {
+        emit AddKeyValue(path, new_value);
     }
 
     this->close();
@@ -35,17 +35,17 @@ void editwidget::on_addbtn_clicked()
 
 void editwidget::on_deletebtn_clicked()
 {
-    QString currentText = lineEdit->text();
+    QString current_text = line_edit->text();
 
-    lineEdit->setKey(currentText);
+    line_edit->SetKey(current_text);
 
-    QString path = lineEdit->getCurrentPath();
+    QString path = line_edit->GetCurrentPath();
 
-    if (currentText.isEmpty()) {
+    if (current_text.isEmpty()) {
         return;
     }
 
-    emit deleteElement(path);
+    emit DeleteElement(path);
 
     this->close();
 }

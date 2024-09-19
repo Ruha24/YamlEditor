@@ -2,13 +2,13 @@
 #include <QEventLoop>
 
 FileDownloadTask::FileDownloadTask(const QString &url,
-                                   const QString &filePath,
+                                   const QString &file_path,
                                    const QString &accessToken,
                                    QObject *parent)
     : QObject(parent)
     , url(url)
-    , filePath(filePath)
-    , accessToken(accessToken)
+    , file_path(file_path)
+    , access_token(accessToken)
 {}
 
 void FileDownloadTask::run()
@@ -16,7 +16,7 @@ void FileDownloadTask::run()
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest request;
     request.setUrl(QUrl(url));
-    request.setRawHeader("Authorization", QString("OAuth %1").arg(accessToken).toUtf8());
+    request.setRawHeader("Authorization", QString("OAuth %1").arg(access_token).toUtf8());
 
     QNetworkReply *reply = manager->get(request);
 
@@ -29,18 +29,18 @@ void FileDownloadTask::run()
         return;
     }
 
-    QFile file(filePath);
+    QFile file(file_path);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(reply->readAll());
         file.close();
     } else {
-        qDebug() << "Error opening file for writing:" << filePath;
+        qDebug() << "Error opening file for writing:" << file_path;
         return;
     }
 
-    QFileInfo fileInfo(filePath);
+    QFileInfo file_info(file_path);
 
-    emit fileDownloaded(fileInfo.fileName());
+    emit FileDownloaded(file_info.fileName());
 
     reply->deleteLater();
 }

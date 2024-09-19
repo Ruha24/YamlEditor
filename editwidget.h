@@ -20,8 +20,8 @@ public:
     ~editwidget();
 
 signals:
-    void addKeyValue(QString key, QString value);
-    void deleteElement(QString element);
+    void AddKeyValue(QString key, QString value);
+    void DeleteElement(QString element);
 
 private slots:
     void on_addbtn_clicked();
@@ -29,7 +29,7 @@ private slots:
 
 private:
     Ui::editwidget *ui;
-    CustomLineEdit *lineEdit;
+    CustomLineEdit *line_edit;
 };
 
 #endif // EDITWIDGET_H

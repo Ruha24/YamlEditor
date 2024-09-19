@@ -2,36 +2,36 @@
 
 CustomLineEdit::CustomLineEdit(QWidget *parent, QString path, bool isKey)
     : QLineEdit(parent)
-    , currentPath(path)
-    , isKey(isKey)
+    , current_path(path)
+    , is_key(isKey)
 {}
 
-void CustomLineEdit::handleAddKeyValue(QString key, QString value)
+void CustomLineEdit::HandleAddKeyValue(QString key, QString value)
 {
-    emit addKeyValue(currentPath, value, isKey);
+    emit AddKeyValue(current_path, value, is_key);
 }
 
-void CustomLineEdit::handleDeleteElement(QString element)
+void CustomLineEdit::HandleDeleteElement(QString element)
 {
-    emit deleteElement(currentPath, isKey);
+    emit DeleteElement(current_path, is_key);
 }
 
-QString CustomLineEdit::getKey() const
+QString CustomLineEdit::GetKey() const
 {
     return key;
 }
 
-void CustomLineEdit::setKey(const QString &newKey)
+void CustomLineEdit::SetKey(const QString &newKey)
 {
     key = newKey;
 }
 
-QString CustomLineEdit::getCurrentPath() const
+QString CustomLineEdit::GetCurrentPath() const
 {
-    return currentPath;
+    return current_path;
 }
 
-bool CustomLineEdit::getIsKey() const
+bool CustomLineEdit::GetIsKey() const
 {
-    return isKey;
+    return is_key;
 }

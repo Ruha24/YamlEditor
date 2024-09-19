@@ -30,7 +30,7 @@ private slots:
 private:
     Ui::searchingWindow *ui;
 
-    bool is_downward = false;
+    bool is_downward;
 };
 
 #endif // SEARCHINGWINDOW_H

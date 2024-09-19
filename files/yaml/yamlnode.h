@@ -9,20 +9,20 @@ public:
     QList<YamlNode> children;
     QString value;
     QString key;
-    bool isSequence = false;
+    bool is_sequence = false;
 
     YamlNode();
     YamlNode(const QString &key, const QString &value = "");
 
-    YamlNode *findNodeByKey(const QString &searchKey);
+    YamlNode *FindNodeByKey(const QString &searchKey);
 
-    void addKeyWithValue(const QString &key, const QString &value);
+    void AddKeyWithValue(const QString &key, const QString &value);
 
-    void addValueToKey(const QString &key, const QString &value);
+    void AddValueToKey(const QString &key, const QString &value);
 
-    void removeKey(const QString &key);
+    void RemoveKey(const QString &key);
 
-    void removeValue(const QString &value);
+    void RemoveValue(const QString &value);
 };
 
 #endif // YAMLNODE_H

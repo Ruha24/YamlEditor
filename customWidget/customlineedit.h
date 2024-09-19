@@ -18,33 +18,33 @@ class CustomLineEdit : public QLineEdit
 public:
     explicit CustomLineEdit(QWidget *parent = nullptr, QString path = "", bool isKey = false);
 
-    QString getCurrentPath() const;
+    QString GetCurrentPath() const;
 
-    bool getIsKey() const;
+    bool GetIsKey() const;
 
-    QString getKey() const;
-    void setKey(const QString &newKey);
+    QString GetKey() const;
+    void SetKey(const QString &newKey);
 
 protected:
     void contextMenuEvent(QContextMenuEvent *event) override
     {
-        editwidget *editWnd = new editwidget(this);
-        connect(editWnd, &editwidget::addKeyValue, this, &CustomLineEdit::handleAddKeyValue);
-        connect(editWnd, &editwidget::deleteElement, this, &CustomLineEdit::handleDeleteElement);
+        editwidget *edit_wnd = new editwidget(this);
+        connect(edit_wnd, &editwidget::AddKeyValue, this, &CustomLineEdit::HandleAddKeyValue);
+        connect(edit_wnd, &editwidget::DeleteElement, this, &CustomLineEdit::HandleDeleteElement);
 
-        editWnd->show();
+        edit_wnd->show();
     }
 
 signals:
-    void addKeyValue(QString path, QString newValue, bool isKey);
-    void deleteElement(QString path, bool isKey);
+    void AddKeyValue(QString path, QString newValue, bool isKey);
+    void DeleteElement(QString path, bool isKey);
 
 private:
-    void handleAddKeyValue(QString key, QString value);
-    void handleDeleteElement(QString element);
+    void HandleAddKeyValue(QString key, QString value);
+    void HandleDeleteElement(QString element);
 
-    QString currentPath;
-    bool isKey;
+    QString current_path;
+    bool is_key;
     QString key;
 };
 

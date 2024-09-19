@@ -7,52 +7,57 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setAcceptDrops(true);
+    is_update_file = false;
+    tree_widget = nullptr;
+    search_wnd = nullptr;
+    replace_wnd = nullptr;
+    previous_widget = nullptr;
 
-    yandexApi = new YandexApi();
-    yamlReader = new YamlReader();
+    yandex_api = new YandexApi();
+    yaml_reader = new YamlReader();
 
-    connect(yamlReader, &YamlReader::fileUploaded, this, [&](bool success) {
+    connect(yaml_reader, &YamlReader::FileUploaded, this, [&](bool success) {
         if (success) {
             QMessageBox::information(this, "Saving", "Your file is saved");
         }
     });
 
-    keyF11 = new QShortcut(this);
-    keyF11->setKey(Qt::Key_F11);
+    key_F11 = new QShortcut(this);
+    key_F11->setKey(Qt::Key_F11);
 
-    connect(keyF11, &QShortcut::activated, this, &MainWindow::slotShortcutF11);
+    connect(key_F11, &QShortcut::activated, this, &::MainWindow::SlotShortcutF11);
 
-    keyCtrlF = new QShortcut(this);
-    keyCtrlF->setKey(Qt::CTRL | Qt::Key_F);
+    key_ctrl_f = new QShortcut(this);
+    key_ctrl_f->setKey(Qt::CTRL | Qt::Key_F);
 
-    connect(keyCtrlF, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlF);
+    connect(key_ctrl_f, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlF);
 
-    keyCtrlS = new QShortcut(this);
-    keyCtrlS->setKey(Qt::CTRL | Qt::Key_S);
+    key_ctrl_s = new QShortcut(this);
+    key_ctrl_s->setKey(Qt::CTRL | Qt::Key_S);
 
-    connect(keyCtrlS, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlS);
+    connect(key_ctrl_s, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlS);
 
-    keyCtrlR = new QShortcut(this);
-    keyCtrlR->setKey(Qt::CTRL | Qt::Key_R);
+    key_ctrl_r = new QShortcut(this);
+    key_ctrl_r->setKey(Qt::CTRL | Qt::Key_R);
 
-    connect(keyCtrlR, &QShortcut::activated, this, &MainWindow::slotShortcutCtrlR);
+    connect(key_ctrl_r, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlR);
 
-    fileLocalSystem = new FileSystem(QDir::currentPath() + "/ymlFiles");
+    file_local_system = new FileSystem(QDir::currentPath() + "/ymlFiles");
 
-    localFiles = fileLocalSystem->getFiles();
+    local_files = file_local_system->getFiles();
 
-    connect(yandexApi, &YandexApi::newFile, this, &MainWindow::uploadFileOnCmb);
+    connect(yandex_api, &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
-    yandexApi->getFiles();
+    yandex_api->GetFiles();
 
-    previousTextCmb = ui->fileNamecmb->currentText();
+    previous_text_cmb = ui->fileNamecmb->currentText();
 
-    fileWatcher = new QFileSystemWatcher();
+    file_watcher = new QFileSystemWatcher();
 
-    fileWatcher->addPath(QDir::currentPath() + "/ymlFiles");
+    file_watcher->addPath(QDir::currentPath() + "/ymlFiles");
 
-    connect(fileWatcher, &QFileSystemWatcher::directoryChanged, this, &MainWindow::onFolderChanged);
-    connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTab);
+    connect(file_watcher, &QFileSystemWatcher::directoryChanged, this, &MainWindow::OnFolderChanged);
+    connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
 }
 
 MainWindow::~MainWindow()
@@ -67,19 +72,19 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 
 void MainWindow::dropEvent(QDropEvent *event)
 {
-    const QMimeData *mimeData = event->mimeData();
+    const QMimeData *mime_data = event->mimeData();
 
-    if (mimeData->hasUrls()) {
-        QList<QUrl> urlList = mimeData->urls();
+    if (mime_data->hasUrls()) {
+        QList<QUrl> urlList = mime_data->urls();
 
         for (const QUrl &url : urlList) {
-            QString fileName = url.fileName();
+            QString file_name = url.fileName();
 
-            QString suffixFile = QFileInfo(fileName).suffix();
+            QString suffix_file = QFileInfo(file_name).suffix();
 
-            if (suffixFile == "yaml" || suffixFile == "yml")
-                if (ui->fileNamecmb->findText(fileName) == -1)
-                    ui->fileNamecmb->addItem(fileName);
+            if (suffix_file == "yaml" || suffix_file == "yml")
+                if (ui->fileNamecmb->findText(file_name) == -1)
+                    ui->fileNamecmb->addItem(file_name);
         }
     }
 }
@@ -88,7 +93,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 {
     ui->fileNamecmb->setCurrentIndex(index);
 
-    if (isUpdateFile && !root.children.isEmpty()) {
+    if (is_update_file && !root.children.isEmpty()) {
         QMessageBox::StandardButton reply = QMessageBox::question(this,
                                                                   "Save File",
                                                                   "Do you want to save the file?",
@@ -96,94 +101,95 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
                                                                   QMessageBox::No);
 
         if (reply == QMessageBox::Yes) {
-            saveData(previousTextCmb);
+            SaveData(previous_text_cmb);
         }
     }
 
-    previousTextCmb = ui->fileNamecmb->currentText();
+    previous_text_cmb = ui->fileNamecmb->currentText();
 
-    readFile();
+    ReadFile();
 }
 
-void MainWindow::saveData(const QString &fileName)
+void MainWindow::SaveData(const QString &fileName)
 {
-    if (isUpdateFile) {
-        QString fullPath = QDir::currentPath() + "/ymlFiles/" + fileName;
+    if (is_update_file) {
+        QString full_path = QDir::currentPath() + "/ymlFiles/" + fileName;
 
-        yamlReader->saveValues(root, fullPath);
+        yaml_reader->SaveValues(root, full_path);
 
-        isUpdateFile = false;
+        is_update_file = false;
     }
 }
 
-void MainWindow::uploadFileOnCmb(const QString &file)
+void MainWindow::UploadFileOnCmb(const QString &file)
 {
-    QString filePath = QDir::currentPath() + "/ymlFiles/" + file;
-    QString fileHash = fileLocalSystem->calculateFileCheckSum(filePath);
+    QString file_path = QDir::currentPath() + "/ymlFiles/" + file;
+    QString file_hash = file_local_system->CalculateFileCheckSum(file_path);
 
-    bool fileExists = false;
+    bool file_exists = false;
 
-    if (localFiles.isEmpty()) {
+    if (local_files.isEmpty()) {
         ui->fileNamecmb->addItem(file);
-        localFiles.append(file);
+        local_files.append(file);
     } else {
-        for (const QString &localFile : localFiles) {
-            QString localFilePath = QDir::currentPath() + "/ymlFiles/" + localFile;
-            QString localHash = fileLocalSystem->calculateFileCheckSum(localFilePath);
+        for (const QString &local_file : local_files) {
+            QString local_file_path = QDir::currentPath() + "/ymlFiles/" + local_file;
+            QString local_hash = file_local_system->CalculateFileCheckSum(local_file_path);
 
-            if (localFile == file && localHash == fileHash) {
-                ui->fileNamecmb->addItem(localFile);
-                fileExists = true;
+            if (local_file == file && local_hash == file_hash) {
+                ui->fileNamecmb->addItem(local_file);
+                file_exists = true;
                 break;
             }
         }
 
-        if (!fileExists) {
+        if (!file_exists) {
             if (ui->fileNamecmb->findText(file) == -1) {
-                localFiles.append(file);
+                local_files.append(file);
                 ui->fileNamecmb->addItem(file);
             }
         }
     }
 }
 
-void MainWindow::closeTab(int index)
+void MainWindow::CloseTab(int index)
 {
     if (index >= 0 && index < ui->tabWidget->count()) {
-        QString fileName = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
+        QString file_name = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
 
-        saveData(fileName);
+        SaveData(file_name);
 
-        nodes.remove(fileName);
+        nodes.remove(file_name);
 
         QWidget *tab = ui->tabWidget->widget(index);
         ui->tabWidget->removeTab(index);
         delete tab;
     }
 }
-void MainWindow::displayYamlData()
+
+void MainWindow::DisplayYamlData()
 {
-    root = yamlReader->getRootNode();
+    root = yaml_reader->GetRootNode();
 
-    displaykeys(root);
+    Displaykeys(root);
 
-    QWidget *newTab = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(newTab);
+    QWidget *new_tab = new QWidget();
+    QVBoxLayout *layout = new QVBoxLayout(new_tab);
 
-    clearTreeWidget();
+    ClearTreeWidget();
 
     for (const auto &node : root.children) {
-        displayTreeNode(node, "", "", nullptr, treeWidget, false);
+        DisplayTreeNode(node, "", "", nullptr, tree_widget, false);
     }
 
-    layout->addWidget(treeWidget);
-    newTab->setLayout(layout);
+    layout->addWidget(tree_widget);
+    new_tab->setLayout(layout);
 
-    ui->tabWidget->addTab(newTab, ui->fileNamecmb->currentText());
-    ui->tabWidget->setCurrentWidget(newTab);
+    ui->tabWidget->addTab(new_tab, ui->fileNamecmb->currentText());
+    ui->tabWidget->setCurrentWidget(new_tab);
 }
 
-int MainWindow::findTabByName(const QString &fileName)
+int MainWindow::FindTabByName(const QString &fileName)
 {
     for (int i = 0; i < ui->tabWidget->count(); ++i) {
         if (ui->tabWidget->tabText(i) == fileName) {
@@ -193,7 +199,7 @@ int MainWindow::findTabByName(const QString &fileName)
     return -1;
 }
 
-void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
+void MainWindow::CollectKeys(const YamlNode &node, QSet<QString> &keys)
 {
     QString key = node.key;
     QString value = node.value;
@@ -205,53 +211,53 @@ void MainWindow::collectKeys(const YamlNode &node, QSet<QString> &keys)
         keys.insert(key);
     }
 
-    for (const auto &subNode : node.children) {
-        collectKeys(subNode, keys);
+    for (const auto &sub_node : node.children) {
+        CollectKeys(sub_node, keys);
     }
 }
 
-void MainWindow::readFile()
+void MainWindow::ReadFile()
 {
-    QString fileName = ui->fileNamecmb->currentText();
+    QString file_name = ui->fileNamecmb->currentText();
 
-    int existingTabIndex = findTabByName(fileName);
+    int existing_tab_index = FindTabByName(file_name);
 
-    if (existingTabIndex != -1) {
-        root = nodes.value(fileName);
-        displaykeys(root);
-        ui->tabWidget->setCurrentIndex(existingTabIndex);
+    if (existing_tab_index != -1) {
+        root = nodes.value(file_name);
+        Displaykeys(root);
+        ui->tabWidget->setCurrentIndex(existing_tab_index);
     } else {
-        if (yamlReader->readFile(fileName)) {
-            displayYamlData();
+        if (yaml_reader->ReadFile(file_name)) {
+            DisplayYamlData();
         }
     }
 
-    nodes.insert(fileName, root);
+    nodes.insert(file_name, root);
 }
 
-void MainWindow::slotShortcutCtrlF()
+void MainWindow::SlotShortcutCtrlF()
 {
-    if (replaceWnd) {
-        replaceWnd->close();
-        replaceWnd = nullptr;
+    if (replace_wnd) {
+        replace_wnd->close();
+        replace_wnd = nullptr;
     }
 
-    if (searchWnd) {
-        searchWnd->activateWindow();
+    if (search_wnd) {
+        search_wnd->activateWindow();
     } else {
-        searchWnd = new searchingWindow();
+        search_wnd = new searchingWindow();
 
-        searchWnd->setAttribute(Qt::WA_DeleteOnClose);
+        search_wnd->setAttribute(Qt::WA_DeleteOnClose);
 
-        connect(searchWnd, &QObject::destroyed, this, [=]() { searchWnd = nullptr; });
+        connect(search_wnd, &QObject::destroyed, this, [=]() { search_wnd = nullptr; });
 
-        connect(searchWnd, &searchingWindow::searchingText, this, &MainWindow::searchingText);
+        connect(search_wnd, &searchingWindow::searchingText, this, &MainWindow::SearchingText);
 
-        searchWnd->show();
+        search_wnd->show();
     }
 }
 
-void MainWindow::slotShortcutF11()
+void MainWindow::SlotShortcutF11()
 {
     if (this->isFullScreen()) {
         this->showNormal();
@@ -260,38 +266,41 @@ void MainWindow::slotShortcutF11()
     }
 }
 
-void MainWindow::slotShortcutCtrlS()
+void MainWindow::SlotShortcutCtrlS()
 {
-    saveData(ui->fileNamecmb->currentText());
+    SaveData(ui->fileNamecmb->currentText());
 }
 
-void MainWindow::slotShortcutCtrlR()
+void MainWindow::SlotShortcutCtrlR()
 {
-    if (searchWnd) {
-        searchWnd->close();
-        searchWnd = nullptr;
+    if (search_wnd) {
+        search_wnd->close();
+        search_wnd = nullptr;
     }
 
-    if (replaceWnd)
-        replaceWnd->activateWindow();
+    if (replace_wnd)
+        replace_wnd->activateWindow();
     else {
-        replaceWnd = new ReplaceWindow();
+        replace_wnd = new ReplaceWindow();
 
-        replaceWnd->setAttribute(Qt::WA_DeleteOnClose);
+        replace_wnd->setAttribute(Qt::WA_DeleteOnClose);
 
-        connect(replaceWnd, &QObject::destroyed, this, [=]() { replaceWnd = nullptr; });
+        connect(replace_wnd, &QObject::destroyed, this, [=]() { replace_wnd = nullptr; });
 
-        connect(replaceWnd, &ReplaceWindow::searchReplaceText, this, &MainWindow::searchReplaceText);
+        connect(replace_wnd,
+                &ReplaceWindow::searchReplaceText,
+                this,
+                &MainWindow::SearchReplaceText);
 
-        connect(replaceWnd, &ReplaceWindow::replaceText, this, &MainWindow::replaceText);
+        connect(replace_wnd, &ReplaceWindow::replaceText, this, &MainWindow::ReplaceText);
 
-        replaceWnd->show();
+        replace_wnd->show();
     }
 }
 
-void MainWindow::displaykeys(YamlNode root)
+void MainWindow::Displaykeys(YamlNode root)
 {
-    clearKeysArea();
+    ClearKeysArea();
 
     int row_lvl = 0;
     int col_lvl = 0;
@@ -299,14 +308,14 @@ void MainWindow::displaykeys(YamlNode root)
     keys.clear();
 
     for (const auto &node : root.children) {
-        collectKeys(node, keys);
+        CollectKeys(node, keys);
     }
 
-    QList<QString> sortedKeys = keys.values();
-    std::sort(sortedKeys.begin(), sortedKeys.end());
+    QList<QString> sorted_keys = keys.values();
+    std::sort(sorted_keys.begin(), sorted_keys.end());
 
-    for (const QString &key : sortedKeys) {
-        createCheckBox(key, row_lvl, col_lvl);
+    for (const QString &key : sorted_keys) {
+        CreateCheckBox(key, row_lvl, col_lvl);
 
         col_lvl++;
         if (col_lvl > 1) {
@@ -318,33 +327,33 @@ void MainWindow::displaykeys(YamlNode root)
 
 void MainWindow::on_pushButton_clicked()
 {
-    saveData(ui->fileNamecmb->currentText());
+    SaveData(ui->fileNamecmb->currentText());
 }
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    displayYamlData();
+    DisplayYamlData();
 }
 
 void MainWindow::onCheckBoxStateChanged(int state)
 {
-    QCheckBox *checkBox = qobject_cast<QCheckBox *>(sender());
-    if (checkBox) {
-        QString key = checkBox->text();
-        checkBoxStates[key] = (state == Qt::Checked);
+    QCheckBox *check_box = qobject_cast<QCheckBox *>(sender());
+    if (check_box) {
+        QString key = check_box->text();
+        check_box_states[key] = (state == Qt::Checked);
     }
 }
 
-void MainWindow::updateValue(const QString &path, const QString &newValue, bool isKey)
+void MainWindow::UpdateValue(const QString &path, const QString &newValue, bool isKey)
 {
     QStringList keys = path.split('.');
-    YamlNode *currentNode = &root;
+    YamlNode *current_node = &root;
 
     for (const QString &key : keys) {
         bool found = false;
-        for (YamlNode &child : currentNode->children) {
+        for (YamlNode &child : current_node->children) {
             if (child.key == key) {
-                currentNode = &child;
+                current_node = &child;
                 found = true;
                 break;
             }
@@ -355,129 +364,130 @@ void MainWindow::updateValue(const QString &path, const QString &newValue, bool 
     }
 
     if (isKey)
-        currentNode->key = newValue;
+        current_node->key = newValue;
     else
-        currentNode->value = newValue;
+        current_node->value = newValue;
 
-    isUpdateFile = true;
+    is_update_file = true;
 }
 
-void MainWindow::handleAddKeyValue(QString path, QString newValue, bool isKey)
+void MainWindow::HandleAddKeyValue(QString path, QString newValue, bool isKey)
 {
     if (isKey) {
-        root.addValueToKey(path, newValue);
+        root.AddValueToKey(path, newValue);
     } else {
-        root.addKeyWithValue(path, newValue);
+        root.AddKeyWithValue(path, newValue);
     }
 
-    isUpdateFile = true;
+    is_update_file = true;
 
-    saveData(previousTextCmb);
+    SaveData(previous_text_cmb);
 
-    readFile();
+    ReadFile();
 }
 
-void MainWindow::handleDeleteElement(QString path, bool isKey)
+void MainWindow::HandleDeleteElement(QString path, bool isKey)
 {
     if (isKey) {
-        root.removeKey(path);
+        root.RemoveKey(path);
     } else {
-        root.removeValue(path);
+        root.RemoveValue(path);
     }
 
-    isUpdateFile = true;
+    is_update_file = true;
 
-    saveData(previousTextCmb);
+    SaveData(previous_text_cmb);
 
-    readFile();
+    ReadFile();
 }
 
-void MainWindow::displayTreeNode(const YamlNode &node,
+void MainWindow::DisplayTreeNode(const YamlNode &node,
                                  const QString &parentPath,
                                  const QString &searchText,
                                  QTreeWidgetItem *parentItem,
                                  QTreeWidget *treeWidget,
                                  bool useRegex)
 {
-    if (checkBoxStates.contains(node.key) && !checkBoxStates[node.key]) {
+    if (check_box_states.contains(node.key) && !check_box_states[node.key]) {
         return;
     }
 
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
-    QTreeWidgetItem *treeItem = new QTreeWidgetItem();
-    treeItem->setText(0, node.key);
+    QTreeWidgetItem *tree_item = new QTreeWidgetItem();
+    tree_item->setText(0, node.key);
 
     if (parentItem) {
-        parentItem->addChild(treeItem);
+        parentItem->addChild(tree_item);
     } else {
-        treeWidget->addTopLevelItem(treeItem);
+        treeWidget->addTopLevelItem(tree_item);
     }
 
-    CustomLineEdit *keytxt = new CustomLineEdit(this, currentPath, true);
+    CustomLineEdit *key_txt = new CustomLineEdit(this, currentPath, true);
 
     if (node.key.isEmpty()) {
-        keytxt->setText("-");
-        keytxt->setReadOnly(true);
+        key_txt->setText("-");
+        key_txt->setReadOnly(true);
     } else {
-        keytxt->setText(node.key);
+        key_txt->setText(node.key);
     }
-    keytxt->setStyleSheet("QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
-    treeWidget->setItemWidget(treeItem, 0, keytxt);
+    key_txt->setStyleSheet(
+        "QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
+    treeWidget->setItemWidget(tree_item, 0, key_txt);
 
-    connect(keytxt, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
-    connect(keytxt, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
+    connect(key_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
+    connect(key_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
 
-    connect(keytxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-        updateValue(currentPath, newValue, true);
+    connect(key_txt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+        UpdateValue(currentPath, newValue, true);
     });
 
-    bool keyMatches = false;
-    bool valueMatches = false;
+    bool key_matches = false;
+    bool value_matches = false;
 
     if (useRegex) {
         QRegularExpression regex(searchText,
                                  cs ? QRegularExpression::NoPatternOption
                                     : QRegularExpression::CaseInsensitiveOption);
 
-        keyMatches = regex.match(node.key).hasMatch();
-        valueMatches = regex.match(node.value).hasMatch();
+        key_matches = regex.match(node.key).hasMatch();
+        value_matches = regex.match(node.value).hasMatch();
     } else {
-        keyMatches = node.key.contains(searchText, cs);
-        valueMatches = node.value.contains(searchText, cs);
+        key_matches = node.key.contains(searchText, cs);
+        value_matches = node.value.contains(searchText, cs);
     }
 
-    if (!searchText.isEmpty() && keyMatches) {
-        foundWidgets.append(keytxt);
+    if (!searchText.isEmpty() && key_matches) {
+        found_widgets.append(key_txt);
     }
 
     if (!node.value.isEmpty() || node.children.isEmpty()) {
-        CustomLineEdit *valuetxt = new CustomLineEdit(this, currentPath, false);
-        valuetxt->setText(node.value);
-        valuetxt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
-        treeWidget->setItemWidget(treeItem, 1, valuetxt);
+        CustomLineEdit *value_txt = new CustomLineEdit(this, currentPath, false);
+        value_txt->setText(node.value);
+        value_txt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
+        treeWidget->setItemWidget(tree_item, 1, value_txt);
 
-        connect(valuetxt, &CustomLineEdit::addKeyValue, this, &MainWindow::handleAddKeyValue);
-        connect(valuetxt, &CustomLineEdit::deleteElement, this, &MainWindow::handleDeleteElement);
+        connect(value_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
+        connect(value_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
 
-        connect(valuetxt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
-            updateValue(currentPath, newValue, false);
+        connect(value_txt, &QLineEdit::textChanged, this, [=](const QString &newValue) {
+            UpdateValue(currentPath, newValue, false);
         });
 
-        if (!searchText.isEmpty() && valueMatches) {
-            foundWidgets.append(valuetxt);
+        if (!searchText.isEmpty() && value_matches) {
+            found_widgets.append(value_txt);
         }
     }
 
     for (const auto &child : node.children) {
-        displayTreeNode(child, currentPath, searchText, treeItem, treeWidget, useRegex);
+        DisplayTreeNode(child, currentPath, searchText, tree_item, treeWidget, useRegex);
     }
 }
 
-void MainWindow::createCheckBox(const QString &name, int row, int col)
+void MainWindow::CreateCheckBox(const QString &name, int row, int col)
 {
-    QCheckBox *checkBox = new QCheckBox(name, this);
-    checkBox->setStyleSheet(
+    QCheckBox *check_box = new QCheckBox(name, this);
+    check_box->setStyleSheet(
         "QCheckBox{ font-size: 24px;} QCheckBox::indicator { width: 20px; height: "
         "20px; "
         "background-color: #525252; "
@@ -485,20 +495,20 @@ void MainWindow::createCheckBox(const QString &name, int row, int col)
         "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
         "#51B4D2; } ");
 
-    ui->gridLayout_2->addWidget(checkBox, row, col);
+    ui->gridLayout_2->addWidget(check_box, row, col);
 
     if (name == "==") {
-        checkBox->setChecked(false);
-        checkBoxStates[name] = false;
+        check_box->setChecked(false);
+        check_box_states[name] = false;
     } else {
-        checkBox->setChecked(true);
-        checkBoxStates[name] = true;
+        check_box->setChecked(true);
+        check_box_states[name] = true;
     }
 
-    connect(checkBox, &QCheckBox::stateChanged, this, &MainWindow::onCheckBoxStateChanged);
+    connect(check_box, &QCheckBox::stateChanged, this, &MainWindow::onCheckBoxStateChanged);
 }
 
-void MainWindow::clearKeysArea()
+void MainWindow::ClearKeysArea()
 {
     QLayoutItem *item;
     while ((item = ui->gridLayout_2->takeAt(0)) != nullptr) {
@@ -507,21 +517,36 @@ void MainWindow::clearKeysArea()
     }
 }
 
-void MainWindow::clearTreeWidget()
+void MainWindow::ClearTreeWidget()
 {
+    tree_widget = new QTreeWidget(this);
 
-    treeWidget = new QTreeWidget(this);
-
-    treeWidget->setColumnCount(2);
-    treeWidget->setHeaderLabels(QStringList() << "Key"
-                                              << "Value");
-    treeWidget->setColumnWidth(0, 200);
-    treeWidget->setStyleSheet("QHeaderView {background-color: rgb(48, "
-                              "48, 48); color: black;} QWidget {background-color: rgb(48, "
-                              "48, 48); color: black;}");
+    tree_widget->setColumnCount(2);
+    tree_widget->setHeaderLabels(QStringList() << "Key"
+                                               << "Value");
+    tree_widget->setColumnWidth(0, 200);
+    tree_widget->setStyleSheet("QHeaderView {background-color: rgb(48, "
+                               "48, 48); color: black;} QWidget {background-color: rgb(48, "
+                               "48, 48); color: black;}");
 }
 
-void MainWindow::removeTab(const QString &tabText)
+void MainWindow::ClearTabWidget(QWidget *tab)
+{
+    if (tab) {
+        QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(tab->layout());
+        if (layout) {
+            QLayoutItem *item;
+            while ((item = layout->takeAt(0)) != nullptr) {
+                delete item->widget();
+                delete item;
+            }
+
+            layout->addWidget(tree_widget);
+        }
+    }
+}
+
+void MainWindow::RemoveTab(const QString &tabText)
 {
     int index = -1;
 
@@ -539,12 +564,9 @@ void MainWindow::removeTab(const QString &tabText)
     }
 }
 
-void MainWindow::searchingText(const QString &text,
-                               bool isSensitive,
-                               bool is_downward,
-                               bool useRegex)
+void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex)
 {
-    Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    Qt::CaseSensitivity new_cs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
     QRegularExpression regex;
     if (useRegex) {
@@ -554,72 +576,61 @@ void MainWindow::searchingText(const QString &text,
         regex = QRegularExpression(text, option);
     }
 
-    if ((useRegex && regex.pattern() != searchingRegex.pattern())
-        || (!useRegex && searching_text != text) || newCs != cs) {
-        cs = newCs;
+    if ((useRegex && regex.pattern() != searching_regex.pattern())
+        || (!useRegex && searching_text != text) || new_cs != cs) {
+        cs = new_cs;
         searching_text = text;
-        searchingRegex = regex;
+        searching_regex = regex;
 
-        clearTreeWidget();
-        foundWidgets.clear();
-        currentFoundIndex = -1;
-        startingIndex = -1;
-        previousWidget = nullptr;
+        ClearTreeWidget();
+        found_widgets.clear();
+        current_found_index = -1;
+        starting_index = -1;
+        previous_widget = nullptr;
 
         for (const auto &node : root.children) {
-            displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
+            DisplayTreeNode(node, "", text, nullptr, tree_widget, useRegex);
         }
 
-        QWidget *currentTab = ui->tabWidget->currentWidget();
+        QWidget *current_tab = ui->tabWidget->currentWidget();
 
-        if (currentTab) {
-            QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(currentTab->layout());
-            if (layout) {
-                QLayoutItem *item;
-                while ((item = layout->takeAt(0)) != nullptr) {
-                    delete item->widget();
-                    delete item;
-                }
+        ClearTabWidget(current_tab);
 
-                layout->addWidget(treeWidget);
-            }
-        }
-
-        if (!foundWidgets.isEmpty()) {
-            currentFoundIndex = is_downward ? 0 : foundWidgets.size() - 1;
-            highlightCurrentFound();
+        if (!found_widgets.isEmpty()) {
+            current_found_index = isDownward ? 0 : found_widgets.size() - 1;
+            HighlightCurrentFound();
         }
         return;
     }
 
-    if (startingIndex == -1) {
-        startingIndex = currentFoundIndex;
+    if (starting_index == -1) {
+        starting_index = current_found_index;
     }
 
-    if (is_downward) {
-        currentFoundIndex++;
-        if (currentFoundIndex >= foundWidgets.size()) {
-            currentFoundIndex = 0;
+    if (isDownward) {
+        current_found_index++;
+        if (current_found_index >= found_widgets.size()) {
+            current_found_index = 0;
         }
     } else {
-        currentFoundIndex--;
-        if (currentFoundIndex < 0) {
-            currentFoundIndex = foundWidgets.size() - 1;
+        current_found_index--;
+        if (current_found_index < 0) {
+            current_found_index = found_widgets.size() - 1;
         }
     }
 
-    if (currentFoundIndex == startingIndex) {
+    if (current_found_index == starting_index) {
         QMessageBox::information(this, "Search", "Reached the end of the search results.");
-        startingIndex = -1;
+        starting_index = -1;
         return;
     }
 
-    highlightCurrentFound();
+    HighlightCurrentFound();
 }
 
-void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool useRegex)
+void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool useRegex)
 {
-    Qt::CaseSensitivity newCs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    Qt::CaseSensitivity new_cs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
     QRegularExpression regex;
     if (useRegex) {
@@ -629,135 +640,125 @@ void MainWindow::searchReplaceText(const QString &text, bool isSensitive, bool u
         regex = QRegularExpression(text, option);
     }
 
-    if ((useRegex && regex.pattern() != searchingRegex.pattern())
-        || (!useRegex && searching_text != text) || newCs != cs) {
-        cs = newCs;
+    if ((useRegex && regex.pattern() != searching_regex.pattern())
+        || (!useRegex && searching_text != text) || new_cs != cs) {
+        cs = new_cs;
         searching_text = text;
-        searchingRegex = regex;
+        searching_regex = regex;
 
-        clearTreeWidget();
-        foundWidgets.clear();
-        currentFoundIndex = -1;
-        startingIndex = -1;
-        previousWidget = nullptr;
+        ClearTreeWidget();
+        found_widgets.clear();
+        current_found_index = -1;
+        starting_index = -1;
+        previous_widget = nullptr;
 
         for (const auto &node : root.children) {
-            displayTreeNode(node, "", text, nullptr, treeWidget, useRegex);
+            DisplayTreeNode(node, "", text, nullptr, tree_widget, useRegex);
         }
 
-        QWidget *currentTab = ui->tabWidget->currentWidget();
+        QWidget *current_tab = ui->tabWidget->currentWidget();
 
-        if (currentTab) {
-            QVBoxLayout *layout = dynamic_cast<QVBoxLayout *>(currentTab->layout());
-            if (layout) {
-                QLayoutItem *item;
-                while ((item = layout->takeAt(0)) != nullptr) {
-                    delete item->widget();
-                    delete item;
-                }
+        ClearTabWidget(current_tab);
 
-                layout->addWidget(treeWidget);
-            }
-        }
-
-        if (!foundWidgets.isEmpty()) {
-            currentFoundIndex = 0;
-            highlightCurrentFound();
+        if (!found_widgets.isEmpty()) {
+            current_found_index = 0;
+            HighlightCurrentFound();
         }
         return;
     }
 
-    if (startingIndex == -1) {
-        startingIndex = currentFoundIndex;
+    if (starting_index == -1) {
+        starting_index = current_found_index;
     }
 
-    currentFoundIndex++;
+    current_found_index++;
 
-    if (currentFoundIndex >= foundWidgets.size()) {
-        currentFoundIndex = 0;
+    if (current_found_index >= found_widgets.size()) {
+        current_found_index = 0;
     }
 
-    if (currentFoundIndex == startingIndex) {
-        startingIndex = -1;
+    if (current_found_index == starting_index) {
+        starting_index = -1;
         return;
     }
 
-    highlightCurrentFound();
+    HighlightCurrentFound();
 }
 
-void MainWindow::replaceText(const QString &findText,
+void MainWindow::ReplaceText(const QString &findText,
                              const QString &replaceText,
                              bool allText,
                              bool useRegex)
 {
-    searchReplaceText(findText, cs, useRegex);
+    SearchReplaceText(findText, cs, useRegex);
 
     if (allText) {
-        for (QWidget *widget : foundWidgets) {
-            replaceInWidget(widget, findText, replaceText, useRegex);
+        for (QWidget *widget : found_widgets) {
+            ReplaceInWidget(widget, findText, replaceText, useRegex);
         }
 
         searching_text = "";
     } else {
-        if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
-            QWidget *currentWidget = foundWidgets[currentFoundIndex];
-            replaceInWidget(currentWidget, findText, replaceText, useRegex);
+        if (current_found_index >= 0 && current_found_index < found_widgets.size()) {
+            QWidget *current_widget = found_widgets[current_found_index];
+            ReplaceInWidget(current_widget, findText, replaceText, useRegex);
         }
     }
 }
 
-void MainWindow::highlightCurrentFound()
+void MainWindow::HighlightCurrentFound()
 {
-    if (currentFoundIndex >= 0 && currentFoundIndex < foundWidgets.size()) {
-        QWidget *currentWidget = foundWidgets[currentFoundIndex];
+    if (current_found_index >= 0 && current_found_index < found_widgets.size()) {
+        QWidget *current_widget = found_widgets[current_found_index];
 
-        if (!currentWidget) {
+        if (!current_widget) {
             qWarning() << "Current widget is null!";
             return;
         }
 
-        if (previousWidget) {
-            previousWidget->setStyleSheet(previousWidgetOriginalStyleSheet);
+        if (previous_widget) {
+            previous_widget->setStyleSheet(previous_widget_original_style_sheet);
         }
 
-        QString currentStyleSheet = currentWidget->styleSheet();
+        QString current_style_sheet = current_widget->styleSheet();
 
-        previousWidget = currentWidget;
-        previousWidgetOriginalStyleSheet = currentStyleSheet;
+        previous_widget = current_widget;
+        previous_widget_original_style_sheet = current_style_sheet;
 
         static QRegularExpression regex("color:\\s*[^;]+;");
         QString newColor = "color: blue;";
 
-        if (regex.match(currentStyleSheet).hasMatch()) {
-            currentStyleSheet.replace(regex, newColor);
+        if (regex.match(current_style_sheet).hasMatch()) {
+            current_style_sheet.replace(regex, newColor);
         } else {
-            currentStyleSheet += " " + newColor;
+            current_style_sheet += " " + newColor;
         }
 
-        currentWidget->setStyleSheet(currentStyleSheet);
+        current_widget->setStyleSheet(current_style_sheet);
 
-        scrollIntoView(currentWidget);
+        ScrollIntoView(current_widget);
 
     } else {
         QMessageBox::information(this, "Editor", "Can't find it \"" + searching_text + "\"");
     }
 }
 
-void MainWindow::scrollIntoView(QWidget *widget)
+void MainWindow::ScrollIntoView(QWidget *widget)
 {
-    QTreeWidgetItemIterator it(treeWidget);
+    QTreeWidgetItemIterator it(tree_widget);
     while (*it) {
         QTreeWidgetItem *item = *it;
 
-        if (treeWidget->itemWidget(item, 0) == widget || treeWidget->itemWidget(item, 1) == widget) {
-            treeWidget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
+        if (tree_widget->itemWidget(item, 0) == widget
+            || tree_widget->itemWidget(item, 1) == widget) {
+            tree_widget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
             return;
         }
         ++it;
     }
 }
 
-void MainWindow::replaceInWidget(QWidget *widget,
+void MainWindow::ReplaceInWidget(QWidget *widget,
                                  const QString &findText,
                                  const QString &replaceText,
                                  bool useRegex)
@@ -765,19 +766,19 @@ void MainWindow::replaceInWidget(QWidget *widget,
     if (!widget)
         return;
 
-    if (QLineEdit *lineEdit = qobject_cast<QLineEdit *>(widget)) {
-        QString text = lineEdit->text();
+    if (QLineEdit *line_edit = qobject_cast<QLineEdit *>(widget)) {
+        QString text = line_edit->text();
 
         if (useRegex) {
-            text.replace(searchingRegex, replaceText);
+            text.replace(searching_regex, replaceText);
         } else {
             text.replace(findText, replaceText, cs);
         }
-        lineEdit->setText(text);
+        line_edit->setText(text);
     }
 }
 
-void MainWindow::onFolderChanged(const QString &path)
+void MainWindow::OnFolderChanged(const QString &path)
 {
     QDir dir(path);
     QStringList files = dir.entryList(QStringList() << "*.yaml"
@@ -790,10 +791,10 @@ void MainWindow::onFolderChanged(const QString &path)
     }
 
     for (int i = 0; i < ui->fileNamecmb->count(); ++i) {
-        QString comboFile = ui->fileNamecmb->itemText(i);
-        if (!files.contains(comboFile)) {
+        QString combo_file = ui->fileNamecmb->itemText(i);
+        if (!files.contains(combo_file)) {
             ui->fileNamecmb->removeItem(i);
-            removeTab(comboFile);
+            RemoveTab(combo_file);
             --i;
         }
     }
@@ -806,12 +807,12 @@ void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
-    QString fileName = ui->tabWidget->tabText(index);
+    QString file_name = ui->tabWidget->tabText(index);
 
-    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(fileName));
+    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
 
-    if (nodes.contains(fileName)) {
-        root = nodes.value(fileName);
-        displaykeys(root);
+    if (nodes.contains(file_name)) {
+        root = nodes.value(file_name);
+        Displaykeys(root);
     }
 }

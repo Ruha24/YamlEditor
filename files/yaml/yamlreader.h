@@ -17,22 +17,22 @@ class YamlReader : public QObject
 public:
     YamlReader();
 
-    bool readFile(const QString &fileName);
+    bool ReadFile(const QString &fileName);
 
-    YamlNode getRootNode() const;
+    YamlNode GetRootNode() const;
 
-    void saveValues(const YamlNode &rootNode, const QString &filePath);
+    void SaveValues(const YamlNode &rootNode, const QString &filePath);
 
 signals:
-    void fileUploaded(bool success);
+    void FileUploaded(bool success);
 
 private:
-    void collectKeys(const YAML::Node &node, YamlNode &yamlNode);
-    void buildNode(YAML::Emitter &out, const YamlNode &node);
+    void CollectKeys(const YAML::Node &node, YamlNode &yamlNode);
+    void BuildNode(YAML::Emitter &out, const YamlNode &node);
 
     YamlNode root;
 
-    YandexApi *yndApi;
+    YandexApi *yandex_api;
 };
 
 #endif // YAMLREADER_H

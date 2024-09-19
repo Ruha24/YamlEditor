@@ -3,12 +3,12 @@
 YandexApi::YandexApi()
 {
     QDir dir;
-    if (!dir.exists(folderPath)) {
-        dir.mkpath(folderPath);
+    if (!dir.exists(folder_path)) {
+        dir.mkpath(folder_path);
     }
 }
 
-void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> callback)
+void YandexApi::UploadFile(const QString &filePath, std::function<void(bool)> callback)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -16,20 +16,20 @@ void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> ca
         return;
     }
 
-    QFileInfo fileInfo(filePath);
+    QFileInfo file_info(filePath);
 
-    QByteArray fileData = file.readAll();
+    QByteArray file_data = file.readAll();
     file.close();
 
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QUrl url("https://cloud-api.yandex.net/v1/disk/resources/upload");
     QUrlQuery query;
-    query.addQueryItem("path", "/YamlFiles/" + fileInfo.fileName());
+    query.addQueryItem("path", "/YamlFiles/" + file_info.fileName());
     query.addQueryItem("overwrite", "true");
     url.setQuery(query);
 
     QNetworkRequest request(url);
-    request.setRawHeader("Authorization", QString("OAuth %1").arg(accessToken).toUtf8());
+    request.setRawHeader("Authorization", QString("OAuth %1").arg(access_token).toUtf8());
 
     QNetworkReply *reply = manager->get(request);
     QObject::connect(reply, &QNetworkReply::finished, [=]() {
@@ -40,21 +40,21 @@ void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> ca
         }
 
         QByteArray response = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-        QJsonObject jsonObject = jsonResponse.object();
-        QString uploadUrl = jsonObject["href"].toString();
+        QJsonDocument json_response = QJsonDocument::fromJson(response);
+        QJsonObject json_object = json_response.object();
+        QString upload_url = json_object["href"].toString();
 
-        QNetworkAccessManager *uploadManager = new QNetworkAccessManager();
-        QNetworkRequest uploadRequest((QUrl(uploadUrl)));
-        QNetworkReply *uploadReply = uploadManager->put(uploadRequest, fileData);
+        QNetworkAccessManager *upload_manager = new QNetworkAccessManager();
+        QNetworkRequest upload_request((QUrl(upload_url)));
+        QNetworkReply *upload_reply = upload_manager->put(upload_request, file_data);
 
-        QObject::connect(uploadReply, &QNetworkReply::finished, [uploadReply, callback]() {
-            if (uploadReply->error() != QNetworkReply::NoError) {
+        QObject::connect(upload_reply, &QNetworkReply::finished, [upload_reply, callback]() {
+            if (upload_reply->error() != QNetworkReply::NoError) {
                 callback(true);
-                qDebug() << "Error uploading file:" << uploadReply->errorString();
+                qDebug() << "Error uploading file:" << upload_reply->errorString();
             } else
                 callback(true);
-            uploadReply->deleteLater();
+            upload_reply->deleteLater();
         });
 
         reply->deleteLater();
@@ -62,12 +62,12 @@ void YandexApi::uploadFile(const QString &filePath, std::function<void(bool)> ca
     });
 }
 
-void YandexApi::getFiles()
+void YandexApi::GetFiles()
 {
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest request;
     request.setUrl(QUrl("https://cloud-api.yandex.net/v1/disk/resources?path=/YamlFiles"));
-    request.setRawHeader("Authorization", QString("OAuth %1").arg(accessToken).toUtf8());
+    request.setRawHeader("Authorization", QString("OAuth %1").arg(access_token).toUtf8());
 
     QNetworkReply *reply = manager->get(request);
 
@@ -78,30 +78,30 @@ void YandexApi::getFiles()
         }
 
         QByteArray response = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(response);
-        QJsonObject jsonObject = jsonResponse.object();
-        QJsonArray items = jsonObject["_embedded"].toObject()["items"].toArray();
+        QJsonDocument json_response = QJsonDocument::fromJson(response);
+        QJsonObject json_object = json_response.object();
+        QJsonArray items = json_object["_embedded"].toObject()["items"].toArray();
 
-        QThreadPool *threadPool = QThreadPool::globalInstance();
+        QThreadPool *thread_pool = QThreadPool::globalInstance();
 
         for (const QJsonValue &value : items) {
             QJsonObject item = value.toObject();
 
             if (item["type"].toString() == "file") {
-                QString fileName = item["name"].toString();
-                QString suffixFile = QFileInfo(fileName).suffix();
+                QString file_name = item["name"].toString();
+                QString suffix_file = QFileInfo(file_name).suffix();
 
-                if (suffixFile == "yaml" || suffixFile == "yml") {
-                    QString downloadUrl = item["file"].toString();
-                    QString filePath = folderPath + fileName;
+                if (suffix_file == "yaml" || suffix_file == "yml") {
+                    QString download_url = item["file"].toString();
+                    QString file_path = folder_path + file_name;
 
-                    FileDownloadTask *task = new FileDownloadTask(downloadUrl,
-                                                                  filePath,
-                                                                  accessToken);
+                    FileDownloadTask *task = new FileDownloadTask(download_url,
+                                                                  file_path,
+                                                                  access_token);
                     QObject::connect(task,
-                                     &FileDownloadTask::fileDownloaded,
-                                     [=](const QString &fileName) { emit newFile(fileName); });
-                    threadPool->start(task);
+                                     &::FileDownloadTask::FileDownloaded,
+                                     [=](const QString &fileName) { emit NewFile(fileName); });
+                    thread_pool->start(task);
                 }
             }
         }

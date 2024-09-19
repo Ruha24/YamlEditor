@@ -11,13 +11,13 @@ YamlNode::YamlNode(const QString &key, const QString &value)
     , value(value)
 {}
 
-YamlNode *YamlNode::findNodeByKey(const QString &searchKey)
+YamlNode *YamlNode::FindNodeByKey(const QString &searchKey)
 {
     if (this->key == searchKey)
         return this;
 
     for (auto &child : children) {
-        YamlNode *result = child.findNodeByKey(searchKey);
+        YamlNode *result = child.FindNodeByKey(searchKey);
         if (result)
             return result;
     }
@@ -25,53 +25,53 @@ YamlNode *YamlNode::findNodeByKey(const QString &searchKey)
     return nullptr;
 }
 
-void YamlNode::addKeyWithValue(const QString &key, const QString &value)
+void YamlNode::AddKeyWithValue(const QString &key, const QString &value)
 {
-    QStringList pathParts = key.split(".");
-    YamlNode *currentNode = this;
+    QStringList path_parts = key.split(".");
+    YamlNode *current_node = this;
 
-    for (const QString &part : pathParts) {
+    for (const QString &part : path_parts) {
         bool found = false;
-        for (YamlNode &child : currentNode->children) {
+        for (YamlNode &child : current_node->children) {
             if (child.key == part) {
-                currentNode = &child;
+                current_node = &child;
                 found = true;
                 break;
             }
         }
 
         if (!found) {
-            YamlNode newNode;
-            newNode.key = part;
-            currentNode->children.append(newNode);
-            currentNode = &currentNode->children.last();
+            YamlNode new_node;
+            new_node.key = part;
+            current_node->children.append(new_node);
+            current_node = &current_node->children.last();
         }
     }
 
-    if (!currentNode->children.isEmpty() || !currentNode->value.isEmpty()) {
-        YamlNode newChild;
-        newChild.key = currentNode->value;
-        newChild.value = value;
-        newChild.children = currentNode->children;
+    if (!current_node->children.isEmpty() || !current_node->value.isEmpty()) {
+        YamlNode new_child;
+        new_child.key = current_node->value;
+        new_child.value = value;
+        new_child.children = current_node->children;
 
-        currentNode->children.clear();
-        currentNode->children.append(newChild);
-        currentNode->value.clear();
+        current_node->children.clear();
+        current_node->children.append(new_child);
+        current_node->value.clear();
     } else {
-        currentNode->value = value;
+        current_node->value = value;
     }
 }
 
-void YamlNode::addValueToKey(const QString &key, const QString &value)
+void YamlNode::AddValueToKey(const QString &key, const QString &value)
 {
-    QStringList pathParts = key.split(".");
-    YamlNode *currentNode = this;
+    QStringList path_parts = key.split(".");
+    YamlNode *current_node = this;
 
-    for (const QString &part : pathParts) {
+    for (const QString &part : path_parts) {
         bool found = false;
-        for (YamlNode &child : currentNode->children) {
+        for (YamlNode &child : current_node->children) {
             if (child.key == part) {
-                currentNode = &child;
+                current_node = &child;
                 found = true;
                 break;
             }
@@ -83,77 +83,77 @@ void YamlNode::addValueToKey(const QString &key, const QString &value)
         }
     }
 
-    YamlNode newChild;
-    newChild.key = value;
-    newChild.value = currentNode->value;
-    currentNode->children.append(newChild);
-    currentNode->value.clear();
+    YamlNode new_child;
+    new_child.key = value;
+    new_child.value = current_node->value;
+    current_node->children.append(new_child);
+    current_node->value.clear();
 }
 
-void YamlNode::removeKey(const QString &path)
+void YamlNode::RemoveKey(const QString &path)
 {
-    QStringList pathParts = path.split(".");
-    YamlNode *currentNode = this;
+    QStringList path_parts = path.split(".");
+    YamlNode *current_node = this;
 
-    for (int i = 0; i < pathParts.size() - 1; ++i) {
+    for (int i = 0; i < path_parts.size() - 1; ++i) {
         bool found = false;
-        for (YamlNode &child : currentNode->children) {
-            if (child.key == pathParts[i]) {
-                currentNode = &child;
+        for (YamlNode &child : current_node->children) {
+            if (child.key == path_parts[i]) {
+                current_node = &child;
                 found = true;
                 break;
             }
         }
 
         if (!found) {
-            qDebug() << "Key not found in path: " << pathParts[i];
+            qDebug() << "Key not found in path: " << path_parts[i];
             return;
         }
     }
 
-    QString keyToRemove = pathParts.last();
-    for (int i = 0; i < currentNode->children.size(); ++i) {
-        if (currentNode->children[i].key == keyToRemove) {
-            QList<YamlNode> childrenToMove = currentNode->children[i].children;
+    QString keyToRemove = path_parts.last();
+    for (int i = 0; i < current_node->children.size(); ++i) {
+        if (current_node->children[i].key == keyToRemove) {
+            QList<YamlNode> children_to_move = current_node->children[i].children;
 
-            currentNode->children.removeAt(i);
+            current_node->children.removeAt(i);
 
-            currentNode->children.append(childrenToMove);
+            current_node->children.append(children_to_move);
 
             return;
         }
     }
 }
 
-void YamlNode::removeValue(const QString &path)
+void YamlNode::RemoveValue(const QString &path)
 {
-    QStringList pathParts = path.split(".");
-    YamlNode *currentNode = this;
+    QStringList path_parts = path.split(".");
+    YamlNode *current_node = this;
 
-    for (int i = 0; i < pathParts.size() - 1; ++i) {
+    for (int i = 0; i < path_parts.size() - 1; ++i) {
         bool found = false;
-        for (YamlNode &child : currentNode->children) {
-            if (child.key == pathParts[i]) {
-                currentNode = &child;
+        for (YamlNode &child : current_node->children) {
+            if (child.key == path_parts[i]) {
+                current_node = &child;
                 found = true;
                 break;
             }
         }
 
         if (!found) {
-            qDebug() << "Key not found in path: " << pathParts[i];
+            qDebug() << "Key not found in path: " << path_parts[i];
             return;
         }
     }
 
-    QString key = pathParts.last();
-    for (int i = 0; i < currentNode->children.size(); ++i) {
-        if (currentNode->children[i].key == key) {
-            QList<YamlNode> childrenToMove = currentNode->children[i].children;
+    QString key = path_parts.last();
+    for (int i = 0; i < current_node->children.size(); ++i) {
+        if (current_node->children[i].key == key) {
+            QList<YamlNode> children_to_move = current_node->children[i].children;
 
-            currentNode->children.removeAt(i);
+            current_node->children.removeAt(i);
 
-            currentNode->children.append(childrenToMove);
+            current_node->children.append(children_to_move);
 
             return;
         }

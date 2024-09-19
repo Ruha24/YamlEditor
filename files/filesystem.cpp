@@ -1,36 +1,35 @@
 #include "filesystem.h"
 
 FileSystem::FileSystem(const QString &path)
-    : path(path)
 {
-    if (!checkFolder()) {
-        if (!instanceFolder()) {
+    if (!CheckFolder(path)) {
+        if (!InstanceFolder(path)) {
             QMessageBox::information(nullptr, "Error", "Dir not exists");
             return;
         }
     }
 
-    getAllFiles();
+    GetFilesDirectory(path);
 }
 
-bool FileSystem::checkFolder()
+bool FileSystem::CheckFolder(const QString &path)
 {
     return QFile::exists(path);
 }
 
-bool FileSystem::instanceFolder()
+bool FileSystem::InstanceFolder(const QString &path)
 {
     QDir dir;
     return dir.mkdir(path);
 }
 
-QString FileSystem::calculateFileCheckSum(const QString &filePath,
+QString FileSystem::CalculateFileCheckSum(const QString &file_path,
                                           QCryptographicHash::Algorithm algorithm)
 {
-    QFile file(filePath);
+    QFile file(file_path);
 
     if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Не удалось открыть файл:" << filePath;
+        qWarning() << "Не удалось открыть файл:" << file_path;
         return QString();
     }
 
@@ -44,19 +43,19 @@ QString FileSystem::calculateFileCheckSum(const QString &filePath,
 
 QList<QString> FileSystem::getFiles()
 {
-    return files;
+    return list_files_info;
 }
 
-void FileSystem::getAllFiles()
+void FileSystem::GetFilesDirectory(const QString &path_dir)
 {
-    files.clear();
+    list_files_info.clear();
 
-    QDir dir(path);
+    QDir dir(path_dir);
     QFileInfoList dirContent = dir.entryInfoList(QStringList() << "*.yml"
                                                                << "*.yaml",
                                                  QDir::Files);
 
     for (const auto &file : dirContent) {
-        files.append(file.fileName());
+        list_files_info.append(file.fileName());
     }
 }

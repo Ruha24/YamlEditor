@@ -6,6 +6,7 @@ searchingWindow::searchingWindow(QWidget *parent) :
     ui(new Ui::searchingWindow)
 {
     ui->setupUi(this);
+    is_downward = false;
 }
 
 searchingWindow::~searchingWindow()
