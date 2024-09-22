@@ -152,14 +152,32 @@ void MainWindow::UploadFileOnCmb(const QString &file)
     }
 }
 
+bool MainWindow::CheckOpenTab(const QString &file)
+{
+    int existing_tab_index = FindTabByName(file);
+
+    if (existing_tab_index != -1) {
+        root = nodes.value(file);
+        Displaykeys(root);
+        ui->tabWidget->setCurrentIndex(existing_tab_index);
+        return true;
+    }
+
+    return false;
+}
+
+
 void MainWindow::CloseTab(int index)
 {
     if (index >= 0 && index < ui->tabWidget->count()) {
-        QString file_name = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
+        QString file_name = ui->tabWidget->tabText(index);
 
         SaveData(file_name);
 
+        check_box_states_nodes.remove(file_name);
         nodes.remove(file_name);
+
+        check_box_states.clear();
 
         QWidget *tab = ui->tabWidget->widget(index);
         ui->tabWidget->removeTab(index);
@@ -202,7 +220,6 @@ int MainWindow::FindTabByName(const QString &fileName)
 void MainWindow::CollectKeys(const YamlNode &node, QSet<QString> &keys)
 {
     QString key = node.key;
-    QString value = node.value;
 
     if (key.isEmpty())
         key = "-";
@@ -220,19 +237,13 @@ void MainWindow::ReadFile()
 {
     QString file_name = ui->fileNamecmb->currentText();
 
-    int existing_tab_index = FindTabByName(file_name);
-
-    if (existing_tab_index != -1) {
-        root = nodes.value(file_name);
-        Displaykeys(root);
-        ui->tabWidget->setCurrentIndex(existing_tab_index);
-    } else {
+    if (!CheckOpenTab(file_name))
         if (yaml_reader->ReadFile(file_name)) {
             DisplayYamlData();
         }
-    }
 
     nodes.insert(file_name, root);
+    check_box_states_nodes.insert(file_name, check_box_states);
 }
 
 void MainWindow::SlotShortcutCtrlF()
@@ -332,15 +343,37 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    DisplayYamlData();
+    QWidget *currentTab = ui->tabWidget->currentWidget();
+
+    if (currentTab != nullptr) {
+        QLayout *layout = currentTab->layout();
+
+        if (layout) {
+            QLayoutItem *item;
+            while ((item = layout->takeAt(0)) != nullptr) {
+                delete item->widget();
+                delete item;
+            }
+        } else {
+            layout = new QVBoxLayout(currentTab);
+            currentTab->setLayout(layout);
+        }
+
+        ClearTreeWidget();
+
+        for (const auto &node : root.children) {
+            DisplayTreeNode(node, "", "", nullptr, tree_widget, false);
+        }
+
+        layout->addWidget(tree_widget);
+    }
 }
 
 void MainWindow::onCheckBoxStateChanged(int state)
 {
     QCheckBox *check_box = qobject_cast<QCheckBox *>(sender());
     if (check_box) {
-        QString key = check_box->text();
-        check_box_states[key] = (state == Qt::Checked);
+        check_box_states[check_box->text()] = (state == Qt::Checked);
     }
 }
 
@@ -431,6 +464,7 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
     } else {
         key_txt->setText(node.key);
     }
+
     key_txt->setStyleSheet(
         "QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
     treeWidget->setItemWidget(tree_item, 0, key_txt);
@@ -497,9 +531,8 @@ void MainWindow::CreateCheckBox(const QString &name, int row, int col)
 
     ui->gridLayout_2->addWidget(check_box, row, col);
 
-    if (name == "==") {
-        check_box->setChecked(false);
-        check_box_states[name] = false;
+    if (check_box_states.contains(name)) {
+        check_box->setChecked(check_box_states[name]);
     } else {
         check_box->setChecked(true);
         check_box_states[name] = true;
@@ -807,12 +840,24 @@ void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 
 void MainWindow::on_tabWidget_currentChanged(int index)
 {
-    QString file_name = ui->tabWidget->tabText(index);
+    if (index >= 0 && index < ui->tabWidget->count()) {
+        QString previousFileName = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
 
+        check_box_states_nodes[previousFileName] = check_box_states;
+    }
+
+    QString file_name = ui->tabWidget->tabText(index);
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
 
     if (nodes.contains(file_name)) {
         root = nodes.value(file_name);
+
+        if (check_box_states_nodes.contains(file_name)) {
+            check_box_states = check_box_states_nodes[file_name];
+        } else {
+            check_box_states.clear();
+        }
+
         Displaykeys(root);
     }
 }

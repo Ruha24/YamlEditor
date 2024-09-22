@@ -96,6 +96,7 @@ private:
     QTreeWidget *tree_widget;
     int FindTabByName(const QString &fileName);
     QMap<QString, YamlNode> nodes;
+    QMap<QString, QMap<QString, bool>> check_box_states_nodes;
 
     QWidget *previous_widget;
     QString previous_widget_original_style_sheet;
@@ -147,5 +148,6 @@ private:
     void RemoveTab(const QString &tabText);
 
     void UploadFileOnCmb(const QString &file);
+    bool CheckOpenTab(const QString &file);
 };
 #endif // MAINWINDOW_H
