@@ -41,14 +41,27 @@ QString FileSystem::CalculateFileCheckSum(const QString &file_path,
     return QString();
 }
 
-QList<QString> FileSystem::getFiles()
+QMap<QString, QString> FileSystem::GetFiles()
 {
-    return list_files_info;
+    return files;
+}
+
+QString FileSystem::GetFilePath(QString fileName)
+{
+    return files.value(fileName, "");
+}
+
+void FileSystem::AddFile(QString path)
+{
+    QFileInfo file_info(path);
+    QString file_name = file_info.fileName();
+    if (file_info.suffix() == "yml" || file_info.suffix() == "yaml")
+        files[file_name] = path;
 }
 
 void FileSystem::GetFilesDirectory(const QString &path_dir)
 {
-    list_files_info.clear();
+    files.clear();
 
     QDir dir(path_dir);
     QFileInfoList dirContent = dir.entryInfoList(QStringList() << "*.yml"
@@ -56,6 +69,6 @@ void FileSystem::GetFilesDirectory(const QString &path_dir)
                                                  QDir::Files);
 
     for (const auto &file : dirContent) {
-        list_files_info.append(file.fileName());
+        files.insert(file.fileName(), file.filePath());
     }
 }

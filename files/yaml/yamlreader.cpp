@@ -46,12 +46,9 @@ void YamlReader::CollectKeys(const YAML::Node &node, YamlNode &yamlNode)
     }
 }
 
-bool YamlReader::ReadFile(const QString &fileName)
+bool YamlReader::ReadFile(const QString &file)
 {
-    QFileInfo file(fileName);
-
-    YAML::Node config = YAML::LoadFile(QDir::currentPath().toStdString() + "/ymlFiles/"
-                                       + fileName.toStdString());
+    YAML::Node config = YAML::LoadFile(file.toStdString());
 
     if (config.IsNull() || !config.IsDefined()) {
         return false;

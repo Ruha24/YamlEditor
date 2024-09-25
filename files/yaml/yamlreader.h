@@ -17,7 +17,7 @@ class YamlReader : public QObject
 public:
     YamlReader();
 
-    bool ReadFile(const QString &fileName);
+    bool ReadFile(const QString &file);
 
     YamlNode GetRootNode() const;
 

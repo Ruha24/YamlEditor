@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget *parent)
     replace_wnd = nullptr;
     previous_widget = nullptr;
 
+    file_local_system = new FileSystem(QDir::currentPath() + "/ymlFiles");
     yandex_api = new YandexApi();
     yaml_reader = new YamlReader();
 
@@ -42,15 +43,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(key_ctrl_r, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlR);
 
-    file_local_system = new FileSystem(QDir::currentPath() + "/ymlFiles");
-
-    local_files = file_local_system->getFiles();
-
     connect(yandex_api, &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
     yandex_api->GetFiles();
-
-    previous_text_cmb = ui->fileNamecmb->currentText();
 
     file_watcher = new QFileSystemWatcher();
 
@@ -80,11 +75,16 @@ void MainWindow::dropEvent(QDropEvent *event)
         for (const QUrl &url : urlList) {
             QString file_name = url.fileName();
 
-            QString suffix_file = QFileInfo(file_name).suffix();
+            if (ui->fileNamecmb->findText(file_name) == -1) {
+                file_local_system->AddFile(url.toLocalFile());
+                ui->fileNamecmb->addItem(file_name);
 
-            if (suffix_file == "yaml" || suffix_file == "yml")
-                if (ui->fileNamecmb->findText(file_name) == -1)
-                    ui->fileNamecmb->addItem(file_name);
+                ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
+
+                ReadFile();
+            } else {
+                QMessageBox::information(this, "Error", "This file is already open");
+            }
         }
     }
 }
@@ -113,7 +113,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 void MainWindow::SaveData(const QString &fileName)
 {
     if (is_update_file) {
-        QString full_path = QDir::currentPath() + "/ymlFiles/" + fileName;
+        QString full_path = file_local_system->GetFilePath(fileName);
 
         yaml_reader->SaveValues(root, full_path);
 
@@ -130,10 +130,9 @@ void MainWindow::UploadFileOnCmb(const QString &file)
 
     if (local_files.isEmpty()) {
         ui->fileNamecmb->addItem(file);
-        local_files.append(file);
     } else {
-        for (const QString &local_file : local_files) {
-            QString local_file_path = QDir::currentPath() + "/ymlFiles/" + local_file;
+        for (const QString &local_file : file_local_system->GetFiles()) {
+            QString local_file_path = local_file;
             QString local_hash = file_local_system->CalculateFileCheckSum(local_file_path);
 
             if (local_file == file && local_hash == file_hash) {
@@ -145,7 +144,7 @@ void MainWindow::UploadFileOnCmb(const QString &file)
 
         if (!file_exists) {
             if (ui->fileNamecmb->findText(file) == -1) {
-                local_files.append(file);
+                file_local_system->AddFile(file_path);
                 ui->fileNamecmb->addItem(file);
             }
         }
@@ -236,14 +235,15 @@ void MainWindow::CollectKeys(const YamlNode &node, QSet<QString> &keys)
 void MainWindow::ReadFile()
 {
     QString file_name = ui->fileNamecmb->currentText();
+    QString file_path = file_local_system->GetFilePath(file_name);
 
     if (!CheckOpenTab(file_name))
-        if (yaml_reader->ReadFile(file_name)) {
+        if (yaml_reader->ReadFile(file_path)) {
             DisplayYamlData();
         }
 
     nodes.insert(file_name, root);
-    check_box_states_nodes.insert(file_name, check_box_states);
+    check_box_states_nodes.insert(file_path, check_box_states);
 }
 
 void MainWindow::SlotShortcutCtrlF()
@@ -555,9 +555,11 @@ void MainWindow::ClearTreeWidget()
     tree_widget = new QTreeWidget(this);
 
     tree_widget->setColumnCount(2);
+
     tree_widget->setHeaderLabels(QStringList() << "Key"
                                                << "Value");
     tree_widget->setColumnWidth(0, 200);
+    tree_widget->setMinimumHeight(200);
     tree_widget->setStyleSheet("QHeaderView {background-color: rgb(48, "
                                "48, 48); color: black;} QWidget {background-color: rgb(48, "
                                "48, 48); color: black;}");

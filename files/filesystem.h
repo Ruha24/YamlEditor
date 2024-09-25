@@ -4,7 +4,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
-#include <QList>
+#include <QMap>
 #include <QMessageBox>
 #include <QString>
 
@@ -20,12 +20,14 @@ public:
         const QString &file_path,
         QCryptographicHash::Algorithm algorithm = QCryptographicHash::Sha256);
 
-    QList<QString> getFiles();
+    QMap<QString, QString> GetFiles();
+    QString GetFilePath(QString fileName);
+    void AddFile(QString path);
 
 private:
     void GetFilesDirectory(const QString &path_dir);
 
-    QList<QString> list_files_info;
+    QMap<QString, QString> files;
 };
 
 #endif // FILESYSTEM_H
