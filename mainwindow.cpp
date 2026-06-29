@@ -7,6 +7,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setAcceptDrops(true);
+
+    setWindowTitle("Editor 1.2.1");
+
     is_update_file = false;
     tree_widget = nullptr;
     search_wnd = nullptr;

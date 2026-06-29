@@ -17,6 +17,7 @@
 #include <QThreadPool>
 #include <QUrlQuery>
 #include <QtAlgorithms>
+#include <QSettings>
 
 #include "../../files/filedownloadtask.h"
 
@@ -37,7 +38,7 @@ signals:
     void NewFile(const QString &fileName);
 
 private:
-    const QString access_token = "y0_AgAAAAAm5bEhAAvwaQAAAAEHQYHHAAAQttQpixJD1Yg8UBbxGtZm4sa_hg";
+    QString access_token;
     QString current_file_path;
 
     QString folder_path = QDir::currentPath() + "/ymlFiles/";

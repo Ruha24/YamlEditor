@@ -1,8 +1,6 @@
 #ifndef CUSTOMLINEEDIT_H
 #define CUSTOMLINEEDIT_H
 
-#pragma once
-
 #include <QAction>
 #include <QContextMenuEvent>
 #include <QMenu>

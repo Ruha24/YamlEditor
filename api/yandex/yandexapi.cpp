@@ -2,6 +2,15 @@
 
 YandexApi::YandexApi()
 {
+    QSettings settings("config.ini", QSettings::IniFormat);
+    access_token = settings.value("yandex/token").toString();
+
+    qDebug() << access_token;
+
+    if (access_token.isEmpty()) {
+        qWarning() << "YANDEX_DISK_TOKEN не задан — синхронизация с Диском отключена";
+    }
+
     QDir dir;
     if (!dir.exists(folder_path)) {
         dir.mkpath(folder_path);
@@ -50,7 +59,7 @@ void YandexApi::UploadFile(const QString &filePath, std::function<void(bool)> ca
 
         QObject::connect(upload_reply, &QNetworkReply::finished, [upload_reply, callback]() {
             if (upload_reply->error() != QNetworkReply::NoError) {
-                callback(true);
+                callback(false);
                 qDebug() << "Error uploading file:" << upload_reply->errorString();
             } else
                 callback(true);
