@@ -23,6 +23,9 @@ public:
     void RemoveKey(const QString &key);
 
     void RemoveValue(const QString &value);
+
+private:
+    YamlNode *NavigateToParent(const QStringList &path_parts);
 };
 
 #endif // YAMLNODE_H

@@ -115,6 +115,6 @@ void YamlReader::SaveValues(const YamlNode &rootNode, const QString &filePath)
         if (success)
             emit FileUploaded(true);
         else
-            emit FileUploaded(true);
+            emit FileUploaded(false);
     });
 }

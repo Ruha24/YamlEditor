@@ -117,6 +117,12 @@ private:
     QFileSystemWatcher *file_watcher;
     void OnFolderChanged(const QString &path);
 
+    QSet<QString> expanded_paths;
+    void SaveExpandedState();
+    void RestoreExpandedState();
+
+
+    void RefreshCurrentTree();
     void UpdateValue(const QString &path, const QString &newValue, bool isKey);
     void Displaykeys(YamlNode root);
     void SaveData(const QString &fileName);

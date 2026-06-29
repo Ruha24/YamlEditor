@@ -5,10 +5,8 @@ YandexApi::YandexApi()
     QSettings settings("config.ini", QSettings::IniFormat);
     access_token = settings.value("yandex/token").toString();
 
-    qDebug() << access_token;
-
     if (access_token.isEmpty()) {
-        qWarning() << "YANDEX_DISK_TOKEN не задан — синхронизация с Диском отключена";
+        qWarning() << "YANDEX_DISK_TOKEN not found";
     }
 
     QDir dir;

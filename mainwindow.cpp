@@ -249,6 +249,36 @@ void MainWindow::ReadFile()
     check_box_states_nodes.insert(file_path, check_box_states);
 }
 
+void MainWindow::RefreshCurrentTree()
+{
+    SaveExpandedState();
+
+    QWidget *current_tab = ui->tabWidget->currentWidget();
+    if (!current_tab)
+        return;
+
+    if (QLayout *layout = current_tab->layout()) {
+        QLayoutItem *item;
+        while ((item = layout->takeAt(0)) != nullptr) {
+            delete item->widget();
+            delete item;
+        }
+    }
+
+    Displaykeys(root);
+    ClearTreeWidget();
+
+    for (const auto &node : root.children)
+        DisplayTreeNode(node, "", "", nullptr, tree_widget, false);
+
+    RestoreExpandedState();
+
+    current_tab->layout()->addWidget(tree_widget);
+
+    nodes.insert(ui->fileNamecmb->currentText(), root);
+}
+
+
 void MainWindow::SlotShortcutCtrlF()
 {
     if (replace_wnd) {
@@ -419,7 +449,7 @@ void MainWindow::HandleAddKeyValue(QString path, QString newValue, bool isKey)
 
     SaveData(previous_text_cmb);
 
-    ReadFile();
+    RefreshCurrentTree();
 }
 
 void MainWindow::HandleDeleteElement(QString path, bool isKey)
@@ -434,7 +464,7 @@ void MainWindow::HandleDeleteElement(QString path, bool isKey)
 
     SaveData(previous_text_cmb);
 
-    ReadFile();
+    RefreshCurrentTree();
 }
 
 void MainWindow::DisplayTreeNode(const YamlNode &node,
@@ -452,6 +482,10 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
 
     QTreeWidgetItem *tree_item = new QTreeWidgetItem();
     tree_item->setText(0, node.key);
+    tree_item->setData(0, Qt::UserRole, currentPath);
+
+    if (expanded_paths.contains(currentPath))
+        tree_item->setExpanded(true);
 
     if (parentItem) {
         parentItem->addChild(tree_item);
@@ -518,6 +552,39 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
 
     for (const auto &child : node.children) {
         DisplayTreeNode(child, currentPath, searchText, tree_item, treeWidget, useRegex);
+    }
+}
+
+void MainWindow::RestoreExpandedState()
+{
+    if (!tree_widget)
+        return;
+
+    QTreeWidgetItemIterator it(tree_widget);
+    while (*it) {
+        QTreeWidgetItem *item = *it;
+        QString path = item->data(0, Qt::UserRole).toString();
+        if (expanded_paths.contains(path))
+            item->setExpanded(true);
+        ++it;
+    }
+}
+
+void MainWindow::SaveExpandedState()
+{
+    expanded_paths.clear();
+    if (!tree_widget)
+        return;
+
+    QTreeWidgetItemIterator it(tree_widget);
+    while (*it) {
+        QTreeWidgetItem *item = *it;
+        if (item->isExpanded()) {
+            QString path = item->data(0, Qt::UserRole).toString();
+            if (!path.isEmpty())
+                expanded_paths.insert(path);
+        }
+        ++it;
     }
 }
 
