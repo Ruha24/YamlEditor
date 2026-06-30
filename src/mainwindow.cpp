@@ -8,8 +8,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    setWindowTitle("Editor 1.2.3");
-
     is_update_file = false;
     tree_widget = nullptr;
     search_wnd = nullptr;
@@ -36,7 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(yaml_reader, &YamlReader::FileUploaded, this, [&](bool success) {
         if (success) {
-            QMessageBox::information(this, "Saving", "Your file is saved");
+            QMessageBox::information(this, tr("Saving"), tr("Your file is saved"));
         }
     });
 
@@ -72,6 +70,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
 
     ui->fileNamecmb->setView(new QListView(ui->fileNamecmb));
+
+    ui->langCombo->addItem("English", "en_GB");
+    ui->langCombo->addItem("Русский", "ru_RU");
+
+    connect(ui->langCombo, &QComboBox::currentIndexChanged, this, [this](int){
+        switchLanguage(ui->langCombo->currentData().toString());
+    });
 }
 
 MainWindow::~MainWindow()
@@ -99,8 +104,8 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 
     if (is_update_file && !root.children.isEmpty()) {
         QMessageBox::StandardButton reply = QMessageBox::question(this,
-                                                                  "Save File",
-                                                                  "Do you want to save the file?",
+                                                                  tr("Save File"),
+                                                                  tr("Do you want to save the file?"),
                                                                   QMessageBox::Yes | QMessageBox::No,
                                                                   QMessageBox::No);
 
@@ -633,7 +638,7 @@ void MainWindow::ClearTreeWidget()
 {
     tree_widget = new QTreeWidget(this);
     tree_widget->setColumnCount(2);
-    tree_widget->setHeaderLabels(QStringList() << "Key" << "Value");
+    tree_widget->setHeaderLabels(QStringList() << tr("Key") << tr("Value"));
     tree_widget->setColumnWidth(0, 280);
     tree_widget->setMinimumHeight(200);
 
@@ -816,7 +821,7 @@ void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDow
     }
 
     if (current_found_index == starting_index) {
-        QMessageBox::information(this, "Search", "Reached the end of the search results.");
+        QMessageBox::information(this, tr("Search"), tr("Reached the end of the search results."));
         starting_index = -1;
         return;
     }
@@ -935,7 +940,7 @@ void MainWindow::HighlightCurrentFound()
         ScrollIntoView(current_widget);
 
     } else {
-        QMessageBox::information(this, "Editor", "Can't find it \"" + searching_text + "\"");
+        QMessageBox::information(this, tr("Editor"), tr("Can't find it ") + searching_text + "\n");
     }
 }
 
@@ -1010,7 +1015,7 @@ void MainWindow::OpenFileByPath(const QString &local_path)
         ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
         ReadFile();
     } else {
-        QMessageBox::information(this, "Error", "This file is already open");
+        QMessageBox::information(this, tr("Error"), tr("This file is already open"));
     }
 }
 
@@ -1018,7 +1023,7 @@ void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 {
     const QString dir_path = QFileDialog::getExistingDirectory(
         this,
-        "Выберите папку с YAML-файлами",
+        tr("Выберите папку с YAML-файлами"),
         QDir::currentPath(),
         QFileDialog::DontUseNativeDialog);
 
@@ -1031,8 +1036,8 @@ void MainWindow::on_OpenFolderYmlFilebtn_clicked()
         QDir::Files);
 
     if (files.isEmpty()) {
-        QMessageBox::information(this, "Open Folder",
-                                 "В папке нет YAML-файлов");
+        QMessageBox::information(this, tr("Open Folder"),
+                                 tr("В папке нет YAML-файлов"));
         return;
     }
 
@@ -1068,10 +1073,23 @@ void MainWindow::on_OpenFilebtn_clicked()
 {
     const QStringList paths = QFileDialog::getOpenFileNames(
         this,
-        "Выберите YAML-файл(ы)",
+        tr("Выберите YAML-файл(ы)"),
         QDir::currentPath() + "/ymlFiles",
-        "YAML files (*.yml *.yaml);;All files (*)");
+        tr("YAML files (*.yml *.yaml);;All files (*)"));
 
     for (const QString &path : paths)
         OpenFileByPath(path);
+}
+
+void MainWindow::switchLanguage(const QString &locale)
+{
+    qApp->removeTranslator(&translator_);
+
+    QString path = ":/i18n/editor_" + locale;
+    bool ok = translator_.load(path);
+
+    if (ok)
+        qApp->installTranslator(&translator_);
+
+    ui->retranslateUi(this);
 }

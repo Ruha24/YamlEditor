@@ -23,6 +23,7 @@
 #include <QtAlgorithms>
 #include <QFileDialog>
 #include <QListView>
+#include <QTranslator>
 
 #include "api/yandex/yandexapi.h"
 #include "customWidget/customlineedit.h"
@@ -78,6 +79,9 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+
+    QTranslator translator_;
+    void switchLanguage(const QString &locale);
 
     QShortcut *key_F11;
     QShortcut *key_ctrl_f;
