@@ -94,7 +94,7 @@ private:
                          const QString &replaceText,
                          bool useRegex);
 
-    searchingWindow *search_wnd;
+    SearchingWindow *search_wnd;
     QString searching_text;
 
     YamlReader *yaml_reader;

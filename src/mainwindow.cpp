@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setAcceptDrops(true);
 
-    setWindowTitle("Editor 1.2.2");
+    setWindowTitle("Editor 1.2.3");
 
     is_update_file = false;
     tree_widget = nullptr;
@@ -290,13 +290,14 @@ void MainWindow::SlotShortcutCtrlF()
     if (search_wnd) {
         search_wnd->activateWindow();
     } else {
-        search_wnd = new searchingWindow();
+        search_wnd = new SearchingWindow(this);
 
+        search_wnd->setWindowFlag(Qt::Window);
         search_wnd->setAttribute(Qt::WA_DeleteOnClose);
 
         connect(search_wnd, &QObject::destroyed, this, [=]() { search_wnd = nullptr; });
 
-        connect(search_wnd, &searchingWindow::searchingText, this, &MainWindow::SearchingText);
+        connect(search_wnd, &SearchingWindow::searchingText, this, &MainWindow::SearchingText);
 
         search_wnd->show();
     }
@@ -326,8 +327,9 @@ void MainWindow::SlotShortcutCtrlR()
     if (replace_wnd)
         replace_wnd->activateWindow();
     else {
-        replace_wnd = new ReplaceWindow();
+        replace_wnd = new ReplaceWindow(this);
 
+        replace_wnd->setWindowFlag(Qt::Window);
         replace_wnd->setAttribute(Qt::WA_DeleteOnClose);
 
         connect(replace_wnd, &QObject::destroyed, this, [=]() { replace_wnd = nullptr; });
@@ -368,30 +370,7 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    QWidget *currentTab = ui->tabWidget->currentWidget();
-
-    if (currentTab != nullptr) {
-        QLayout *layout = currentTab->layout();
-
-        if (layout) {
-            QLayoutItem *item;
-            while ((item = layout->takeAt(0)) != nullptr) {
-                delete item->widget();
-                delete item;
-            }
-        } else {
-            layout = new QVBoxLayout(currentTab);
-            currentTab->setLayout(layout);
-        }
-
-        ClearTreeWidget();
-
-        for (const auto &node : root.children) {
-            DisplayTreeNode(node, "", "", nullptr, tree_widget, false);
-        }
-
-        layout->addWidget(tree_widget);
-    }
+    RefreshCurrentTree();
 }
 
 void MainWindow::onCheckBoxStateChanged(int state)
@@ -684,9 +663,59 @@ void MainWindow::ClearTreeWidget()
             border: none;
             font-weight: 500;
         }
-        /* направляющие линии дерева */
+
         QTreeView {
             show-decoration-selected: 1;
+        }
+
+        QScrollBar:vertical {
+            background: #262626;
+            width: 11px;
+            margin: 0;
+            border: none;
+        }
+        QScrollBar::handle:vertical {
+            background: #45596a;
+            border-radius: 5px;
+            min-height: 28px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #51b4d2;
+        }
+        QScrollBar::add-line:vertical,
+        QScrollBar::sub-line:vertical {
+            height: 0;
+            background: none;
+            border: none;
+        }
+        QScrollBar::add-page:vertical,
+        QScrollBar::sub-page:vertical {
+            background: none;
+        }
+
+        QScrollBar:horizontal {
+            background: #262626;
+            height: 11px;
+            margin: 0;
+            border: none;
+        }
+        QScrollBar::handle:horizontal {
+            background: #45596a;
+            border-radius: 5px;
+            min-width: 28px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: #51b4d2;
+        }
+        QScrollBar::add-line:horizontal,
+        QScrollBar::sub-line:horizontal {
+            width: 0;
+            background: none;
+            border: none;
+        }
+        QScrollBar::add-page:horizontal,
+        QScrollBar::sub-page:horizontal {
+            background: none;
         }
     )");
 

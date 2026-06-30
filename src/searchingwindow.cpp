@@ -1,7 +1,7 @@
 #include "searchingwindow.h"
 #include "ui_searchingwindow.h"
 
-searchingWindow::searchingWindow(QWidget *parent) :
+SearchingWindow::SearchingWindow(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::searchingWindow)
 {
@@ -9,12 +9,12 @@ searchingWindow::searchingWindow(QWidget *parent) :
     is_downward = false;
 }
 
-searchingWindow::~searchingWindow()
+SearchingWindow::~SearchingWindow()
 {
     delete ui;
 }
 
-void searchingWindow::on_searchingBtn_clicked()
+void SearchingWindow::on_searchingBtn_clicked()
 {
     emit searchingText(ui->lineEdit->text(),
                        ui->casechb->checkState(),
@@ -22,12 +22,12 @@ void searchingWindow::on_searchingBtn_clicked()
                        ui->casechb_2->checkState());
 }
 
-void searchingWindow::on_cancelBtn_clicked()
+void SearchingWindow::on_cancelBtn_clicked()
 {
     close();
 }
 
-void searchingWindow::on_upchb_toggled(bool checked)
+void SearchingWindow::on_upchb_toggled(bool checked)
 {
     if (checked) {
         is_downward = false;
@@ -35,7 +35,7 @@ void searchingWindow::on_upchb_toggled(bool checked)
     }
 }
 
-void searchingWindow::on_downchb_toggled(bool checked)
+void SearchingWindow::on_downchb_toggled(bool checked)
 {
     if (checked) {
         is_downward = true;

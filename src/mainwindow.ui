@@ -126,7 +126,7 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">QLabel { color: #9a9a93; font-size: 14px; }</string>
+         <string notr="true">QLabel { color: #9a9a93; font-size: 18px; }</string>
         </property>
         <property name="text">
          <string>Сonfigs</string>

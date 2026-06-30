@@ -1,13 +1,14 @@
 #ifndef CUSTOMLINEEDIT_H
 #define CUSTOMLINEEDIT_H
 
-#include <QAction>
 #include <QContextMenuEvent>
-#include <QMenu>
-#include <QObject>
-#include "qlineedit.h"
+#include <QLineEdit>
+#include <QString>
 
-#include "../editwidget.h"
+// Forward declaration instead of including editwidget.h.
+// Breaks the circular dependency between the two headers and
+// keeps EditWidget's full definition out of this header.
+class EditWidget;
 
 class CustomLineEdit : public QLineEdit
 {
@@ -24,14 +25,7 @@ public:
     void SetKey(const QString &newKey);
 
 protected:
-    void contextMenuEvent(QContextMenuEvent *event) override
-    {
-        editwidget *edit_wnd = new editwidget(this);
-        connect(edit_wnd, &editwidget::AddKeyValue, this, &CustomLineEdit::HandleAddKeyValue);
-        connect(edit_wnd, &editwidget::DeleteElement, this, &CustomLineEdit::HandleDeleteElement);
-
-        edit_wnd->show();
-    }
+    void contextMenuEvent(QContextMenuEvent *event) override;
 
 signals:
     void AddKeyValue(QString path, QString newValue, bool isKey);

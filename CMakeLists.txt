@@ -30,34 +30,34 @@ endif()
 
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        api/yandex/yandexapi.h
-        api/yandex/yandexapi.cpp
-        files/yaml/yamlreader.h
-        files/yaml/yamlreader.cpp
-        files/yaml/yamlnode.h
-        files/yaml/yamlnode.cpp
-        searchingwindow.h
-        searchingwindow.cpp
-        searchingwindow.ui
-        files/filesystem.h
-        files/filesystem.cpp
-        replacewindow.h
-        replacewindow.cpp
-        replacewindow.ui
-        customWidget/customlineedit.h
-        customWidget/customlineedit.cpp
-        editwidget.h
-        editwidget.cpp
-        editwidget.ui
-        files/filedownloadtask.h
-        files/filedownloadtask.cpp
-        customWidget/flowlayout.h 
-	customWidget/flowlayout.cpp
-        images.qrc
+        src/main.cpp
+        src/mainwindow.cpp
+        src/mainwindow.h
+        src/mainwindow.ui
+        src/api/yandex/yandexapi.h
+        src/api/yandex/yandexapi.cpp
+        src/files/yaml/yamlreader.h
+        src/files/yaml/yamlreader.cpp
+        src/files/yaml/yamlnode.h
+        src/files/yaml/yamlnode.cpp
+        src/searchingwindow.h
+        src/searchingwindow.cpp
+        src/searchingwindow.ui
+        src/files/filesystem.h
+        src/files/filesystem.cpp
+        src/replacewindow.h
+        src/replacewindow.cpp
+        src/replacewindow.ui
+        src/customWidget/customlineedit.h
+        src/customWidget/customlineedit.cpp
+        src/editwidget.h
+        src/editwidget.cpp
+        src/editwidget.ui
+        src/files/filedownloadtask.h
+        src/files/filedownloadtask.cpp
+        src/customWidget/flowlayout.h
+        src/customWidget/flowlayout.cpp
+        src/images.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

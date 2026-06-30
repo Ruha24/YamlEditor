@@ -7,13 +7,13 @@ namespace Ui {
 class searchingWindow;
 }
 
-class searchingWindow : public QWidget
+class SearchingWindow : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit searchingWindow(QWidget *parent = nullptr);
-    ~searchingWindow();
+    explicit SearchingWindow(QWidget *parent = nullptr);
+    ~SearchingWindow();
 
 signals:
     void searchingText(const QString &text, bool isSensitive, bool is_downward, bool useRegex);

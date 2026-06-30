@@ -11,13 +11,13 @@ class editwidget;
 
 class CustomLineEdit;
 
-class editwidget : public QWidget
+class EditWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit editwidget(CustomLineEdit *lineEdit, QWidget *parent = nullptr);
-    ~editwidget();
+    explicit EditWidget(CustomLineEdit *lineEdit, QWidget *parent = nullptr);
+    ~EditWidget();
 
 signals:
     void AddKeyValue(QString key, QString value);

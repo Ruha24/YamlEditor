@@ -2,7 +2,7 @@
 #include "customWidget/customlineedit.h"
 #include "ui_editwidget.h"
 
-editwidget::editwidget(CustomLineEdit *lineEdit, QWidget *parent)
+EditWidget::EditWidget(CustomLineEdit *lineEdit, QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::editwidget)
     , line_edit(lineEdit)
@@ -11,12 +11,12 @@ editwidget::editwidget(CustomLineEdit *lineEdit, QWidget *parent)
     setWindowFlags(Qt::Dialog);
 }
 
-editwidget::~editwidget()
+EditWidget::~EditWidget()
 {
     delete ui;
 }
 
-void editwidget::on_addbtn_clicked()
+void EditWidget::on_addbtn_clicked()
 {
     QString current_text = line_edit->text();
     QString path = line_edit->GetCurrentPath();
@@ -33,7 +33,7 @@ void editwidget::on_addbtn_clicked()
     this->close();
 }
 
-void editwidget::on_deletebtn_clicked()
+void EditWidget::on_deletebtn_clicked()
 {
     QString current_text = line_edit->text();
 

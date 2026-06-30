@@ -1,0 +1,1258 @@
+blocks:
+  1:
+    hay:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#F4B200Пшеница"
+      depth: 1
+      health: 2.0
+      price: 0.01 
+      exp: 0.5
+      chance: 60
+      material: HAY_BLOCK
+      displaymaterial: WHEAT
+      id: 1
+    melon:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#36B000Арбуз"
+      depth: 1
+      health: 2.0
+      price: 0.01 
+      exp: 0.5
+      chance: 30
+      material: MELON
+      displaymaterial: MELON_SLICE
+      id: 2
+    #-------------------------------
+    pumpkin:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#C45700Тыква"
+      depth: 2
+      health: 10.0
+      price: 0.02 
+      exp: 0.55
+      chance: 2
+      material: PUMPKIN
+      displaymaterial: PUMPKIN
+      id: 3
+    pumpkin1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#B06100Резная Тыква"
+      depth: 2
+      health: 10.0
+      price: 0.02 
+      exp: 0.55
+      chance: 1
+      material: CARVED_PUMPKIN
+      displaymaterial: CARVED_PUMPKIN
+      id: 4
+    #-------------------------------
+    mushroom:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#C0C0C0Споры гриба"
+      depth: 3
+      health: 50.0
+      price: 0.04 
+      exp: 0.61
+      chance: 20
+      material: MUSHROOM_STEM
+      displaymaterial: LIGHT_GRAY_DYE
+      id: 5
+    mushroom2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#AC0000Красный гриб"
+      depth: 3
+      health: 50.0
+      price: 0.04 
+      exp: 0.61
+      chance: 15
+      material: RED_MUSHROOM_BLOCK
+      displaymaterial: RED_MUSHROOM
+      id: 6
+    #-------------------------------
+    honey:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FF9200Мёд"
+      depth: 4
+      health: 250.0
+      price: 0.08 
+      exp: 0.67
+      chance: 1
+      material: YELLOW_STAINED_GLASS
+      displaymaterial: HONEY_BOTTLE
+      id: 8
+    honey2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FFC425Соты"
+      depth: 4
+      health: 250.0
+      price: 0.08 
+      exp: 0.67
+      chance: 1
+      material: HONEYCOMB_BLOCK
+      displaymaterial: HONEYCOMB
+      id: 9
+    #-------------------------------
+    berry:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FF3081Малина"
+      depth: 5
+      health: 750.0
+      price: 0.16 
+      exp: 0.73
+      chance: 65
+      material: FIRE_CORAL_BLOCK
+      displaymaterial: NETHER_WART
+      id: 10
+    berry2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FF303BБрусника"
+      depth: 5
+      health: 750.0
+      price: 0.16 
+      exp: 0.73
+      chance: 35
+      material: NETHER_WART_BLOCK
+      displaymaterial: SWEET_BERRIES
+      id: 11
+    #-------------------------------
+    salad:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#4CDF51Петрушка"
+      depth: 6
+      health: 4227.0
+      price: 0.32 
+      exp: 0.81
+      chance: 3
+      material: GREEN_WOOL
+      displaymaterial: FERN
+      id: 18
+    salad2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#4CDF77Капуста"
+      depth: 6
+      health: 4227.0
+      price: 0.32 
+      exp: 0.81
+      chance: 1
+      material: GREEN_GLAZED_TERRACOTTA
+      displaymaterial: KELP
+      id: 19
+#    berry3:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#7A30FFБутон Ежевики"
+#      depth: 6
+#      health: 6450.0
+#      price: 52.0
+#      exp: 28.5
+#      chance: 2
+#      material: PURPLE_GLAZED_TERRACOTTA
+#      displaymaterial: CHORUS_FLOWER
+#      id: 12
+#    berry4:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#9530FFЕжевика"
+#      depth: 6
+#      health: 6850.0
+#      price: 55.5
+#      exp: 32.0
+#      chance: 1
+#      material: PURPLE_CONCRETE_POWDER
+#      displaymaterial: CHORUS_PLANT
+#      id: 13
+    #-------------------------------
+#    fruit:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#FB30FFХана Хана но Ми"
+#      depth: 7
+#      health: 8500.0
+#      price: 74.0
+#      exp: 34.5
+#      chance: 4
+#      material: PINK_GLAZED_TERRACOTTA
+#      displaymaterial: PINK_GLAZED_TERRACOTTA
+#      id: 14
+#    fruit2:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#FF3055Опэ Опэ но Ми"
+#      depth: 7
+#      health: 9250.0
+#      price: 79.5
+#      exp: 39.0
+#      chance: 3
+#      material: RED_GLAZED_TERRACOTTA
+#      displaymaterial: RED_GLAZED_TERRACOTTA
+#      id: 15
+#    fruit3:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#E99EFFСубэ Субэ но Ми"
+#      depth: 7
+#      health: 10000.0
+#      price: 85.5
+#      exp: 44.0
+#      chance: 2
+#      material: BRAIN_CORAL_BLOCK
+#      displaymaterial: BRAIN_CORAL_BLOCK
+#      id: 16
+#    fruit4:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#4C83DFГому Гому но Ми"
+#      depth: 7
+#      health: 12550.0
+#      price: 93.5
+#      exp: 50.5
+#      chance: 1
+#      material: BLUE_GLAZED_TERRACOTTA
+#      displaymaterial: BLUE_GLAZED_TERRACOTTA
+#      id: 17
+#    #-------------------------------
+#    salad:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#4CDF51Петрушка"
+#      depth: 8
+#      health: 14500.0
+#      price: 98.5
+#      exp: 59.5
+#      chance: 3
+#      material: GREEN_WOOL
+#      displaymaterial: FERN
+#      id: 18
+#    salad2:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#4CDF77Капуста"
+#      depth: 8
+#      health: 22500.0
+#      price: 111.5
+#      exp: 73.5
+#      chance: 1
+#      material: GREEN_GLAZED_TERRACOTTA
+#      displaymaterial: KELP
+#      id: 19
+#    #-------------------------------
+  2:
+    water:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&bВода"
+      depth: 1
+      health: 3.6
+      price: 0.64
+      exp: 2.9
+      chance: 1
+      material: WATER
+      displaymaterial: WATER_BUCKET
+      id: 20
+    water_mark:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#93EFEDВода"
+      depth: 1
+      health: 3.6
+      price: 0.64
+      exp: 2.9
+      chance: 1
+      material: LIGHT_BLUE_STAINED_GLASS
+      displaymaterial: WATER_BUCKET
+      id: 21
+        #-------------------------------
+#    water2:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&3Глубокая вода"
+#      depth: 2
+#      health: 1.0
+#      price: 1.0
+#      exp: 1.0
+#      chance: 1
+#      material: WATER
+#      displaymaterial: WATER_BUCKET
+#      id: 22
+#    water2_mark:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#2A80A7Глубокая вода"
+#      depth: 2
+#      health: 825.0
+#      price: 700.0
+#      exp: 55.0
+#      chance: 1
+#      material: BLUE_STAINED_GLASS
+#      displaymaterial: WATER_BUCKET
+#      id: 23
+#    #-------------------------------
+    sand:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FFFCA7Песок"
+      depth: 2
+      health: 18.0
+      price: 0.96
+      exp: 3.19
+      chance: 1
+      material: SAND
+      displaymaterial: SAND
+      id: 24
+    sandstone:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FFFB99Песчаник"
+      depth: 2
+      health: 18.0
+      price: 0.96
+      exp: 3.19
+      chance: 1
+      material: SMOOTH_SANDSTONE
+      displaymaterial: SMOOTH_SANDSTONE
+      id: 25
+    #-------------------------------
+    clay:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#A3A3A3Глина"
+      depth: 3
+      health: 90.0
+      price: 1.44
+      exp: 3.51
+      chance: 2
+      material: CLAY
+      displaymaterial: CLAY
+      id: 27
+    gravel:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#7A7A7AГравий"
+      depth: 3
+      health: 90.0
+      price: 1.44
+      exp: 3.51
+      chance: 1
+      material: GRAVEL
+      displaymaterial: GRAVEL
+      id: 28
+    powder:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#5D5E4FИл"
+      depth: 3
+      health: 90.0
+      price: 1.44
+      exp: 3.51
+      chance: 1
+      material: LIGHT_GRAY_CONCRETE_POWDER
+      displaymaterial: LIGHT_GRAY_CONCRETE_POWDER
+      id: 29
+    #-------------------------------
+    coral1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#EEFF4CКоралл"
+      depth: 4
+      health: 450.0
+      price: 2.16
+      exp: 3.86
+      chance: 5
+      material: HORN_CORAL_BLOCK
+      displaymaterial: HORN_CORAL
+      id: 31
+    coral2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FF74EFКоралл"
+      depth: 4
+      health: 450.0
+      price: 2.16
+      exp: 3.86
+      chance: 4
+      material: BRAIN_CORAL_BLOCK
+      displaymaterial: BRAIN_CORAL
+      id: 32
+    coral3:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FF00BAКоралл"
+      depth: 4
+      health: 450.0
+      price: 2.16
+      exp: 3.86
+      chance: 3
+      material: BUBBLE_CORAL_BLOCK
+      displaymaterial: BUBBLE_CORAL
+      id: 33
+    coral4:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#2A70C4Коралл"
+      depth: 4
+      health: 450.0
+      price: 2.16
+      exp: 3.86
+      chance: 2
+      material: TUBE_CORAL_BLOCK
+      displaymaterial: TUBE_CORAL
+      id: 34
+    coral5:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#C42A2AКоралл"
+      depth: 4
+      health: 450.0
+      price: 2.16
+      exp: 3.86
+      chance: 1
+      material: FIRE_CORAL_BLOCK
+      displaymaterial: FIRE_CORAL
+      id: 35
+    #-------------------------------
+    prismarine:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#00F2FFАквамарин"
+      depth: 5
+      health: 1800.0
+      price: 3.24
+      exp: 4.25
+      chance: 1
+      material: PRISMARINE
+      displaymaterial: PRISMARINE_CRYSTALS
+      id: 37
+    prismarine1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#09748CТёмный аквамарин"
+      depth: 5
+      health: 1800.0
+      price: 3.24
+      exp: 4.25
+      chance: 1
+      material: DARK_PRISMARINE
+      displaymaterial: CYAN_DYE
+      id: 38
+    powder1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#02CEDFАквамариновая пыль"
+      depth: 5
+      health: 1800.0
+      price: 3.24
+      exp: 4.25
+      chance: 1
+      material: CYAN_CONCRETE_POWDER
+      displaymaterial: CYAN_CONCRETE_POWDER
+      id: 39
+    #-------------------------------
+    prismarine2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#0FB9ACАтлантид"
+      depth: 6
+      health: 7000.0
+      price: 4.86
+      exp: 4.67
+      chance: 1
+      material: PRISMARINE_BRICKS
+      displaymaterial: PRISMARINE_SHARD
+      id: 41
+    terracotta:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#329DA6Резной атлантид"
+      depth: 6
+      health: 7000.0
+      price: 4.86
+      exp: 4.67
+      chance: 1
+      material: CYAN_GLAZED_TERRACOTTA
+      displaymaterial: CYAN_GLAZED_TERRACOTTA
+      id: 42
+    #-------------------------------
+#    bone:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#E2E2E2Кость"
+#      depth: 8
+#      health: 15000.0
+#      price: 5500.0
+#      exp: 800.0
+#      chance: 2
+#      material: BONE_BLOCK
+#      displaymaterial: BONE
+#      id: 44
+#    redsand:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#A77C2AСтаринный песок"
+#      depth: 8
+#      health: 23000.0
+#      price: 6150.0
+#      exp: 850.0
+#      chance: 1
+#      material: RED_SAND
+#      displaymaterial: RED_SAND
+#      id: 45
+#    redsandstone:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#A5A72AСтаринный песчаник"
+#      depth: 8
+#      health: 25000.0
+#      price: 6800.0
+#      exp: 900.0
+#      chance: 1
+#      material: SMOOTH_RED_SANDSTONE
+#      displaymaterial: SMOOTH_RED_SANDSTONE
+#      id: 46
+#    #-------------------------------
+  3:
+    jungle_leaves:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#4AA72AЛистья тропического дерева"
+      depth: 1
+      health: 8.4
+      price: 7.29
+      exp: 33.55
+      chance: 5
+      material: JUNGLE_LEAVES
+      displaymaterial: JUNGLE_LEAVES
+      id: 48
+    coconut:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FCF7E4Кокос"
+      depth: 1
+      health: 8.4
+      price: 7.29
+      exp: 33.55
+      chance: 1
+      material: NOTE_BLOCK
+      displaymaterial: NOTE_BLOCK
+      id: 49
+    banana:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FAFA70Банан"
+      depth: 1
+      health: 8.4
+      price: 7.29
+      exp: 33.55
+      chance: 1
+      material: YELLOW_WOOL
+      displaymaterial: YELLOW_WOOL
+      id: 50
+    #-------------------------------
+    jungle_wood:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&6Джунглевая кора"
+      depth: 2
+      health: 42.0
+      price: 9.84
+      exp: 36.91
+      chance: 1
+      material: JUNGLE_WOOD
+      displaymaterial: JUNGLE_WOOD
+      id: 51
+    acacia_wood:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#A67500Скорлупа кокоса"
+      depth: 2
+      health: 42.0
+      price: 9.84
+      exp: 36.91
+      chance: 1
+      material: ACACIA_WOOD
+      displaymaterial: ACACIA_WOOD
+      id: 52
+    #-------------------------------
+#    jungle_planks:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#EDC034Доски тропического дерева"
+#      depth: 3
+#      health: 1900.0
+#      price: 13750.0
+#      exp: 2400.0
+#      chance: 2
+#      material: JUNGLE_PLANKS
+#      displaymaterial: JUNGLE_PLANKS
+#      id: 53
+#    stripped_jungle_wood:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#EDAD34Очищенное джунглевое дерево"
+#      depth: 3
+#      health: 2525.0
+#      price: 14650.0
+#      exp: 2500.0
+#      chance: 1
+#      material: STRIPPED_JUNGLE_WOOD
+#      displaymaterial: STRIPPED_JUNGLE_WOOD
+#      id: 54
+    #-------------------------------
+    sand2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#F4E08EПесок"
+      depth: 3
+      health: 210.0
+      price: 13.29
+      exp: 40.6
+      chance: 4
+      material: SAND
+      displaymaterial: SAND
+      id: 55
+    sandstone2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FFE473Песчаник"
+      depth: 3
+      health: 210.0
+      price: 13.29
+      exp: 40.6
+      chance: 2
+      material: SANDSTONE
+      displaymaterial: SANDSTONE
+      id: 56
+    smooth_sandstone:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#F8FF56Гладкий песчаник"
+      depth: 3
+      health: 210.0
+      price: 13.29
+      exp: 40.6
+      chance: 1
+      material: SMOOTH_SANDSTONE
+      displaymaterial: SMOOTH_SANDSTONE
+      id: 57
+    #-------------------------------
+    stone:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#585858Камень"
+      depth: 4
+      health: 1050.0
+      price: 17.94
+      exp: 44.66
+      chance: 10
+      material: STONE
+      displaymaterial: STONE
+      id: 66
+    gold_ore:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#FFFD00Золотая руда"
+      depth: 4
+      health: 1050.0
+      price: 17.94
+      exp: 44.66
+      chance: 4
+      material: GOLD_ORE
+      displaymaterial: GOLD_ORE
+      id: 67
+    emerald_ore:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#00FF73Урановая руда"
+      depth: 4
+      health: 1050.0
+      price: 17.94
+      exp: 44.66
+      chance: 1
+      material: EMERALD_ORE
+      displaymaterial: EMERALD_ORE
+      id: 68
+    #-------------------------------
+    moss:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#6BB75CМох"
+      depth: 5
+      health: 3150.0
+      price: 24.21
+      exp: 49.12
+      chance: 1
+      material: GREEN_CONCRETE_POWDER
+      displaymaterial: GREEN_CONCRETE_POWDER
+      id: 58
+    wet_moss:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&2Лишайник"
+      depth: 5
+      health: 3150.0
+      price: 24.21
+      exp: 49.12
+      chance: 1
+      material: GREEN_WOOL
+      displaymaterial: GREEN_WOOL
+      id: 59
+    #-------------------------------
+    mossy_stone_bricks:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&2Замшелый кирпич"
+      depth: 6
+      health: 10229.7
+      price: 32.69
+      exp: 54.03
+      chance: 3
+      material: MOSSY_STONE_BRICKS
+      displaymaterial: MOSSY_STONE_BRICKS
+      id: 60
+    cracked_stone_bricks:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&7Треснутый кирпич"
+      depth: 6
+      health: 10229.7
+      price: 32.69
+      exp: 54.03
+      chance: 2
+      material: CRACKED_STONE_BRICKS
+      displaymaterial: CRACKED_STONE_BRICKS
+      id: 61
+    coarse_dirt:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#56412BКаменная земля"
+      depth: 6
+      health: 10229.7
+      price: 32.69
+      exp: 54.03
+      chance: 1
+      material: COARSE_DIRT
+      displaymaterial: COARSE_DIRT
+      id: 62
+    #-------------------------------
+#    stone_bricks:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#63605DКаменные кирпичи"
+#      depth: 7
+#      health: 10800.0
+#      price: 26415.0
+#      exp: 5150.0
+#      chance: 3
+#      material: STONE_BRICKS
+#      displaymaterial: STONE_BRICKS
+#      id: 63
+#    chiseled_stone_bricks:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#868686Резные кирпичи"
+#      depth: 7
+#      health: 12650.0
+#      price: 27100.0
+#      exp: 5100.0
+#      chance: 2
+#      material: CHISELED_STONE_BRICKS
+#      displaymaterial: CHISELED_STONE_BRICKS
+#      id: 64
+#    coarse_dirt2:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#56412BКаменная земля"
+#      depth: 7
+#      health: 15000.0
+#      price: 27850.0
+#      exp: 5250.0
+#      chance: 1
+#      material: COARSE_DIRT
+#      displaymaterial: COARSE_DIRT
+#      id: 65
+#    #-------------------------------
+#    stone:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#585858Камень"
+#      depth: 8
+#      health: 17000.0
+#      price: 31350.0
+#      exp: 5950.0
+#      chance: 10
+#      material: STONE
+#      displaymaterial: STONE
+#      id: 66
+#    gold_ore:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#FFFD00Золотая руда"
+#      depth: 8
+#      health: 30000.0
+#      price: 32250.0
+#      exp: 5300.0
+#      chance: 4
+#      material: GOLD_ORE
+#      displaymaterial: GOLD_ORE
+#      id: 67
+#    emerald_ore:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#00FF73Урановая руда"
+#      depth: 8
+#      health: 40000.0
+#      price: 32750.0
+#      exp: 9000.0
+#      chance: 1
+#      material: EMERALD_ORE
+#      displaymaterial: EMERALD_ORE
+#      id: 68
+#    #-------------------------------
+  4:
+    end_stone:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#e0d538Эндерняк"
+      depth: 1
+      health: 14.0
+      price: 44.13
+      exp: 312.0
+      chance: 1
+      material: END_STONE
+      displaymaterial: END_STONE
+      id: 69
+      #---------------------------------
+    endbricks:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#e8d479Эндер кирпичи"
+      depth: 2
+      health: 70.0
+      price: 55.16
+      exp: 343.2
+      chance: 4
+      material: END_STONE_BRICKS
+      displaymaterial: END_STONE_BRICKS
+      id: 70
+    endstone_portal:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#c9b761Эндер колонна"
+      depth: 2
+      health: 70.0
+      price: 55.16
+      exp: 343.2
+      chance: 1
+      material: BONE_BLOCK
+      displaymaterial: BONE_BLOCK
+      id: 71
+    #-------------------------------
+    birch_planks:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#f2d85eЭндер доски"
+      depth: 3
+      health: 350.0
+      price: 68.95
+      exp: 377.52
+      chance: 3
+      material: BIRCH_PLANKS
+      displaymaterial: BIRCH_PLANKS
+      id: 72
+    stripped_birch:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#edce40Эндер древесина"
+      depth: 3
+      health: 350.0
+      price: 68.95
+      exp: 377.52
+      chance: 2
+      material: STRIPPED_BIRCH_WOOD
+      displaymaterial: STRIPPED_BIRCH_WOOD
+      id: 73
+    #-------------------------------
+    ender_dirt:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#9640edПочва энда"
+      depth: 4
+      health: 1750.0
+      price: 86.19
+      exp: 415.27
+      chance: 5
+      material: PURPLE_WOOL
+      displaymaterial: PURPLE_WOOL
+      id: 74
+    ender_dirt1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#ba36f7Рыхлая почва энда"
+      depth: 4
+      health: 1750.0
+      price: 86.19
+      exp: 415.27
+      chance: 3
+      material: PURPLE_CONCRETE_POWDER
+      displaymaterial: PURPLE_CONCRETE_POWDER
+      id: 75
+    ender_dirt2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#e249fcОтвердевшая почва энда"
+      depth: 4
+      health: 1750.0
+      price: 86.19
+      exp: 415.27
+      chance: 1
+      material: PURPLE_CONCRETE
+      displaymaterial: PURPLE_CONCRETE
+      id: 76
+    #-------------------------------
+    ender_mantiy:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#f649fcЭндезит"
+      depth: 5
+      health: 5250.0
+      price: 107.74
+      exp: 456.8
+      chance: 6
+      material: MAGENTA_TERRACOTTA
+      displaymaterial: MAGENTA_TERRACOTTA
+      id: 77
+    ender_mantiy1:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#7e2dadЭндерит"
+      depth: 5
+      health: 5250.0
+      price: 107.74
+      exp: 456.8
+      chance: 3
+      material: PURPLE_TERRACOTTA
+      displaymaterial: PURPLE_TERRACOTTA
+      id: 78
+    ender_mantiy2:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#6035fcЭнденит"
+      depth: 5
+      health: 5250.0
+      price: 107.74
+      exp: 456.8
+      chance: 1
+      material: BLUE_TERRACOTTA
+      displaymaterial: BLUE_TERRACOTTA
+      id: 79
+    #-------------------------------
+    purpur_block:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#b513d1Пурпурный кирпич"
+      depth: 6
+      health: 16960.0
+      price: 134.67
+      exp: 502.48
+      chance: 7
+      material: PURPUR_BLOCK
+      displaymaterial: PURPUR_BLOCK
+      id: 80
+    purpur_column:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#852196Пурпурная колонна"
+      depth: 6
+      health: 16960.0
+      price: 134.67
+      exp: 502.48
+      chance: 4
+      material: PURPUR_PILLAR
+      displaymaterial: PURPUR_PILLAR
+      id: 81
+    purpur_glass:
+      ==: d2t.tunneler.mine.block.BlockType
+      display: "&#772196Пурпурный кристалл"
+      depth: 6
+      health: 16960.0
+      price: 134.67
+      exp: 502.48
+      chance: 1
+      material: MAGENTA_STAINED_GLASS
+      displaymaterial: MAGENTA_STAINED_GLASS
+      id: 82
+#    #-------------------------------
+#    hot_dirts:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#850080Желеобразная порода"
+#      depth: 7
+#      health: 18000.0
+#      price: 286328.0
+#      exp: 45095.0
+#      chance: 8
+#      material: BUBBLE_CORAL_BLOCK
+#      displaymaterial: BUBBLE_CORAL_BLOCK
+#      id: 83
+#    hot_dirts1:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#ab52a8Пурпурный калий"
+#      depth: 7
+#      health: 20050.0
+#      price: 290294.0
+#      exp: 45704.0 
+#      chance: 5
+#      material: MAGENTA_CONCRETE_POWDER
+#      displaymaterial: MAGENTA_CONCRETE_POWDER
+#      id: 84
+#    hot_dirts2:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#a633a2Пурпурный кальцит"
+#      depth: 7
+#      health: 23000.0
+#      price: 296497.0
+#      exp: 46314.0
+#      chance: 1
+#      material: MAGENTA_CONCRETE
+#      displaymaterial: MAGENTA_CONCRETE
+#      id: 85
+#    #-------------------------------
+#    obsidian:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#5d158aЭндер мантия"
+#      depth: 8
+#      health: 28500.0
+#      price: 349320.0
+#      exp: 55016.0
+#      chance: 12
+#      material: OBSIDIAN
+#      displaymaterial: OBSIDIAN
+#      id: 86
+#    crying_obsidian:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#7300baЭндуран"
+#      depth: 8
+#      health: 32500.0
+#      price: 354159.0
+#      exp: 55759.0
+#      chance: 6
+#      material: CRYING_OBSIDIAN
+#      displaymaterial: CRYING_OBSIDIAN
+#      id: 87
+#    bedrock:
+#      ==: d2t.tunneler.mine.block.BlockType
+#      display: "&#626262К&#5d5d5dо&#585858р&#535353е&#4e4e4eн&#494949н&#444444а&#404040я &#3b3b3bп&#363636о&#313131р&#2c2c2cо&#272727д&#222222а"
+#      depth: 8
+#      health: 54000.0
+#      price: 361727.0
+#      exp: 56503.0
+#      chance: 1
+#      material: BEDROCK
+#      displaymaterial: BEDROCK
+#      id: 88
+  # 5:
+  #   #---------------------------------
+  #   andesite:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#ADF3FDГорсть пыли"
+  #     depth: 1
+  #     health: 32.0
+  #     price: 168.34
+  #     exp: 730.0
+  #     chance: 3
+  #     material: CYAN_TERRACOTTA
+  #     displaymaterial: GRAY_DYE
+  #     id: 89
+  #   ancientdebris:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#7C5548Ржавая деталь"
+  #     depth: 1
+  #     health: 32.0
+  #     price: 168.34
+  #     exp: 730.0
+  #     chance: 2
+  #     material: ANCIENT_DEBRIS
+  #     displaymaterial: NETHERITE_SCRAP
+  #     id: 90
+  #   basalt:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#424242Железнодорожные рельсы"
+  #     depth: 1
+  #     health: 32.0
+  #     price: 168.34
+  #     exp: 730.0
+  #     chance: 1
+  #     material: BASALT
+  #     displaymaterial: RAIL
+  #     id: 92
+  #   #---------------------------------
+  #   boneblock:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#6D485ADVD"
+  #     depth: 2
+  #     health: 158.0
+  #     price: 202.01
+  #     exp: 803.0
+  #     chance: 3
+  #     material: NOTE_BLOCK
+  #     displaymaterial: NOTE_BLOCK
+  #     id: 93
+  #   clay1:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#6e6e6eОбломок трубы"
+  #     depth: 2
+  #     health: 158.0
+  #     price: 202.01
+  #     exp: 803.0
+  #     chance: 2
+  #     material: LODESTONE
+  #     displaymaterial: LODESTONE
+  #     id: 94
+  #   smoothquartz:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#423f3dСтиральная машина"
+  #     depth: 2
+  #     health: 158.0
+  #     price: 202.01
+  #     exp: 803.0
+  #     chance: 1
+  #     material: DISPENSER
+  #     displaymaterial: DISPENSER
+  #     id: 95
+  #   #-------------------------------
+  #   smoothstone:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#F5D7FFКартонная коробка"
+  #     depth: 3
+  #     health: 788.0
+  #     price: 242.41
+  #     exp: 883.3
+  #     chance: 3
+  #     material: MUSHROOM_STEM
+  #     displaymaterial: MUSHROOM_STEM
+  #     id: 96
+  #   yellowterracotta:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#402312Перегоревшая лампочка"
+  #     depth: 3
+  #     health: 788.0
+  #     price: 242.41
+  #     exp: 883.3
+  #     chance: 2
+  #     material: REDSTONE_LAMP
+  #     displaymaterial: REDSTONE_LAMP
+  #     id: 97
+  #   yellowconcrete:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "§fМакулатура"
+  #     depth: 3
+  #     health: 788.0
+  #     price: 242.41
+  #     exp: 883.3
+  #     chance: 1
+  #     material: SMOOTH_QUARTZ
+  #     displaymaterial: PAPER
+  #     id: 98
+  #   #-------------------------------
+  #   greenconcretepowder:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#4E7C2BОбогащённый уран"
+  #     depth: 4
+  #     health: 3938.0
+  #     price: 290.89
+  #     exp: 971.63
+  #     chance: 3
+  #     material: GREEN_CONCRETE_POWDER
+  #     displaymaterial: GREEN_DYE
+  #     id: 99
+  #   limeterracotta:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#59D34FУгасающий уран"
+  #     depth: 4
+  #     health: 3938.0
+  #     price: 290.89
+  #     exp: 971.63
+  #     chance: 2
+  #     material: LIME_TERRACOTTA
+  #     displaymaterial: SCUTE
+  #     id: 100
+  #   greenwool:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#295420Угасший уран"
+  #     depth: 4
+  #     health: 3938.0
+  #     price: 290.89
+  #     exp: 971.63
+  #     chance: 1
+  #     material: GREEN_WOOL
+  #     displaymaterial: GREEN_CARPET
+  #     id: 101
+  #   #-------------------------------
+  #   limeconcretepowder:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#60D842Чистая урановая пыль"
+  #     depth: 5
+  #     health: 7875.0
+  #     price: 349.07
+  #     exp: 1068.79
+  #     chance: 3
+  #     material: LIME_CONCRETE_POWDER
+  #     displaymaterial: LIME_DYE
+  #     id: 102
+  #   limeconcrete:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#48D870Очищенный твёрдый уран"
+  #     depth: 5
+  #     health: 7875.0
+  #     price: 349.07
+  #     exp: 1068.79
+  #     chance: 2
+  #     material: LIME_STAINED_GLASS
+  #     displaymaterial: LIME_STAINED_GLASS_PANE
+  #     id: 103
+  #   limewool:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#3e942cЗагрязнённый уран"
+  #     depth: 5
+  #     health: 7875.0
+  #     price: 349.07
+  #     exp: 1068.79
+  #     chance: 1
+  #     material: LIME_WOOL
+  #     displaymaterial: LIME_CARPET
+  #     id: 104
+  #   #-------------------------------
+  #   redsand1:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#DDA25EРаскалённый изолятор"
+  #     depth: 6
+  #     health: 25410.0
+  #     price: 418.88
+  #     exp: 1175.67
+  #     chance: 3
+  #     material: SMOOTH_RED_SANDSTONE
+  #     displaymaterial: RED_SANDSTONE_WALL
+  #     id: 105
+  #   redsandstone1:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#DD894CРасплавленный изолятор"
+  #     depth: 6
+  #     health: 25410.0
+  #     price: 418.88
+  #     exp: 1175.67
+  #     chance: 2
+  #     material: ORANGE_WOOL
+  #     displaymaterial: ORANGE_CARPET
+  #     id: 106
+  #   orangeterracotta:
+  #     ==: d2t.tunneler.mine.block.BlockType
+  #     display: "&#DD4C4CОстывающий изолятор"
+  #     depth: 6
+  #     health: 25410.0
+  #     price: 418.88
+  #     exp: 1175.67
+  #     chance: 1
+  #     material: ORANGE_TERRACOTTA
+  #     displaymaterial: ORANGE_DYE
+  #     id: 107
+
+#    #-------------------------------
+#    magmablock:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#894616Урановая мантия"
+#    depth: 7
+#    health: 13000.0
+#    price: 5684382.0
+#    exp: 253464.0
+#    chance: 3
+#    material: MAGMA_BLOCK
+#    displaymaterial: MAGMA_BLOCK
+#    id: 108
+#    rednetherbrick:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#242122Отходы АЭС"
+#    depth: 7
+#    health: 19050.0
+#    price: 5883097.0
+#    exp: 285651.0
+#    chance: 2
+#    material: RED_NETHER_BRICKS
+#    displaymaterial: NETHERITE_INGOT
+#    id: 109
+#    netherbrick:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#571625Отходы АЭС"
+#    depth: 7
+#    health: 20000.0
+#    price: 6138074.0
+#    exp: 325883.0
+#    chance: 1
+#    material: NETHER_BRICKS
+#    displaymaterial: NETHER_BRICK
+#    id: 110
+#    #-------------------------------
+#    magmablock1:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#9e5200Глубинная мантия"
+#    depth: 8
+#    health: 29000.0
+#    price: 6934953.0
+#    exp: 309227.0
+#    chance: 3
+#    material: MAGMA_BLOCK
+#    displaymaterial: MAGMA_BLOCK
+#    id: 111
+#    coalblock:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#444037Радиоактивный уголь"
+#    depth: 8
+#    health: 28000.0
+#    price: 7177386.0
+#    exp: 348496.0
+#    chance: 2
+#    material: COAL_BLOCK
+#    displaymaterial: COAL
+#    id: 112
+#    blackconcretepowder:
+#    ==: d2t.tunneler.mine.block.BlockType
+#    display: "&#404040Пепел"
+#    depth: 8
+#    health: 27000.0
+#    price: 7488455.0
+#    exp: 397578.0
+#    chance: 1
+#    material: GRAY_CONCRETE_POWDER
+#    displaymaterial: GUNPOWDER
+#    id: 113
+#    #-------------------------------

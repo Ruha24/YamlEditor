@@ -17,7 +17,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Edit row</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QWidget { background-color: #1f1f1f; }
