@@ -15,6 +15,20 @@ MainWindow::MainWindow(QWidget *parent)
     search_wnd = nullptr;
     replace_wnd = nullptr;
     previous_widget = nullptr;
+    flow_keys_layout = nullptr;
+
+    QWidget *keys_container = ui->scrollAreaWidgetContents_2;
+    if (keys_container) {
+        if (QLayout *old_layout = keys_container->layout()) {
+            QLayoutItem *item;
+            while ((item = old_layout->takeAt(0)) != nullptr) {
+                delete item->widget();
+                delete item;
+            }
+            delete old_layout;
+        }
+        flow_keys_layout = new FlowLayout(keys_container, 6, 8, 8);
+    }
 
     file_local_system = new FileSystem(QDir::currentPath() + "/ymlFiles");
     yandex_api = new YandexApi();
@@ -71,24 +85,9 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 void MainWindow::dropEvent(QDropEvent *event)
 {
     const QMimeData *mime_data = event->mimeData();
-
     if (mime_data->hasUrls()) {
-        QList<QUrl> urlList = mime_data->urls();
-
-        for (const QUrl &url : urlList) {
-            QString file_name = url.fileName();
-
-            if (ui->fileNamecmb->findText(file_name) == -1) {
-                file_local_system->AddFile(url.toLocalFile());
-                ui->fileNamecmb->addItem(file_name);
-
-                ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
-
-                ReadFile();
-            } else {
-                QMessageBox::information(this, "Error", "This file is already open");
-            }
-        }
+        for (const QUrl &url : mime_data->urls())
+            OpenFileByPath(url.toLocalFile());
     }
 }
 
@@ -346,9 +345,6 @@ void MainWindow::Displaykeys(YamlNode root)
 {
     ClearKeysArea();
 
-    int row_lvl = 0;
-    int col_lvl = 0;
-
     keys.clear();
 
     for (const auto &node : root.children) {
@@ -358,14 +354,8 @@ void MainWindow::Displaykeys(YamlNode root)
     QList<QString> sorted_keys = keys.values();
     std::sort(sorted_keys.begin(), sorted_keys.end());
 
-    for (const QString &key : sorted_keys) {
-        CreateCheckBox(key, row_lvl, col_lvl);
-
-        col_lvl++;
-        if (col_lvl > 1) {
-            col_lvl = 0;
-            row_lvl++;
-        }
+    for (const QString &key : std::as_const(sorted_keys)) {
+        CreateCheckBox(key, 0, 0);
     }
 }
 
@@ -481,7 +471,7 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
     QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
 
     QTreeWidgetItem *tree_item = new QTreeWidgetItem();
-    tree_item->setText(0, node.key);
+
     tree_item->setData(0, Qt::UserRole, currentPath);
 
     if (expanded_paths.contains(currentPath))
@@ -503,7 +493,8 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
     }
 
     key_txt->setStyleSheet(
-        "QLineEdit { border: none; font-size: 16px; color: rgb(98, 127, 255); }");
+        "QLineEdit { border: none; background: transparent; "
+        "font-size: 16px; color: #7aa2ff; }");
     treeWidget->setItemWidget(tree_item, 0, key_txt);
 
     connect(key_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
@@ -535,7 +526,9 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
     if (!node.value.isEmpty() || node.children.isEmpty()) {
         CustomLineEdit *value_txt = new CustomLineEdit(this, currentPath, false);
         value_txt->setText(node.value);
-        value_txt->setStyleSheet("QLineEdit { border: none; font-size: 14px; color: white; }");
+        value_txt->setStyleSheet(
+            "QLineEdit { border: none; background: transparent; "
+            "font-size: 14px; color: #e6e6e6; }");
         treeWidget->setItemWidget(tree_item, 1, value_txt);
 
         connect(value_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
@@ -590,16 +583,48 @@ void MainWindow::SaveExpandedState()
 
 void MainWindow::CreateCheckBox(const QString &name, int row, int col)
 {
-    QCheckBox *check_box = new QCheckBox(name, this);
-    check_box->setStyleSheet(
-        "QCheckBox{ font-size: 24px;} QCheckBox::indicator { width: 20px; height: "
-        "20px; "
-        "background-color: #525252; "
-        "color: #37A2C3; border: 1px solid #00AADF; border-radius: 10px; } "
-        "QCheckBox::indicator:checked { border: 1px solid #3CC7F2; background-color: "
-        "#51B4D2; } ");
+    Q_UNUSED(row);
+    Q_UNUSED(col);
 
-    ui->gridLayout_2->addWidget(check_box, row, col);
+    QCheckBox *check_box = new QCheckBox(name, this);
+    check_box->setCursor(Qt::PointingHandCursor);
+    check_box->setStyleSheet(R"(
+        QCheckBox {
+            font-size: 14px;
+            color: #cfeefa;
+            padding: 6px 12px 6px 10px;
+            spacing: 7px;
+            background-color: #33414a;
+            border: 1px solid #51b4d2;
+            border-radius: 8px;
+        }
+        QCheckBox:hover {
+            background-color: #3a4b55;
+        }
+        QCheckBox::indicator {
+            width: 14px; height: 14px;
+            border-radius: 4px;
+            background-color: #51b4d2;
+            border: 1px solid #51b4d2;
+        }
+        /* unchecked = muted gray chip */
+        QCheckBox:!checked {
+            color: #7c7c75;
+            background-color: #363636;
+            border: 1px solid #474747;
+        }
+        QCheckBox:!checked:hover {
+            background-color: #3d3d3d;
+            color: #9a9a93;
+        }
+        QCheckBox::indicator:unchecked {
+            background-color: transparent;
+            border: 1px solid #5a5a5a;
+        }
+    )");
+
+    if (flow_keys_layout)
+        flow_keys_layout->addWidget(check_box);
 
     if (check_box_states.contains(name)) {
         check_box->setChecked(check_box_states[name]);
@@ -613,8 +638,11 @@ void MainWindow::CreateCheckBox(const QString &name, int row, int col)
 
 void MainWindow::ClearKeysArea()
 {
+    if (!flow_keys_layout)
+        return;
+
     QLayoutItem *item;
-    while ((item = ui->gridLayout_2->takeAt(0)) != nullptr) {
+    while ((item = flow_keys_layout->takeAt(0)) != nullptr) {
         delete item->widget();
         delete item;
     }
@@ -623,16 +651,48 @@ void MainWindow::ClearKeysArea()
 void MainWindow::ClearTreeWidget()
 {
     tree_widget = new QTreeWidget(this);
-
     tree_widget->setColumnCount(2);
-
-    tree_widget->setHeaderLabels(QStringList() << "Key"
-                                               << "Value");
-    tree_widget->setColumnWidth(0, 200);
+    tree_widget->setHeaderLabels(QStringList() << "Key" << "Value");
+    tree_widget->setColumnWidth(0, 280);
     tree_widget->setMinimumHeight(200);
-    tree_widget->setStyleSheet("QHeaderView {background-color: rgb(48, "
-                               "48, 48); color: black;} QWidget {background-color: rgb(48, "
-                               "48, 48); color: black;}");
+
+    tree_widget->setStyleSheet(R"(
+        QTreeWidget {
+            background-color: #2f2f2f;
+            border: none;
+            outline: 0;
+            font-size: 14px;
+        }
+        QTreeView::item {
+            min-height: 30px;
+            padding: 3px 6px;
+            border-bottom: 1px solid #3a3a3a;
+            color: #e6e6e6;
+        }
+        QTreeView::item:hover {
+            background-color: #3f3f3f;
+        }
+        QTreeView::item:selected {
+            background-color: #33405c;
+        }
+        QHeaderView::section {
+            background-color: #262626;
+            color: #9a9a93;
+            padding: 8px 10px;
+            border: none;
+            font-weight: 500;
+        }
+        /* направляющие линии дерева */
+        QTreeView {
+            show-decoration-selected: 1;
+        }
+    )");
+
+    tree_widget->setRootIsDecorated(true);
+    tree_widget->setIndentation(20);
+    tree_widget->setAlternatingRowColors(true);
+    tree_widget->setStyleSheet(tree_widget->styleSheet() +
+                               "QTreeView { alternate-background-color: #333333; background-color: #2f2f2f; }");
 }
 
 void MainWindow::ClearTabWidget(QWidget *tab)
@@ -890,7 +950,7 @@ void MainWindow::OnFolderChanged(const QString &path)
                                                     << "*.yml",
                                       QDir::Files);
 
-    for (const QString &file : files) {
+    for (const QString &file : std::as_const(files)) {
         if (ui->fileNamecmb->findText(file) == -1)
             ui->fileNamecmb->addItem(file);
     }
@@ -905,9 +965,48 @@ void MainWindow::OnFolderChanged(const QString &path)
     }
 }
 
+void MainWindow::OpenFileByPath(const QString &local_path)
+{
+    QFileInfo info(local_path);
+    if (!info.exists() || !info.isFile())
+        return;
+
+    const QString file_name = info.fileName();
+
+    if (ui->fileNamecmb->findText(file_name) == -1) {
+        file_local_system->AddFile(local_path);
+        ui->fileNamecmb->addItem(file_name);
+        ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
+        ReadFile();
+    } else {
+        QMessageBox::information(this, "Error", "This file is already open");
+    }
+}
+
 void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 {
-    QDesktopServices::openUrl(QDir::currentPath() + "/ymlFiles");
+    const QString dir_path = QFileDialog::getExistingDirectory(
+        this,
+        "Выберите папку с YAML-файлами",
+        QDir::currentPath(),
+        QFileDialog::DontUseNativeDialog);
+
+    if (dir_path.isEmpty())
+        return;
+
+    QDir dir(dir_path);
+    const QStringList files = dir.entryList(
+        QStringList() << "*.yaml" << "*.yml",
+        QDir::Files);
+
+    if (files.isEmpty()) {
+        QMessageBox::information(this, "Open Folder",
+                                 "В папке нет YAML-файлов");
+        return;
+    }
+
+    for (const QString &name : files)
+        OpenFileByPath(dir.absoluteFilePath(name));
 }
 
 void MainWindow::on_tabWidget_currentChanged(int index)
@@ -932,4 +1031,16 @@ void MainWindow::on_tabWidget_currentChanged(int index)
 
         Displaykeys(root);
     }
+}
+
+void MainWindow::on_OpenFilebtn_clicked()
+{
+    const QStringList paths = QFileDialog::getOpenFileNames(
+        this,
+        "Выберите YAML-файл(ы)",
+        QDir::currentPath() + "/ymlFiles",
+        "YAML files (*.yml *.yaml);;All files (*)");
+
+    for (const QString &path : paths)
+        OpenFileByPath(path);
 }

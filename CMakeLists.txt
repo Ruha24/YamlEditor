@@ -55,6 +55,8 @@ set(PROJECT_SOURCES
         editwidget.ui
         files/filedownloadtask.h
         files/filedownloadtask.cpp
+        customWidget/flowlayout.h 
+	customWidget/flowlayout.cpp
         images.qrc
 )
 

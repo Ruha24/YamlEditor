@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>assets/images/minus.png</file>
         <file>assets/images/plus.png</file>
+        <file>assets/tab_close.svg</file>
+        <file>assets/tab_close_hover.svg</file>
     </qresource>
 </RCC>

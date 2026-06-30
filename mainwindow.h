@@ -21,9 +21,11 @@
 #include <QTreeWidgetItemIterator>
 #include <QWidget>
 #include <QtAlgorithms>
+#include <QFileDialog>
 
 #include "api/yandex/yandexapi.h"
 #include "customWidget/customlineedit.h"
+#include "customWidget/flowlayout.h"
 #include "files/filesystem.h"
 #include "files/yaml/yamlreader.h"
 #include "replacewindow.h"
@@ -71,6 +73,8 @@ private slots:
 
     void on_tabWidget_currentChanged(int index);
 
+    void on_OpenFilebtn_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -78,6 +82,8 @@ private:
     QShortcut *key_ctrl_f;
     QShortcut *key_ctrl_s;
     QShortcut *key_ctrl_r;
+
+    FlowLayout *flow_keys_layout;
 
     QRegularExpression searching_regex;
 
@@ -116,6 +122,8 @@ private:
 
     QFileSystemWatcher *file_watcher;
     void OnFolderChanged(const QString &path);
+
+    void OpenFileByPath(const QString &local_path);
 
     QSet<QString> expanded_paths;
     void SaveExpandedState();

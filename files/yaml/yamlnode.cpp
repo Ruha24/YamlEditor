@@ -31,21 +31,19 @@ void YamlNode::AddKeyWithValue(const QString &key, const QString &value)
     YamlNode *current_node = this;
 
     for (const QString &part : path_parts) {
-        bool found = false;
-        for (YamlNode &child : current_node->children) {
-            if (child.key == part) {
-                current_node = &child;
-                found = true;
+        int found_index = -1;
+        for (int i = 0; i < current_node->children.size(); ++i) {
+            if (current_node->children[i].key == part) {
+                found_index = i;
                 break;
             }
         }
 
-        if (!found) {
-            YamlNode new_node;
-            new_node.key = part;
-            current_node->children.append(new_node);
-            current_node = &current_node->children.last();
+        if (found_index == -1) {
+            current_node->children.append(YamlNode(part));
+            found_index = current_node->children.size() - 1;
         }
+        current_node = &current_node->children[found_index];
     }
 
     if (!current_node->children.isEmpty() || !current_node->value.isEmpty()) {

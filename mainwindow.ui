@@ -20,21 +20,22 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow {
-	background-color: #464646;
+	background-color: #1f1f1f;
 }
 
 QScrollBar:vertical {
   	border-color: rgb(227, 227, 227);
   	border-width: 1px;
   	border-style: solid;
-  	background-color: rgb(177, 177, 177);
-  	width: 15px;
-  	margin: 21px 0 21px 0;
+  	background-color: #242424;
+  	width: 10px;
+  	margin: 0;
 }
 
 QScrollBar::handle:vertical {
-  	background-color: rgb(177, 177, 177);
-  	min-height: 25px;
+  	background-color: #3d3d3d;
+  	border-radius: 5px;
+  	min-height: 24px;
 }
 
  QScrollBar::add-line:vertical {
@@ -121,11 +122,11 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
         <property name="font">
          <font>
           <family>Montserrat</family>
-          <pointsize>15</pointsize>
+          <pointsize>-1</pointsize>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">QLabel { color: white; }</string>
+         <string notr="true">QLabel { color: #9a9a93; font-size: 14px; }</string>
         </property>
         <property name="text">
          <string>Сonfigs</string>
@@ -134,7 +135,7 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
          <bool>false</bool>
         </property>
         <property name="textInteractionFlags">
-         <set>Qt::LinksAccessibleByMouse</set>
+         <set>Qt::TextInteractionFlag::LinksAccessibleByMouse</set>
         </property>
        </widget>
       </item>
@@ -155,8 +156,31 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
         <property name="font">
          <font>
           <family>Montserrat</family>
-          <pointsize>12</pointsize>
+          <pointsize>-1</pointsize>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QComboBox {
+	background-color: #2b2b2b;
+	border: 1px solid #3d3d3d;
+	border-radius: 8px;
+	padding: 5px 12px;
+	color: #cfeefa;
+	font-size: 14px;
+}
+
+QComboBox:hover { border: 1px solid #51b4d2; }
+
+QComboBox::drop-down { border: none; width: 22px; }
+
+QComboBox QAbstractItemView {
+	background-color: #2b2b2b;
+	color: #e6e6e6;
+	border: 1px solid #3d3d3d;
+	selection-background-color: #33414a;
+	selection-color: #cfeefa;
+	outline: 0;
+}</string>
         </property>
        </widget>
       </item>
@@ -177,23 +201,25 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
         <property name="font">
          <font>
           <family>Montserrat</family>
-          <pointsize>13</pointsize>
+          <pointsize>-1</pointsize>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">QPushButton
-{
-	background-color: #525252;
-	color: #37A2C3;
-	border: 3px solid #00AADF;
-	border-radius: 10px;
+         <string notr="true">QPushButton {
+	background-color: #2b2b2b;
+	color: #cfeefa;
+	border: 1px solid #51b4d2;
+	border-radius: 8px;
+	padding: 8px 18px;
+	font-size: 14px;
 }
 
-QPushButton:hover
-{
-	border: 4px solid #3CC7F2;
-	font-weight: bold;
-	color: #51B4D2;
+QPushButton:hover {
+	background-color: #33414a;
+}
+
+QPushButton:pressed {
+	background-color: #3a4b55;
 }</string>
         </property>
         <property name="text">
@@ -202,9 +228,46 @@ QPushButton:hover
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="OpenFilebtn">
+        <property name="minimumSize">
+         <size>
+          <width>160</width>
+          <height>40</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Montserrat</family>
+          <pointsize>-1</pointsize>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+	background-color: #2b2b2b;
+	color: #cfeefa;
+	border: 1px solid #51b4d2;
+	border-radius: 8px;
+	padding: 8px 18px;
+	font-size: 14px;
+}
+
+QPushButton:hover {
+	background-color: #33414a;
+}
+
+QPushButton:pressed {
+	background-color: #3a4b55;
+}</string>
+        </property>
+        <property name="text">
+         <string>Open file</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -227,7 +290,7 @@ QPushButton:hover
       <item>
        <spacer name="horizontalSpacer_2">
         <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+         <enum>Qt::Orientation::Horizontal</enum>
         </property>
         <property name="sizeHint" stdset="0">
          <size>
@@ -254,23 +317,25 @@ QPushButton:hover
         <property name="font">
          <font>
           <family>Montserrat</family>
-          <pointsize>13</pointsize>
+          <pointsize>-1</pointsize>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">QPushButton
-{
-	background-color: #525252;
-	color: #37A2C3;
-	border: 3px solid #00AADF;
-	border-radius: 10px;
+         <string notr="true">QPushButton {
+	background-color: #2b2b2b;
+	color: #cfeefa;
+	border: 1px solid #51b4d2;
+	border-radius: 8px;
+	padding: 8px 18px;
+	font-size: 14px;
 }
 
-QPushButton:hover
-{
-	border: 4px solid #3CC7F2;
-	font-weight: bold;
-	color: #51B4D2;
+QPushButton:hover {
+	background-color: #33414a;
+}
+
+QPushButton:pressed {
+	background-color: #3a4b55;
 }</string>
         </property>
         <property name="text">
@@ -295,23 +360,27 @@ QPushButton:hover
         <property name="font">
          <font>
           <family>Montserrat</family>
-          <pointsize>15</pointsize>
+          <pointsize>-1</pointsize>
+          <bold>true</bold>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">QPushButton
-{
-	background-color: #525252;
-	color: #37A2C3;
-	border: 3px solid #00AADF;
-	border-radius: 10px;
+         <string notr="true">QPushButton {
+	background-color: #51b4d2;
+	color: #16323c;
+	border: 1px solid #51b4d2;
+	border-radius: 8px;
+	padding: 8px 18px;
+	font-size: 14px;
+	font-weight: bold;
 }
 
-QPushButton:hover
-{
-	border: 4px solid #3CC7F2;
-	font-weight: bold;
-	color: #51B4D2;
+QPushButton:hover {
+	background-color: #61c2df;
+}
+
+QPushButton:pressed {
+	background-color: #45a0bd;
 }</string>
         </property>
         <property name="text">
@@ -326,15 +395,15 @@ QPushButton:hover
       <property name="styleSheet">
        <string notr="true">
 QSplitter::handle {
-background : #37A2C3; 
+background: #333333;
 }
 
-QSplitter::handle:pressed {
-background: #51B4D2;
+QSplitter::handle:hover {
+background: #51b4d2;
 }</string>
       </property>
       <property name="orientation">
-       <enum>Qt::Vertical</enum>
+       <enum>Qt::Orientation::Vertical</enum>
       </property>
       <widget class="QWidget" name="horizontalLayoutWidget_5">
        <layout class="QHBoxLayout" name="horizontalLayout_8">
@@ -344,10 +413,10 @@ background: #51B4D2;
         <item>
          <spacer name="horizontalSpacer_8">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -367,25 +436,55 @@ background: #51B4D2;
           </property>
           <property name="styleSheet">
            <string notr="true">QTabWidget::pane {
-	border: 1px solid black;
-    background: rgb(48, 48, 48);
+	border: none;
+	background: transparent;
+	top: -1px;
+}
+
+QTabBar {
+	background: transparent;
+	qproperty-drawBase: 0;
+}
+
+QTabBar::tab {
+	background: #2b2b2b;
+	color: #9a9a93;
+	padding: 7px 14px;
+	border: 1px solid #333333;
+	border-bottom: none;
+	border-top-left-radius: 8px;
+	border-top-right-radius: 8px;
+	margin-right: 2px;
+	font-size: 13px;
+}
+
+QTabBar::tab:hover {
+	background: #333333;
+	color: #cfeefa;
+}
+
+QTabBar::tab:selected, QTabBar::tab:selected:active, QTabBar::tab:selected:!active {
+	background: #33414a;
+	color: #cfeefa;
+	border: 1px solid #51b4d2;
+	border-bottom: none;
+	font-weight: bold;
 }
 
 QTabBar::close-button {
-	background-color: rgb(240, 240, 240);
-}
-
-QTabBar::close-button:selected {
-    background-color: none;
+	subcontrol-position: right;
+	image: url(:/assets/tab_close.svg);
+	background: transparent;
+	border-radius: 4px;
+	margin: 2px;
+	padding: 1px;
 }
 
 QTabBar::close-button:hover {
-	background-color: none;
+	image: url(:/assets/tab_close_hover.svg);
+	background: #c0392b;
 }
-
-QTabBar::close-button:pressed {
-	background-color: none;
-}</string>
+</string>
           </property>
           <property name="currentIndex">
            <number>-1</number>
@@ -404,10 +503,10 @@ QTabBar::close-button:pressed {
         <item>
          <spacer name="horizontalSpacer_9">
           <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+           <enum>Qt::Orientation::Horizontal</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Preferred</enum>
+           <enum>QSizePolicy::Policy::Preferred</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -424,10 +523,10 @@ QTabBar::close-button:pressed {
         <item>
          <spacer name="verticalSpacer_2">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
+           <enum>QSizePolicy::Policy::Fixed</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -456,18 +555,18 @@ QTabBar::close-button:pressed {
             <property name="font">
              <font>
               <family>Montserrat</family>
-              <pointsize>15</pointsize>
-              <bold>true</bold>
+              <pointsize>-1</pointsize>
+              <fontweight>Medium</fontweight>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">QLabel {color: white; color: #51B4D2;} </string>
+             <string notr="true">QLabel { color: #51b4d2; font-size: 18px; font-weight: 500; } </string>
             </property>
             <property name="text">
              <string>Value keys</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignCenter</set>
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -476,10 +575,10 @@ QTabBar::close-button:pressed {
         <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Orientation::Vertical</enum>
           </property>
           <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
+           <enum>QSizePolicy::Policy::Fixed</enum>
           </property>
           <property name="sizeHint" stdset="0">
            <size>
@@ -500,10 +599,10 @@ QTabBar::close-button:pressed {
           <item>
            <spacer name="horizontalSpacer_5">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Preferred</enum>
+             <enum>QSizePolicy::Policy::Preferred</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -530,12 +629,10 @@ QTabBar::close-button:pressed {
                <bool>true</bool>
               </property>
               <property name="styleSheet">
-               <string notr="true">QScrollArea QWidget
-{   
-	background-color: rgb(48, 48, 48);
-    color:black;
+               <string notr="true">QScrollArea QWidget {
+	background-color: #242424;
+	color: #e6e6e6;
 }
-
 </string>
               </property>
               <property name="widgetResizable">
@@ -547,7 +644,7 @@ QTabBar::close-button:pressed {
                  <x>0</x>
                  <y>0</y>
                  <width>694</width>
-                 <height>395</height>
+                 <height>387</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_3">
@@ -561,7 +658,7 @@ QTabBar::close-button:pressed {
                 <item row="0" column="2">
                  <spacer name="horizontalSpacer_4">
                   <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
+                   <enum>Qt::Orientation::Horizontal</enum>
                   </property>
                   <property name="sizeHint" stdset="0">
                    <size>
@@ -574,7 +671,7 @@ QTabBar::close-button:pressed {
                 <item row="0" column="0">
                  <spacer name="horizontalSpacer_3">
                   <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
+                   <enum>Qt::Orientation::Horizontal</enum>
                   </property>
                   <property name="sizeHint" stdset="0">
                    <size>
@@ -593,10 +690,10 @@ QTabBar::close-button:pressed {
           <item>
            <spacer name="horizontalSpacer_6">
             <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+             <enum>Qt::Orientation::Horizontal</enum>
             </property>
             <property name="sizeType">
-             <enum>QSizePolicy::Preferred</enum>
+             <enum>QSizePolicy::Policy::Preferred</enum>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
@@ -620,7 +717,7 @@ QTabBar::close-button:pressed {
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
