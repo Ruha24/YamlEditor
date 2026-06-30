@@ -22,6 +22,7 @@
 #include <QWidget>
 #include <QtAlgorithms>
 #include <QFileDialog>
+#include <QListView>
 
 #include "api/yandex/yandexapi.h"
 #include "customWidget/customlineedit.h"
