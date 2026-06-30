@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+#include <QListView>
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -70,6 +72,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(file_watcher, &QFileSystemWatcher::directoryChanged, this, &MainWindow::OnFolderChanged);
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
+
+    ui->fileNamecmb->setView(new QListView(ui->fileNamecmb));
 }
 
 MainWindow::~MainWindow()

@@ -3,7 +3,7 @@
  <class>searchingWindow</class>
  <widget class="QWidget" name="searchingWindow">
   <property name="windowModality">
-   <enum>Qt::NonModal</enum>
+   <enum>Qt::WindowModality::NonModal</enum>
   </property>
   <property name="geometry">
    <rect>
@@ -27,6 +27,60 @@
   </property>
   <property name="windowTitle">
    <string>Searching</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget { background-color: #1f1f1f; }
+
+QLabel { color: #cfeefa; font-size: 12px; background: transparent; }
+
+QLineEdit {
+	background-color: #2b2b2b;
+	border: 1px solid #3d3d3d;
+	border-radius: 6px;
+	padding: 2px 8px;
+	color: #cfeefa;
+	font-size: 12px;
+	selection-background-color: #33414a;
+}
+QLineEdit:focus { border: 1px solid #51b4d2; }
+
+QPushButton {
+	background-color: #2b2b2b;
+	border: 1px solid #3d3d3d;
+	border-radius: 6px;
+	padding: 0px;
+	color: #cfeefa;
+	font-size: 12px;
+}
+QPushButton:hover { border: 1px solid #51b4d2; background-color: #33414a; }
+QPushButton:pressed { background-color: #3a4b55; }
+
+QPushButton#searchingBtn, QPushButton#searchbtn, QPushButton#replacebtn, QPushButton#addbtn {
+	background-color: #51b4d2;
+	border: 1px solid #51b4d2;
+	color: #16323c;
+	font-weight: bold;
+}
+QPushButton#searchingBtn:hover, QPushButton#searchbtn:hover, QPushButton#replacebtn:hover, QPushButton#addbtn:hover {
+	background-color: #61c2df;
+}
+
+QPushButton#deletebtn { border: 1px solid #6e3030; color: #e6a3a3; }
+QPushButton#deletebtn:hover { background-color: #4a1f1f; border: 1px solid #c0392b; color: #ffffff; }
+
+QCheckBox { color: #cfeefa; font-size: 12px; spacing: 6px; background: transparent; }
+QCheckBox::indicator {
+	width: 14px; height: 14px;
+	border-radius: 4px;
+	background-color: #2b2b2b;
+	border: 1px solid #5a5a5a;
+}
+QCheckBox::indicator:checked {
+	background-color: #51b4d2;
+	border: 1px solid #51b4d2;
+}
+QCheckBox::indicator:hover { border: 1px solid #51b4d2; }
+</string>
   </property>
   <widget class="QLineEdit" name="lineEdit">
    <property name="geometry">
@@ -76,7 +130,7 @@
    <property name="font">
     <font>
      <family>Montserrat</family>
-     <pointsize>10</pointsize>
+     <pointsize>-1</pointsize>
     </font>
    </property>
    <property name="text">
@@ -95,7 +149,7 @@
    <property name="font">
     <font>
      <family>Montserrat</family>
-     <pointsize>10</pointsize>
+     <pointsize>-1</pointsize>
     </font>
    </property>
    <property name="text">
@@ -117,7 +171,7 @@
    <property name="font">
     <font>
      <family>Montserrat</family>
-     <pointsize>10</pointsize>
+     <pointsize>-1</pointsize>
     </font>
    </property>
    <property name="text">
@@ -139,7 +193,7 @@
    <property name="font">
     <font>
      <family>Montserrat</family>
-     <pointsize>10</pointsize>
+     <pointsize>-1</pointsize>
     </font>
    </property>
    <property name="text">

@@ -171,16 +171,63 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 
 QComboBox:hover { border: 1px solid #51b4d2; }
 
-QComboBox::drop-down { border: none; width: 22px; }
+QComboBox::drop-down {
+	border: none;
+	width: 22px;
+	background: transparent;
+}
 
 QComboBox QAbstractItemView {
 	background-color: #2b2b2b;
 	color: #e6e6e6;
-	border: 1px solid #3d3d3d;
+	border: 1px solid #51b4d2;
+	border-radius: 6px;
+	outline: 0;
+	padding: 4px;
 	selection-background-color: #33414a;
 	selection-color: #cfeefa;
-	outline: 0;
-}</string>
+}
+
+QComboBox QAbstractItemView::item {
+	min-height: 26px;
+	padding: 4px 10px;
+	border-radius: 4px;
+	color: #cfeefa;
+}
+
+QComboBox QAbstractItemView::item:hover {
+	background-color: #33414a;
+}
+
+QComboBox QAbstractItemView::item:selected {
+	background-color: #3a4b55;
+	color: #ffffff;
+}
+
+QComboBox QAbstractItemView QScrollBar:vertical {
+	background: #2b2b2b;
+	width: 10px;
+	margin: 0;
+}
+
+QComboBox QAbstractItemView QScrollBar::handle:vertical {
+	background: #45596a;
+	border-radius: 5px;
+	min-height: 24px;
+}
+
+QComboBox QAbstractItemView QScrollBar::handle:vertical:hover {
+	background: #51b4d2;
+}
+
+QComboBox QAbstractItemView QScrollBar::add-line,
+QComboBox QAbstractItemView QScrollBar::sub-line {
+	height: 0;
+}
+</string>
+        </property>
+        <property name="maxVisibleItems">
+         <number>4</number>
         </property>
        </widget>
       </item>
@@ -436,55 +483,25 @@ background: #51b4d2;
           </property>
           <property name="styleSheet">
            <string notr="true">QTabWidget::pane {
-	border: none;
-	background: transparent;
-	top: -1px;
-}
-
-QTabBar {
-	background: transparent;
-	qproperty-drawBase: 0;
-}
-
-QTabBar::tab {
-	background: #2b2b2b;
-	color: #9a9a93;
-	padding: 7px 14px;
-	border: 1px solid #333333;
-	border-bottom: none;
-	border-top-left-radius: 8px;
-	border-top-right-radius: 8px;
-	margin-right: 2px;
-	font-size: 13px;
-}
-
-QTabBar::tab:hover {
-	background: #333333;
-	color: #cfeefa;
-}
-
-QTabBar::tab:selected, QTabBar::tab:selected:active, QTabBar::tab:selected:!active {
-	background: #33414a;
-	color: #cfeefa;
-	border: 1px solid #51b4d2;
-	border-bottom: none;
-	font-weight: bold;
+	border: 1px solid black;
+    background: rgb(48, 48, 48);
 }
 
 QTabBar::close-button {
-	subcontrol-position: right;
-	image: url(:/assets/tab_close.svg);
-	background: transparent;
-	border-radius: 4px;
-	margin: 2px;
-	padding: 1px;
+	background-color: rgb(240, 240, 240);
+}
+
+QTabBar::close-button:selected {
+    background-color: none;
 }
 
 QTabBar::close-button:hover {
-	image: url(:/assets/tab_close_hover.svg);
-	background: #c0392b;
+	background-color: none;
 }
-</string>
+
+QTabBar::close-button:pressed {
+	background-color: none;
+}</string>
           </property>
           <property name="currentIndex">
            <number>-1</number>
