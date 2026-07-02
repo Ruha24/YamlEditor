@@ -72,8 +72,9 @@ void FileSystem::GetFilesDirectory(const QString &path_dir)
     files.clear();
 
     QDir dir(path_dir);
-    const QFileInfoList dirContent =
-        dir.entryInfoList(QStringList() << "*.yml" << "*.yaml", QDir::Files);
+    const QFileInfoList dirContent = dir.entryInfoList(QStringList() << "*.yml"
+                                                                     << "*.yaml",
+                                                       QDir::Files);
 
     for (const QFileInfo &file : dirContent)
         files.insert(file.fileName(), file.filePath());

@@ -15,9 +15,7 @@ SearchingWindow::~SearchingWindow()
 
 void SearchingWindow::on_searchingBtn_clicked()
 {
-    emit searchingText(ui->lineEdit->text(),
-                       ui->casechb->isChecked(),
-                       is_downward,
+    emit searchingText(ui->lineEdit->text(), ui->casechb->isChecked(), is_downward,
                        ui->casechb_2->isChecked());
 }
 

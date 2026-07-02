@@ -26,7 +26,9 @@ class QDragEnterEvent;
 class QDropEvent;
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -53,9 +55,7 @@ private slots:
 
     void SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex);
     void SearchReplaceText(const QString &text, bool isSensitive, bool useRegex);
-    void ReplaceText(const QString &findText,
-                     const QString &replaceText,
-                     bool allText,
+    void ReplaceText(const QString &findText, const QString &replaceText, bool allText,
                      bool useRegex);
 
     void on_OpenFolderYmlFilebtn_clicked();
@@ -75,13 +75,9 @@ private:
     void Displaykeys(const YamlNode &root);
     void SaveData(const QString &fileName);
     void DisplayYamlData();
-    void DisplayTreeNode(const YamlNode &node,
-                         const QString &parentPath,
-                         const QString &searchText,
-                         QTreeWidgetItem *parentItem,
-                         QTreeWidget *treeWidget,
-                         const QRegularExpression &regex,
-                         bool useRegex);
+    void DisplayTreeNode(const YamlNode &node, const QString &parentPath, const QString &searchText,
+                         QTreeWidgetItem *parentItem, QTreeWidget *treeWidget,
+                         const QRegularExpression &regex, bool useRegex);
 
     void CollectKeys(const YamlNode &node, QSet<QString> &keys) const;
     void ReadFile();
@@ -130,9 +126,7 @@ private:
     QRegularExpression searching_regex;
 
     ReplaceWindow *replace_wnd = nullptr;
-    void ReplaceInWidget(QWidget *widget,
-                         const QString &findText,
-                         const QString &replaceText,
+    void ReplaceInWidget(QWidget *widget, const QString &findText, const QString &replaceText,
                          bool useRegex);
 
     SearchingWindow *search_wnd = nullptr;

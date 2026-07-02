@@ -136,8 +136,8 @@ void TestYamlReader::roundTrip_flatMap_preservesValues()
 
 void TestYamlReader::roundTrip_nestedMap_preservesStructure()
 {
-    const QString src = writeTemp("rt_nested_in.yaml",
-                                  "server:\n  host: example.com\n  port: 443\n");
+    const QString src =
+        writeTemp("rt_nested_in.yaml", "server:\n  host: example.com\n  port: 443\n");
     QVERIFY(!src.isEmpty());
 
     YamlReader writer;

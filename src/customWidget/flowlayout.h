@@ -1,7 +1,6 @@
 #ifndef FLOWLAYOUT_H
 #define FLOWLAYOUT_H
 
-
 #include <QLayout>
 #include <QList>
 #include <QStyle>

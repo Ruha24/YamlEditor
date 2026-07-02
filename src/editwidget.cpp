@@ -24,8 +24,7 @@ void EditWidget::on_addbtn_clicked()
     if (line_edit->text().isEmpty())
         return;
 
-    const QString new_value =
-        QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
+    const QString new_value = QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
 
     if (!new_value.isEmpty())
         emit AddKeyValue(new_value);

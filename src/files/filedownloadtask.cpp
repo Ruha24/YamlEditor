@@ -9,15 +9,14 @@
 #include <memory>
 #include <QTimer>
 
-FileDownloadTask::FileDownloadTask(const QString &url,
-                                   const QString &file_path,
-                                   const QString &accessToken,
-                                   QObject *parent)
+FileDownloadTask::FileDownloadTask(const QString &url, const QString &file_path,
+                                   const QString &accessToken, QObject *parent)
     : QObject(parent)
     , url(url)
     , file_path(file_path)
     , access_token(accessToken)
-{}
+{
+}
 
 void FileDownloadTask::run()
 {

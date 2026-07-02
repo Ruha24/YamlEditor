@@ -6,7 +6,8 @@
 
 YamlReader::YamlReader(QObject *parent)
     : QObject(parent)
-{}
+{
+}
 
 void YamlReader::CollectKeys(const YAML::Node &node, YamlNode &yamlNode, int depth)
 {
@@ -91,9 +92,9 @@ void YamlReader::BuildNode(YAML::Emitter &out, const YamlNode &node)
                 out << YAML::EndSeq;
             }
         } else if (!child.value.isEmpty()) {
-            if (child.value.contains(':') || child.value.contains('{')
-                || child.value.contains('}') || child.value.contains('[')
-                || child.value.contains(']')) {
+            if (child.value.contains(':') || child.value.contains('{') ||
+                child.value.contains('}') || child.value.contains('[') ||
+                child.value.contains(']')) {
                 out << YAML::DoubleQuoted << child.value.toStdString();
             } else {
                 out << child.value.toStdString();

@@ -6,7 +6,8 @@
 YamlNode::YamlNode(const QString &key, const QString &value)
     : value(value)
     , key(key)
-{}
+{
+}
 
 const YamlNode *YamlNode::FindNodeByKey(const QString &searchKey) const
 {

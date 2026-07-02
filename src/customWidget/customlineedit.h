@@ -13,8 +13,7 @@ class CustomLineEdit : public QLineEdit
     Q_OBJECT
 
 public:
-    explicit CustomLineEdit(QWidget *parent = nullptr,
-                            const QString &path = QString(),
+    explicit CustomLineEdit(QWidget *parent = nullptr, const QString &path = QString(),
                             bool isKey = false);
 
     QString GetCurrentPath() const;

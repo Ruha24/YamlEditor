@@ -1,0 +1,40 @@
+# Based on the Qt coding style, matching the existing formatting
+# (4-space indent, 100-column limit, leading-comma initializer lists).
+---
+Language: Cpp
+BasedOnStyle: LLVM
+Standard: c++17
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+
+AccessModifierOffset: -4
+NamespaceIndentation: None
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: true
+  AfterControlStatement: Never
+  AfterEnum: false
+  BeforeElse: false
+  BeforeCatch: false
+
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+PackConstructorInitializers: Never
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+
+AlignAfterOpenBracket: Align
+AlignTrailingComments: true
+PointerAlignment: Right
+SpaceAfterCStyleCast: false
+SortIncludes: false

@@ -18,9 +18,7 @@ public:
 signals:
     void searchReplaceText(const QString &text, bool isSensitive, bool useRegex);
 
-    void replaceText(const QString &findText,
-                     const QString &replaceText,
-                     bool allText,
+    void replaceText(const QString &findText, const QString &replaceText, bool allText,
                      bool useRegex);
 
 private slots:

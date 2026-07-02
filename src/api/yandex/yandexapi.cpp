@@ -155,9 +155,9 @@ void YandexApi::GetFiles()
             const QString file_path = folder_path + file_name;
 
             auto *task = new FileDownloadTask(download_url, file_path, access_token);
-            connect(task, &FileDownloadTask::FileDownloaded, this,
-                    [this](const QString &fileName) { emit NewFile(fileName); },
-                    Qt::QueuedConnection);
+            connect(
+                task, &FileDownloadTask::FileDownloaded, this,
+                [this](const QString &fileName) { emit NewFile(fileName); }, Qt::QueuedConnection);
             thread_pool->start(task);
         }
     });

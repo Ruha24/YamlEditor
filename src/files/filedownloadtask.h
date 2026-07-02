@@ -12,9 +12,7 @@ class FileDownloadTask : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    FileDownloadTask(const QString &url,
-                     const QString &file_path,
-                     const QString &accessToken,
+    FileDownloadTask(const QString &url, const QString &file_path, const QString &accessToken,
                      QObject *parent = nullptr);
 
     void run() override;

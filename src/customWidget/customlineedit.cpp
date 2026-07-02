@@ -8,7 +8,8 @@ CustomLineEdit::CustomLineEdit(QWidget *parent, const QString &path, bool isKey)
     : QLineEdit(parent)
     , current_path(path)
     , is_key(isKey)
-{}
+{
+}
 
 void CustomLineEdit::contextMenuEvent(QContextMenuEvent *event)
 {
