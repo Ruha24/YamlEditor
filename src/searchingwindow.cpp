@@ -1,12 +1,11 @@
 #include "searchingwindow.h"
 #include "ui_searchingwindow.h"
 
-SearchingWindow::SearchingWindow(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::searchingWindow)
+SearchingWindow::SearchingWindow(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::searchingWindow)
 {
     ui->setupUi(this);
-    is_downward = false;
 }
 
 SearchingWindow::~SearchingWindow()
@@ -17,9 +16,9 @@ SearchingWindow::~SearchingWindow()
 void SearchingWindow::on_searchingBtn_clicked()
 {
     emit searchingText(ui->lineEdit->text(),
-                       ui->casechb->checkState(),
+                       ui->casechb->isChecked(),
                        is_downward,
-                       ui->casechb_2->checkState());
+                       ui->casechb_2->isChecked());
 }
 
 void SearchingWindow::on_cancelBtn_clicked()

@@ -13,7 +13,7 @@ class ReplaceWindow : public QWidget
 
 public:
     explicit ReplaceWindow(QWidget *parent = nullptr);
-    ~ReplaceWindow();
+    ~ReplaceWindow() override;
 
 signals:
     void searchReplaceText(const QString &text, bool isSensitive, bool useRegex);

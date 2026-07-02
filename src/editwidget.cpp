@@ -1,4 +1,7 @@
 #include "editwidget.h"
+
+#include <QInputDialog>
+
 #include "customWidget/customlineedit.h"
 #include "ui_editwidget.h"
 
@@ -18,34 +21,23 @@ EditWidget::~EditWidget()
 
 void EditWidget::on_addbtn_clicked()
 {
-    QString current_text = line_edit->text();
-    QString path = line_edit->GetCurrentPath();
-    if (current_text.isEmpty()) {
+    if (line_edit->text().isEmpty())
         return;
-    }
 
-    QString new_value = QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
+    const QString new_value =
+        QInputDialog::getText(this, tr("Add Value"), tr("Enter the value:"));
 
-    if (!new_value.isEmpty()) {
-        emit AddKeyValue(path, new_value);
-    }
+    if (!new_value.isEmpty())
+        emit AddKeyValue(new_value);
 
-    this->close();
+    close();
 }
 
 void EditWidget::on_deletebtn_clicked()
 {
-    QString current_text = line_edit->text();
-
-    line_edit->SetKey(current_text);
-
-    QString path = line_edit->GetCurrentPath();
-
-    if (current_text.isEmpty()) {
+    if (line_edit->text().isEmpty())
         return;
-    }
 
-    emit DeleteElement(path);
-
-    this->close();
+    emit DeleteElement();
+    close();
 }

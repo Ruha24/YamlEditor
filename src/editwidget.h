@@ -1,8 +1,6 @@
 #ifndef EDITWIDGET_H
 #define EDITWIDGET_H
 
-#include <QInputDialog>
-#include <QLineEdit>
 #include <QWidget>
 
 namespace Ui {
@@ -17,11 +15,11 @@ class EditWidget : public QWidget
 
 public:
     explicit EditWidget(CustomLineEdit *lineEdit, QWidget *parent = nullptr);
-    ~EditWidget();
+    ~EditWidget() override;
 
 signals:
-    void AddKeyValue(QString key, QString value);
-    void DeleteElement(QString element);
+    void AddKeyValue(const QString &value);
+    void DeleteElement();
 
 private slots:
     void on_addbtn_clicked();

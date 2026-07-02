@@ -2,36 +2,28 @@
 #define MAINWINDOW_H
 
 #include <QCheckBox>
-#include <QDesktopServices>
-#include <QDragEnterEvent>
 #include <QFileSystemWatcher>
-#include <QGridLayout>
-#include <QHBoxLayout>
-#include <QLabel>
-#include <QLineEdit>
+#include <QHash>
 #include <QMainWindow>
-#include <QMimeData>
 #include <QRegularExpression>
-#include <QScrollBar>
-#include <QSettings>
+#include <memory>
+#include <QSet>
 #include <QShortcut>
-#include <QSpacerItem>
+#include <QStringList>
+#include <QTranslator>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
-#include <QTreeWidgetItemIterator>
-#include <QWidget>
-#include <QtAlgorithms>
-#include <QFileDialog>
-#include <QListView>
-#include <QTranslator>
 
-#include "api/yandex/yandexapi.h"
-#include "customWidget/customlineedit.h"
-#include "customWidget/flowlayout.h"
-#include "files/filesystem.h"
-#include "files/yaml/yamlreader.h"
-#include "replacewindow.h"
-#include "searchingwindow.h"
+#include "files/yaml/yamlnode.h"
+
+class YamlReader;
+class YandexApi;
+class FileSystem;
+class FlowLayout;
+class ReplaceWindow;
+class SearchingWindow;
+class QDragEnterEvent;
+class QDropEvent;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -42,102 +34,45 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
 protected:
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dropEvent(QDropEvent *event);
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
 
 private slots:
-    void HandleAddKeyValue(QString path, QString newValue, bool isKey);
-    void HandleDeleteElement(QString path, bool isKey);
+    void HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey);
+    void HandleDeleteElement(const QString &path, bool isKey);
     void CloseTab(int index);
 
     void on_fileNamecmb_currentIndexChanged(int index);
-
     void on_pushButton_clicked();
-
     void on_pushButton_2_clicked();
-
     void onCheckBoxStateChanged(int state);
 
-    void SearchingText(const QString &text, bool isSensitive, bool is_downward, bool useRegex);
-
+    void SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex);
     void SearchReplaceText(const QString &text, bool isSensitive, bool useRegex);
-
     void ReplaceText(const QString &findText,
                      const QString &replaceText,
                      bool allText,
                      bool useRegex);
 
     void on_OpenFolderYmlFilebtn_clicked();
-
     void on_tabWidget_currentChanged(int index);
-
     void on_OpenFilebtn_clicked();
 
 private:
-    Ui::MainWindow *ui;
+    void ConnectShortCut();
+    void InitLanguageCmb();
+    void InitKeysLayout();
+    void ConnectServices();
 
-    QTranslator translator_;
     void switchLanguage(const QString &locale);
-
-    QShortcut *key_F11;
-    QShortcut *key_ctrl_f;
-    QShortcut *key_ctrl_s;
-    QShortcut *key_ctrl_r;
-
-    FlowLayout *flow_keys_layout;
-
-    QRegularExpression searching_regex;
-
-    ReplaceWindow *replace_wnd;
-    void ReplaceInWidget(QWidget *widget,
-                         const QString &findText,
-                         const QString &replaceText,
-                         bool useRegex);
-
-    SearchingWindow *search_wnd;
-    QString searching_text;
-
-    YamlReader *yaml_reader;
-    YandexApi *yandex_api;
-
-    QTreeWidget *tree_widget;
-    int FindTabByName(const QString &fileName);
-    QMap<QString, YamlNode> nodes;
-    QMap<QString, QMap<QString, bool>> check_box_states_nodes;
-
-    QWidget *previous_widget;
-    QString previous_widget_original_style_sheet;
-    QString previous_text_cmb;
-
-    YamlNode root;
-    QMap<QString, bool> check_box_states;
-    QSet<QString> keys;
-    QList<QWidget *> found_widgets;
-    int current_found_index;
-    int starting_index;
-    bool is_update_file;
-    Qt::CaseSensitivity cs;
-
-    FileSystem *file_local_system;
-    QList<QString> local_files;
-
-    QFileSystemWatcher *file_watcher;
-    void OnFolderChanged(const QString &path);
-
-    void OpenFileByPath(const QString &local_path);
-
-    QSet<QString> expanded_paths;
-    void SaveExpandedState();
-    void RestoreExpandedState();
-
 
     void RefreshCurrentTree();
     void UpdateValue(const QString &path, const QString &newValue, bool isKey);
-    void Displaykeys(YamlNode root);
+    void Displaykeys(const YamlNode &root);
     void SaveData(const QString &fileName);
     void DisplayYamlData();
     void DisplayTreeNode(const YamlNode &node,
@@ -145,9 +80,10 @@ private:
                          const QString &searchText,
                          QTreeWidgetItem *parentItem,
                          QTreeWidget *treeWidget,
+                         const QRegularExpression &regex,
                          bool useRegex);
 
-    void CollectKeys(const YamlNode &node, QSet<QString> &keys);
+    void CollectKeys(const YamlNode &node, QSet<QString> &keys) const;
     void ReadFile();
 
     void SlotShortcutCtrlF();
@@ -158,7 +94,7 @@ private:
     void HighlightCurrentFound();
     void ScrollIntoView(QWidget *widget);
 
-    void CreateCheckBox(const QString &name, int row, int col);
+    void CreateCheckBox(const QString &name);
 
     void ClearKeysArea();
     void ClearTreeWidget();
@@ -168,5 +104,64 @@ private:
 
     void UploadFileOnCmb(const QString &file);
     bool CheckOpenTab(const QString &file);
+
+    int FindTabByName(const QString &fileName) const;
+
+    void OnFolderChanged(const QString &path);
+    void OpenFileByPath(const QString &local_path);
+
+    void SaveExpandedState();
+    void RestoreExpandedState();
+
+    void RunSearch(const QString &text, bool useRegex, bool resetSelection);
+    bool BuildRegex(const QString &text, bool isSensitive, QRegularExpression &out) const;
+
+    Ui::MainWindow *ui;
+
+    QTranslator translator_;
+
+    QShortcut *key_F11 = nullptr;
+    QShortcut *key_ctrl_f = nullptr;
+    QShortcut *key_ctrl_s = nullptr;
+    QShortcut *key_ctrl_r = nullptr;
+
+    FlowLayout *flow_keys_layout = nullptr;
+
+    QRegularExpression searching_regex;
+
+    ReplaceWindow *replace_wnd = nullptr;
+    void ReplaceInWidget(QWidget *widget,
+                         const QString &findText,
+                         const QString &replaceText,
+                         bool useRegex);
+
+    SearchingWindow *search_wnd = nullptr;
+    QString searching_text;
+
+    std::unique_ptr<YamlReader> yaml_reader;
+    std::unique_ptr<YandexApi> yandex_api;
+    std::unique_ptr<FileSystem> file_local_system;
+
+    QTreeWidget *tree_widget = nullptr;
+    QHash<QString, YamlNode> nodes;
+    QHash<QString, QHash<QString, bool>> check_box_states_nodes;
+
+    QWidget *previous_widget = nullptr;
+    QString previous_widget_original_style_sheet;
+    QString previous_text_cmb;
+
+    YamlNode root;
+    QHash<QString, bool> check_box_states;
+    QSet<QString> keys;
+    QList<QWidget *> found_widgets;
+    int current_found_index = -1;
+    int starting_index = -1;
+    bool is_update_file = false;
+    Qt::CaseSensitivity cs = Qt::CaseInsensitive;
+
+    std::unique_ptr<QFileSystemWatcher> file_watcher;
+
+    QSet<QString> expanded_paths;
 };
+
 #endif // MAINWINDOW_H

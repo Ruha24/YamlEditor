@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>859</width>
+    <width>890</width>
     <height>802</height>
    </rect>
   </property>
@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Editor 1.3.0</string>
+   <string>Editor 1.3.1</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow {
@@ -704,7 +704,7 @@ QTabBar::close-button:pressed {
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>753</width>
+                 <width>784</width>
                  <height>387</height>
                 </rect>
                </property>
@@ -777,7 +777,7 @@ QTabBar::close-button:pressed {
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>859</width>
+     <width>890</width>
      <height>22</height>
     </rect>
    </property>

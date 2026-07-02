@@ -1,14 +1,11 @@
 #ifndef FILEDOWNLOADTASK_H
 #define FILEDOWNLOADTASK_H
 
-#include <QFile>
-#include <QFileInfo>
-#include <QList>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QObject>
 #include <QRunnable>
+#include <QString>
+
+#include <chrono>
 
 class FileDownloadTask : public QObject, public QRunnable
 {
@@ -24,11 +21,14 @@ public:
 
 signals:
     void FileDownloaded(const QString &fileName);
+    void ErrorOccurred(const QString &message);
 
 private:
     QString url;
     QString file_path;
     QString access_token;
+
+    static constexpr std::chrono::milliseconds kTransferTimeout{30000};
 };
 
 #endif // FILEDOWNLOADTASK_H

@@ -3,10 +3,12 @@
 
 
 #include <QLayout>
-#include <QRect>
+#include <QList>
 #include <QStyle>
-#include <QWidgetItem>
 
+class QLayoutItem;
+class QRect;
+class QSize;
 
 class FlowLayout : public QLayout
 {

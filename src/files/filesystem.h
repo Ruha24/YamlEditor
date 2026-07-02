@@ -2,32 +2,30 @@
 #define FILESYSTEM_H
 
 #include <QCryptographicHash>
-#include <QDir>
-#include <QFile>
-#include <QMap>
-#include <QMessageBox>
+#include <QHash>
 #include <QString>
 
 class FileSystem
 {
 public:
-    FileSystem(const QString &path);
+    explicit FileSystem(const QString &path);
 
-    bool CheckFolder(const QString &path);
-    bool InstanceFolder(const QString &path);
+    bool CheckFolder(const QString &path) const;
+    bool InstanceFolder(const QString &path) const;
 
     QString CalculateFileCheckSum(
         const QString &file_path,
-        QCryptographicHash::Algorithm algorithm = QCryptographicHash::Sha256);
+        QCryptographicHash::Algorithm algorithm = QCryptographicHash::Sha256) const;
 
-    QMap<QString, QString> GetFiles();
-    QString GetFilePath(QString fileName);
-    void AddFile(QString path);
+    const QHash<QString, QString> &GetFiles() const;
+    QString GetFilePath(const QString &fileName) const;
+    bool Contains(const QString &fileName) const;
+    void AddFile(const QString &path);
 
 private:
     void GetFilesDirectory(const QString &path_dir);
 
-    QMap<QString, QString> files;
+    QHash<QString, QString> files;
 };
 
 #endif // FILESYSTEM_H

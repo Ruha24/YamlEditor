@@ -13,7 +13,7 @@ class SearchingWindow : public QWidget
 
 public:
     explicit SearchingWindow(QWidget *parent = nullptr);
-    ~SearchingWindow();
+    ~SearchingWindow() override;
 
 signals:
     void searchingText(const QString &text, bool isSensitive, bool is_downward, bool useRegex);
@@ -30,7 +30,7 @@ private slots:
 private:
     Ui::searchingWindow *ui;
 
-    bool is_downward;
+    bool is_downward = false;
 };
 
 #endif // SEARCHINGWINDOW_H

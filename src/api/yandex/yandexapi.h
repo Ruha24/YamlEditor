@@ -1,47 +1,47 @@
 #ifndef YANDEXAPI_H
 #define YANDEXAPI_H
 
-#include <QDebug>
 #include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QHttpMultiPart>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QMessageBox>
 #include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QObject>
-#include <QThreadPool>
-#include <QUrlQuery>
-#include <QtAlgorithms>
-#include <QSettings>
+#include <QString>
+#include <QStringList>
 
-#include "../../files/filedownloadtask.h"
+#include <chrono>
+#include <functional>
+
+#include <memory>
+
+class QNetworkReply;
 
 class YandexApi : public QObject
 {
     Q_OBJECT
 
 public:
-    YandexApi();
+    explicit YandexApi(QObject *parent = nullptr);
 
     void UploadFile(const QString &filePath, std::function<void(bool)> callback);
-
     void GetFiles();
-
-    QList<QString> GetListFileName() const;
 
 signals:
     void NewFile(const QString &fileName);
+    void ErrorOccurred(const QString &message);
 
 private:
-    QString access_token;
-    QString current_file_path;
+    QNetworkReply *sendAuthorizedGet(const QUrl &url);
 
+    // Single manager owned by this object; replies are parented to it
+    // and cleaned up via deleteLater in their finished handlers.
+    std::unique_ptr<QNetworkAccessManager> network_manager;
+
+    QString access_token;
     QString folder_path = QDir::currentPath() + "/ymlFiles/";
+
+    static constexpr std::chrono::milliseconds kTransferTimeout{30000};
 };
 
 #endif // YANDEXAPI_H

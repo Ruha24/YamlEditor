@@ -1,9 +1,9 @@
 #include "replacewindow.h"
 #include "ui_replacewindow.h"
 
-ReplaceWindow::ReplaceWindow(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::ReplaceWindow)
+ReplaceWindow::ReplaceWindow(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::ReplaceWindow)
 {
     ui->setupUi(this);
 }
@@ -15,26 +15,29 @@ ReplaceWindow::~ReplaceWindow()
 
 void ReplaceWindow::on_searchbtn_clicked()
 {
-    QString text = ui->findtxt->text();
+    const QString text = ui->findtxt->text();
+    if (text.isEmpty())
+        return;
 
-    if (text != "")
-        emit searchReplaceText(text, ui->casechb->checkState(), ui->casechb_2->checkState());
+    emit searchReplaceText(text, ui->casechb->isChecked(), ui->casechb_2->isChecked());
 }
 
 void ReplaceWindow::on_replacebtn_clicked()
 {
-    QString text = ui->findtxt->text();
+    const QString text = ui->findtxt->text();
+    if (text.isEmpty())
+        return;
 
-    if (text != "")
-        emit replaceText(text, ui->replacetxt->text(), false, ui->casechb_2->checkState());
+    emit replaceText(text, ui->replacetxt->text(), false, ui->casechb_2->isChecked());
 }
 
 void ReplaceWindow::on_replaceAllbtn_clicked()
 {
-    QString text = ui->findtxt->text();
+    const QString text = ui->findtxt->text();
+    if (text.isEmpty())
+        return;
 
-    if (text != "")
-        emit replaceText(text, ui->replacetxt->text(), true, ui->casechb_2->checkState());
+    emit replaceText(text, ui->replacetxt->text(), true, ui->casechb_2->isChecked());
 }
 
 void ReplaceWindow::on_cancelbtn_clicked()

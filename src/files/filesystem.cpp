@@ -1,62 +1,70 @@
 #include "filesystem.h"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QMessageBox>
+
 FileSystem::FileSystem(const QString &path)
 {
     if (!CheckFolder(path)) {
         if (!InstanceFolder(path)) {
-            QMessageBox::information(nullptr, "Error", "Dir not exists");
+            QMessageBox::information(nullptr, QObject::tr("Error"),
+                                     QObject::tr("Directory does not exist"));
             return;
         }
     }
-
     GetFilesDirectory(path);
 }
 
-bool FileSystem::CheckFolder(const QString &path)
+bool FileSystem::CheckFolder(const QString &path) const
 {
     return QFile::exists(path);
 }
 
-bool FileSystem::InstanceFolder(const QString &path)
+bool FileSystem::InstanceFolder(const QString &path) const
 {
     QDir dir;
     return dir.mkdir(path);
 }
 
 QString FileSystem::CalculateFileCheckSum(const QString &file_path,
-                                          QCryptographicHash::Algorithm algorithm)
+                                          QCryptographicHash::Algorithm algorithm) const
 {
     QFile file(file_path);
-
     if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Не удалось открыть файл:" << file_path;
+        qWarning() << "Cannot open file:" << file_path;
         return QString();
     }
 
     QCryptographicHash hash(algorithm);
-
     if (hash.addData(&file))
-        return hash.result().toHex();
+        return QString::fromLatin1(hash.result().toHex());
 
     return QString();
 }
 
-QMap<QString, QString> FileSystem::GetFiles()
+const QHash<QString, QString> &FileSystem::GetFiles() const
 {
     return files;
 }
 
-QString FileSystem::GetFilePath(QString fileName)
+QString FileSystem::GetFilePath(const QString &fileName) const
 {
-    return files.value(fileName, "");
+    return files.value(fileName, QString());
 }
 
-void FileSystem::AddFile(QString path)
+bool FileSystem::Contains(const QString &fileName) const
 {
-    QFileInfo file_info(path);
-    QString file_name = file_info.fileName();
-    if (file_info.suffix() == "yml" || file_info.suffix() == "yaml")
-        files[file_name] = path;
+    return files.contains(fileName);
+}
+
+void FileSystem::AddFile(const QString &path)
+{
+    const QFileInfo file_info(path);
+    const QString suffix = file_info.suffix();
+    if (suffix == "yml" || suffix == "yaml")
+        files.insert(file_info.fileName(), path);
 }
 
 void FileSystem::GetFilesDirectory(const QString &path_dir)
@@ -64,11 +72,9 @@ void FileSystem::GetFilesDirectory(const QString &path_dir)
     files.clear();
 
     QDir dir(path_dir);
-    QFileInfoList dirContent = dir.entryInfoList(QStringList() << "*.yml"
-                                                               << "*.yaml",
-                                                 QDir::Files);
+    const QFileInfoList dirContent =
+        dir.entryInfoList(QStringList() << "*.yml" << "*.yaml", QDir::Files);
 
-    for (const auto &file : dirContent) {
+    for (const QFileInfo &file : dirContent)
         files.insert(file.fileName(), file.filePath());
-    }
 }

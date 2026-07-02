@@ -1,5 +1,13 @@
-#include "FileDownloadTask.h"
+#include "filedownloadtask.h"
+
 #include <QEventLoop>
+#include <QFile>
+#include <QFileInfo>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <memory>
+#include <QTimer>
 
 FileDownloadTask::FileDownloadTask(const QString &url,
                                    const QString &file_path,
@@ -13,34 +21,35 @@ FileDownloadTask::FileDownloadTask(const QString &url,
 
 void FileDownloadTask::run()
 {
-    QNetworkAccessManager *manager = new QNetworkAccessManager();
+    QNetworkAccessManager manager;
+
     QNetworkRequest request;
     request.setUrl(QUrl(url));
-    request.setRawHeader("Authorization", QString("OAuth %1").arg(access_token).toUtf8());
+    request.setRawHeader("Authorization", QByteArray("OAuth ") + access_token.toUtf8());
+    request.setTransferTimeout(kTransferTimeout);
 
-    QNetworkReply *reply = manager->get(request);
+    std::unique_ptr<QNetworkReply> reply(manager.get(request));
 
     QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QObject::connect(reply.get(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "Error downloading file:" << reply->errorString();
+        emit ErrorOccurred(tr("Error downloading file: %1").arg(reply->errorString()));
         return;
     }
 
     QFile file(file_path);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reply->readAll());
-        file.close();
-    } else {
-        qDebug() << "Error opening file for writing:" << file_path;
+    if (!file.open(QIODevice::WriteOnly)) {
+        emit ErrorOccurred(tr("Cannot open file for writing: %1").arg(file_path));
         return;
     }
 
-    QFileInfo file_info(file_path);
+    if (file.write(reply->readAll()) < 0) {
+        emit ErrorOccurred(tr("Failed writing file: %1").arg(file_path));
+        return;
+    }
+    file.close();
 
-    emit FileDownloaded(file_info.fileName());
-
-    reply->deleteLater();
+    emit FileDownloaded(QFileInfo(file_path).fileName());
 }
