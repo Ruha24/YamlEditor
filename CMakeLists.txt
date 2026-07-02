@@ -108,3 +108,11 @@ install(TARGETS editor
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(editor)
 endif()
+
+# --- Unit tests -------------------------------------------------------------
+# Build with:  cmake -DBUILD_TESTING=ON ..  &&  ctest --output-on-failure
+option(BUILD_TESTING "Build unit tests" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
