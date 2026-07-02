@@ -30,8 +30,7 @@ jobs:
           cache: true
 
       - name: Configure
-        shell: cmd
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_POLICY_VERSION_MINIMUM="3.5"
 
       - name: Build
         run: cmake --build build --config Release --parallel
@@ -83,8 +82,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang-tidy-18
 
       - name: Configure (export compile commands)
-        shell: cmd
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_POLICY_VERSION_MINIMUM="3.5"
 
       - name: Build (generate moc/ui headers)
         run: cmake --build build --parallel
