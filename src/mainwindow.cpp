@@ -69,16 +69,18 @@ void MainWindow::ConnectServices()
         if (success)
             QMessageBox::information(this, tr("Saving"), tr("Your file is saved"));
     });
-    connect(yaml_reader.get(), &YamlReader::ErrorOccurred, this,
-            [this](const QString &msg) { QMessageBox::warning(this, tr("Error"), msg); });
-    connect(yandex_api.get(), &YandexApi::ErrorOccurred, this,
-            [this](const QString &msg) { QMessageBox::warning(this, tr("Network error"), msg); });
+    connect(yaml_reader.get(), &YamlReader::ErrorOccurred, this, [this](const QString &msg) {
+        QMessageBox::warning(this, tr("Error"), msg);
+    });
+    connect(yandex_api.get(), &YandexApi::ErrorOccurred, this, [this](const QString &msg) {
+        QMessageBox::warning(this, tr("Network error"), msg);
+    });
     connect(yandex_api.get(), &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
     file_watcher = std::make_unique<QFileSystemWatcher>();
     file_watcher->addPath(QDir::currentPath() + "/ymlFiles");
-    connect(file_watcher.get(), &QFileSystemWatcher::directoryChanged, this,
-            &MainWindow::OnFolderChanged);
+    connect(file_watcher.get(), &QFileSystemWatcher::directoryChanged,
+            this, &MainWindow::OnFolderChanged);
 
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
     ui->fileNamecmb->setView(new QListView(ui->fileNamecmb));
@@ -107,8 +109,9 @@ void MainWindow::InitLanguageCmb()
 {
     ui->langCombo->addItem("English", "en_GB");
     ui->langCombo->addItem("Русский", "ru_RU");
-    connect(ui->langCombo, &QComboBox::currentIndexChanged, this,
-            [this](int) { switchLanguage(ui->langCombo->currentData().toString()); });
+    connect(ui->langCombo, &QComboBox::currentIndexChanged, this, [this](int) {
+        switchLanguage(ui->langCombo->currentData().toString());
+    });
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -130,9 +133,11 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
     ui->fileNamecmb->setCurrentIndex(index);
 
     if (is_update_file && !root.children.isEmpty()) {
-        const auto reply =
-            QMessageBox::question(this, tr("Save File"), tr("Do you want to save the file?"),
-                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        const auto reply = QMessageBox::question(this,
+                                                 tr("Save File"),
+                                                 tr("Do you want to save the file?"),
+                                                 QMessageBox::Yes | QMessageBox::No,
+                                                 QMessageBox::No);
         if (reply == QMessageBox::Yes)
             SaveData(previous_text_cmb);
     }
@@ -413,9 +418,12 @@ void MainWindow::HandleDeleteElement(const QString &path, bool isKey)
     RefreshCurrentTree();
 }
 
-void MainWindow::DisplayTreeNode(const YamlNode &node, const QString &parentPath,
-                                 const QString &searchText, QTreeWidgetItem *parentItem,
-                                 QTreeWidget *treeWidget, const QRegularExpression &regex,
+void MainWindow::DisplayTreeNode(const YamlNode &node,
+                                 const QString &parentPath,
+                                 const QString &searchText,
+                                 QTreeWidgetItem *parentItem,
+                                 QTreeWidget *treeWidget,
+                                 const QRegularExpression &regex,
                                  bool useRegex)
 {
     if (check_box_states.contains(node.key) && !check_box_states[node.key])
@@ -584,7 +592,7 @@ void MainWindow::ClearTreeWidget()
 {
     tree_widget = new QTreeWidget(this);
     tree_widget->setColumnCount(2);
-    tree_widget->setHeaderLabels(QStringList() << tr("Key") << tr("Value"));
+    tree_widget->setHeaderLabels(QStringList{tr("Key"), tr("Value")});
     tree_widget->setColumnWidth(0, 280);
     tree_widget->setMinimumHeight(200);
     tree_widget->setRootIsDecorated(true);
@@ -691,8 +699,7 @@ void MainWindow::RunSearch(const QString &text, bool useRegex, bool resetSelecti
     }
 }
 
-void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDownward,
-                               bool useRegex)
+void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex)
 {
     const Qt::CaseSensitivity new_cs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
 
@@ -702,8 +709,8 @@ void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDow
         return;
     }
 
-    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern()) ||
-                               (!useRegex && searching_text != text) || new_cs != cs;
+    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern())
+                               || (!useRegex && searching_text != text) || new_cs != cs;
 
     if (query_changed) {
         cs = new_cs;
@@ -722,8 +729,7 @@ void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDow
     if (isDownward)
         current_found_index = (current_found_index + 1) % found_widgets.size();
     else
-        current_found_index =
-            (current_found_index - 1 + found_widgets.size()) % found_widgets.size();
+        current_found_index = (current_found_index - 1 + found_widgets.size()) % found_widgets.size();
 
     if (current_found_index == starting_index) {
         QMessageBox::information(this, tr("Search"), tr("Reached the end of the search results."));
@@ -744,8 +750,8 @@ void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool u
         return;
     }
 
-    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern()) ||
-                               (!useRegex && searching_text != text) || new_cs != cs;
+    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern())
+                               || (!useRegex && searching_text != text) || new_cs != cs;
 
     if (query_changed) {
         cs = new_cs;
@@ -770,7 +776,9 @@ void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool u
     HighlightCurrentFound();
 }
 
-void MainWindow::ReplaceText(const QString &findText, const QString &replaceText, bool allText,
+void MainWindow::ReplaceText(const QString &findText,
+                             const QString &replaceText,
+                             bool allText,
                              bool useRegex)
 {
     SearchReplaceText(findText, cs == Qt::CaseSensitive, useRegex);
@@ -820,8 +828,8 @@ void MainWindow::ScrollIntoView(QWidget *widget)
     QTreeWidgetItemIterator it(tree_widget);
     while (*it) {
         QTreeWidgetItem *item = *it;
-        if (tree_widget->itemWidget(item, 0) == widget ||
-            tree_widget->itemWidget(item, 1) == widget) {
+        if (tree_widget->itemWidget(item, 0) == widget
+            || tree_widget->itemWidget(item, 1) == widget) {
             tree_widget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
             return;
         }
@@ -829,8 +837,10 @@ void MainWindow::ScrollIntoView(QWidget *widget)
     }
 }
 
-void MainWindow::ReplaceInWidget(QWidget *widget, const QString &findText,
-                                 const QString &replaceText, bool useRegex)
+void MainWindow::ReplaceInWidget(QWidget *widget,
+                                 const QString &findText,
+                                 const QString &replaceText,
+                                 bool useRegex)
 {
     if (!widget)
         return;
@@ -848,9 +858,8 @@ void MainWindow::ReplaceInWidget(QWidget *widget, const QString &findText,
 void MainWindow::OnFolderChanged(const QString &path)
 {
     QDir dir(path);
-    const QStringList files = dir.entryList(QStringList() << "*.yaml"
-                                                          << "*.yml",
-                                            QDir::Files);
+    const QStringList files =
+        dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
 
     for (const QString &file : files) {
         if (ui->fileNamecmb->findText(file) == -1)
@@ -888,17 +897,16 @@ void MainWindow::OpenFileByPath(const QString &local_path)
 
 void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 {
-    const QString dir_path =
-        QFileDialog::getExistingDirectory(this, tr("Select a folder with YAML files"),
-                                          QDir::currentPath(), QFileDialog::DontUseNativeDialog);
+    const QString dir_path = QFileDialog::getExistingDirectory(
+        this, tr("Select a folder with YAML files"), QDir::currentPath(),
+        QFileDialog::DontUseNativeDialog);
 
     if (dir_path.isEmpty())
         return;
 
     QDir dir(dir_path);
-    const QStringList files = dir.entryList(QStringList() << "*.yaml"
-                                                          << "*.yml",
-                                            QDir::Files);
+    const QStringList files =
+        dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
 
     if (files.isEmpty()) {
         QMessageBox::information(this, tr("Open Folder"), tr("No YAML files in the folder"));
