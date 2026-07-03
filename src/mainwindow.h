@@ -44,6 +44,7 @@ public:
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey);
@@ -106,7 +107,15 @@ private:
     int FindTabByName(const QString &fileName) const;
 
     void OnFolderChanged(const QString &path);
+    void OnFileChangedOnDisk(const QString &path);
     void OpenFileByPath(const QString &local_path);
+
+    void WatchFile(const QString &path);
+    void UnwatchFile(const QString &path);
+    void ReloadFileFromDisk(const QString &file_name);
+
+    bool IsFileDirty(const QString &file_name) const;
+    QStringList UnsavedFiles() const;
 
     void SaveExpandedState();
     void RestoreExpandedState();
@@ -173,6 +182,9 @@ private:
     Qt::CaseSensitivity cs = Qt::CaseInsensitive;
 
     std::unique_ptr<QFileSystemWatcher> file_watcher;
+
+    QSet<QString> self_saved_paths_;
+    bool reload_prompt_active_ = false;
 
     QSet<QString> expanded_paths;
 };

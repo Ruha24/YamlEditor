@@ -5,8 +5,10 @@
 
 #include <QApplication>
 #include <QDragEnterEvent>
+#include <QCloseEvent>
 #include <QDropEvent>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QListView>
 #include <QMessageBox>
 #include <QMimeData>
@@ -148,6 +150,8 @@ void MainWindow::ConnectServices()
     file_watcher->addPath(QDir::currentPath() + "/ymlFiles");
     connect(file_watcher.get(), &QFileSystemWatcher::directoryChanged,
             this, &MainWindow::OnFolderChanged);
+    connect(file_watcher.get(), &QFileSystemWatcher::fileChanged,
+            this, &MainWindow::OnFileChangedOnDisk);
 
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
     ui->fileNamecmb->setView(new QListView(ui->fileNamecmb));
@@ -225,9 +229,15 @@ void MainWindow::SaveData(const QString &fileName)
         return;
 
     const QString full_path = file_local_system->GetFilePath(fileName);
+    const QString abs_path = QFileInfo(full_path).absoluteFilePath();
+
+    self_saved_paths_.insert(abs_path);
+
     yaml_reader->SaveValues(root, full_path);
     yandex_api->UploadFile(full_path, [](bool) {});
-    undo_stack->setClean(); // mark current state as the saved baseline
+    undo_stack->setClean();
+
+    WatchFile(abs_path);
 }
 
 void MainWindow::UploadFileOnCmb(const QString &file)
@@ -260,6 +270,8 @@ void MainWindow::CloseTab(int index)
 
     const QString file_name = ui->tabWidget->tabText(index);
     SaveData(file_name);
+
+    UnwatchFile(file_local_system->GetFilePath(file_name));
 
     check_box_states_nodes.remove(file_name);
     nodes.remove(file_name);
@@ -962,6 +974,167 @@ void MainWindow::ReplaceInWidget(QWidget *widget,
     }
 }
 
+void MainWindow::WatchFile(const QString &path)
+{
+    if (path.isEmpty() || !file_watcher)
+        return;
+    const QString abs = QFileInfo(path).absoluteFilePath();
+
+    if (!file_watcher->files().contains(abs) && QFileInfo::exists(abs))
+        file_watcher->addPath(abs);
+}
+
+void MainWindow::UnwatchFile(const QString &path)
+{
+    if (path.isEmpty() || !file_watcher)
+        return;
+    const QString abs = QFileInfo(path).absoluteFilePath();
+    if (file_watcher->files().contains(abs))
+        file_watcher->removePath(abs);
+    self_saved_paths_.remove(abs);
+}
+
+void MainWindow::OnFileChangedOnDisk(const QString &path)
+{
+    const QString abs = QFileInfo(path).absoluteFilePath();
+
+    if (self_saved_paths_.remove(abs)) {
+        WatchFile(abs);
+        return;
+    }
+
+    if (!QFileInfo::exists(abs)) {
+        log_panel->logWarning(tr("File removed on disk: %1").arg(QFileInfo(abs).fileName()));
+        return;
+    }
+
+    const QString file_name = QFileInfo(abs).fileName();
+
+    WatchFile(abs);
+
+    const bool has_unsaved =
+        (file_name == ui->fileNamecmb->currentText()) && undo_stack && !undo_stack->isClean();
+
+    QString question = tr("The file \"%1\" was changed on disk.").arg(file_name);
+    if (has_unsaved)
+        question += "\n\n" + tr("You have unsaved changes. Reload and discard them?");
+    else
+        question += "\n\n" + tr("Reload it?");
+
+    log_panel->logWarning(tr("Changed on disk: %1").arg(file_name));
+
+    if (reload_prompt_active_)
+        return;
+    reload_prompt_active_ = true;
+
+    const auto reply = QMessageBox::question(this, tr("File changed"), question,
+                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    reload_prompt_active_ = false;
+
+    if (reply == QMessageBox::Yes)
+        ReloadFileFromDisk(file_name);
+}
+
+void MainWindow::ReloadFileFromDisk(const QString &file_name)
+{
+    const QString path = file_local_system->GetFilePath(file_name);
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return;
+
+    if (!yaml_reader->ReadFile(path)) {
+        log_panel->logError(tr("Failed to reload %1").arg(file_name));
+        return;
+    }
+
+    const YamlNode reloaded = yaml_reader->GetRootNode();
+    nodes.insert(file_name, reloaded);
+
+    if (file_name == ui->fileNamecmb->currentText()) {
+        root = reloaded;
+        Displaykeys(root);
+        RefreshCurrentTree();
+        if (undo_stack) {
+            undo_stack->clear();
+            undo_stack->setClean();
+        }
+    }
+
+    log_panel->logInfo(tr("Reloaded %1 from disk").arg(file_name));
+}
+
+bool MainWindow::IsFileDirty(const QString &file_name) const
+{
+    if (!nodes.contains(file_name))
+        return false;
+
+    const QString path = file_local_system->GetFilePath(file_name);
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return true;
+
+    YamlReader disk_reader;
+    if (!disk_reader.ReadFile(path))
+        return true;
+
+    return nodes.value(file_name) != disk_reader.GetRootNode();
+}
+
+QStringList MainWindow::UnsavedFiles() const
+{
+    QStringList dirty;
+    for (int i = 0; i < ui->tabWidget->count(); ++i) {
+        const QString file_name = ui->tabWidget->tabText(i);
+        if (IsFileDirty(file_name))
+            dirty << file_name;
+    }
+    return dirty;
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    const QStringList dirty = UnsavedFiles();
+    if (dirty.isEmpty()) {
+        event->accept();
+        return;
+    }
+
+    const QString list = dirty.join("\n  \u2022 ");
+    const QString text =
+        tr("The following files have unsaved changes:") + "\n\n  \u2022 " + list;
+
+    QMessageBox box(this);
+    box.setWindowTitle(tr("Unsaved changes"));
+    box.setText(text);
+    box.setInformativeText(tr("Do you want to save them before exiting?"));
+    box.setStandardButtons(QMessageBox::SaveAll | QMessageBox::Discard | QMessageBox::Cancel);
+    box.setDefaultButton(QMessageBox::SaveAll);
+    box.setIcon(QMessageBox::Warning);
+
+    const int choice = box.exec();
+
+    if (choice == QMessageBox::Cancel) {
+        event->ignore();
+        return;
+    }
+
+    if (choice == QMessageBox::SaveAll) {
+        const QString active = ui->fileNamecmb->currentText();
+        for (const QString &file_name : dirty) {
+            root = nodes.value(file_name);
+            const QString full_path = file_local_system->GetFilePath(file_name);
+            const QString abs_path = QFileInfo(full_path).absoluteFilePath();
+            self_saved_paths_.insert(abs_path);
+            yaml_reader->SaveValues(root, full_path);
+            yandex_api->UploadFile(full_path, [](bool) {});
+            log_panel->logInfo(tr("Saved %1 on exit").arg(file_name));
+        }
+
+        if (nodes.contains(active))
+            root = nodes.value(active);
+    }
+
+    event->accept();
+}
+
 void MainWindow::OnFolderChanged(const QString &path)
 {
     QDir dir(path);
@@ -1001,6 +1174,7 @@ void MainWindow::OpenFileByPath(const QString &local_path)
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
     ReadFile();
 
+    WatchFile(info.absoluteFilePath());
     log_panel->logInfo(tr("Opened %1").arg(file_name));
 }
 
