@@ -23,7 +23,6 @@ const YamlNode *YamlNode::FindNodeByKey(const QString &searchKey) const
 
 YamlNode *YamlNode::FindNodeByKey(const QString &searchKey)
 {
-    // Reuse the const implementation without duplicating the traversal.
     return const_cast<YamlNode *>(std::as_const(*this).FindNodeByKey(searchKey));
 }
 
@@ -138,4 +137,10 @@ YamlNode *YamlNode::NavigateToParent(const QStringList &path_parts)
         current_node = next;
     }
     return current_node;
+}
+
+bool YamlNode::operator==(const YamlNode &other) const
+{
+    return key == other.key && value == other.value && is_sequence == other.is_sequence
+           && children == other.children;
 }

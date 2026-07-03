@@ -3,12 +3,15 @@
 #include <memory>
 #include "./ui_mainwindow.h"
 
+#include <QApplication>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QListView>
 #include <QMessageBox>
 #include <QMimeData>
+#include <QTimer>
+#include <QUndoStack>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -18,6 +21,7 @@
 #include "customWidget/flowlayout.h"
 #include "files/filesystem.h"
 #include "customWidget/logpanel.h"
+#include "files/snapshotcommand.h"
 #include "files/yaml/yamlreader.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
@@ -30,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     setAcceptDrops(true);
 
     InitLogPanel();
+    InitUndoStack();
     InitKeysLayout();
 
     file_local_system = std::make_unique<FileSystem>(QDir::currentPath() + "/ymlFiles");
@@ -70,6 +75,55 @@ void MainWindow::InitLogPanel()
     log_panel = new LogPanel(this);
     addDockWidget(Qt::BottomDockWidgetArea, log_panel);
     log_panel->logInfo(tr("Application started"));
+}
+
+void MainWindow::InitUndoStack()
+{
+    undo_stack = new QUndoStack(this);
+}
+
+void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
+{
+    const YamlNode after = root;
+    undo_stack->push(new YamlSnapshotCommand(
+        text, before, after, [this](const YamlNode &snapshot) { ApplySnapshot(snapshot); }));
+}
+
+void MainWindow::ApplySnapshot(const YamlNode &snapshot)
+{
+    applying_snapshot_ = true;
+
+    if (QWidget *focused = QApplication::focusWidget())
+        focused->clearFocus();
+
+    root = snapshot;
+    nodes.insert(ui->fileNamecmb->currentText(), root);
+
+    if (rebuild_scheduled_)
+        return;
+    rebuild_scheduled_ = true;
+
+    QTimer::singleShot(0, this, [this]() {
+        RefreshCurrentTree();
+        rebuild_scheduled_ = false;
+        applying_snapshot_ = false;
+    });
+}
+
+void MainWindow::SlotUndo()
+{
+    if (undo_stack && undo_stack->canUndo()) {
+        log_panel->logInfo(tr("Undo: %1").arg(undo_stack->undoText()));
+        undo_stack->undo();
+    }
+}
+
+void MainWindow::SlotRedo()
+{
+    if (undo_stack && undo_stack->canRedo()) {
+        log_panel->logInfo(tr("Redo: %1").arg(undo_stack->redoText()));
+        undo_stack->redo();
+    }
 }
 
 void MainWindow::ConnectServices()
@@ -116,6 +170,12 @@ void MainWindow::ConnectShortCut()
     key_ctrl_r = new QShortcut(this);
     key_ctrl_r->setKey(Qt::CTRL | Qt::Key_R);
     connect(key_ctrl_r, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlR);
+
+    auto *key_undo = new QShortcut(QKeySequence::Undo, this);
+    connect(key_undo, &QShortcut::activated, this, &MainWindow::SlotUndo);
+
+    auto *key_redo = new QShortcut(QKeySequence::Redo, this);
+    connect(key_redo, &QShortcut::activated, this, &MainWindow::SlotRedo);
 }
 
 void MainWindow::InitLanguageCmb()
@@ -145,7 +205,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 {
     ui->fileNamecmb->setCurrentIndex(index);
 
-    if (is_update_file && !root.children.isEmpty()) {
+    if (undo_stack && !undo_stack->isClean() && !root.children.isEmpty()) {
         const auto reply = QMessageBox::question(this,
                                                  tr("Save File"),
                                                  tr("Do you want to save the file?"),
@@ -161,13 +221,13 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 
 void MainWindow::SaveData(const QString &fileName)
 {
-    if (!is_update_file)
+    if (!undo_stack || undo_stack->isClean())
         return;
 
     const QString full_path = file_local_system->GetFilePath(fileName);
     yaml_reader->SaveValues(root, full_path);
     yandex_api->UploadFile(full_path, [](bool) {});
-    is_update_file = false;
+    undo_stack->setClean(); // mark current state as the saved baseline
 }
 
 void MainWindow::UploadFileOnCmb(const QString &file)
@@ -265,6 +325,12 @@ void MainWindow::ReadFile()
 
     nodes.insert(file_name, root);
     check_box_states_nodes.insert(file_name, check_box_states);
+
+    if (undo_stack) {
+        undo_stack->clear();
+        undo_stack->setClean();
+    }
+    value_edit_active_ = false;
 }
 
 void MainWindow::RefreshCurrentTree()
@@ -381,8 +447,34 @@ void MainWindow::onCheckBoxStateChanged(int state)
         check_box_states[check_box->text()] = (state == Qt::Checked);
 }
 
+void MainWindow::BeginValueEdit()
+{
+    if (applying_snapshot_)
+        return;
+
+    if (!value_edit_active_) {
+        value_edit_before_ = root;
+        value_edit_active_ = true;
+    }
+}
+
+void MainWindow::CommitValueEdit()
+{
+    if (applying_snapshot_) {
+        value_edit_active_ = false;
+        return;
+    }
+
+    if (value_edit_active_ && root != value_edit_before_) {
+        PushUndoCommand(tr("Edit value"), value_edit_before_);
+    }
+    value_edit_active_ = false;
+}
+
 void MainWindow::UpdateValue(const QString &path, const QString &newValue, bool isKey)
 {
+    BeginValueEdit();
+
     const QStringList parts = path.split('.');
     YamlNode *current_node = &root;
 
@@ -404,31 +496,31 @@ void MainWindow::UpdateValue(const QString &path, const QString &newValue, bool 
     else
         current_node->value = newValue;
 
-    is_update_file = true;
+    nodes.insert(ui->fileNamecmb->currentText(), root);
 }
 
 void MainWindow::HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey)
 {
+    const YamlNode before = root;
+
     if (isKey)
         root.AddValueToKey(path, newValue);
     else
         root.AddKeyWithValue(path, newValue);
 
-    is_update_file = true;
-    SaveData(previous_text_cmb);
-    RefreshCurrentTree();
+    PushUndoCommand(tr("Add %1").arg(isKey ? tr("value") : tr("key")), before);
 }
 
 void MainWindow::HandleDeleteElement(const QString &path, bool isKey)
 {
+    const YamlNode before = root;
+
     if (isKey)
         root.RemoveKey(path);
     else
         root.RemoveValue(path);
 
-    is_update_file = true;
-    SaveData(previous_text_cmb);
-    RefreshCurrentTree();
+    PushUndoCommand(tr("Delete %1").arg(isKey ? tr("value") : tr("key")), before);
 }
 
 void MainWindow::DisplayTreeNode(const YamlNode &node,
@@ -471,6 +563,7 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
     connect(key_txt, &QLineEdit::textChanged, this, [this, currentPath](const QString &newValue) {
         UpdateValue(currentPath, newValue, true);
     });
+    connect(key_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
 
     bool key_matches = false;
     bool value_matches = false;
@@ -498,6 +591,7 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
                 [this, currentPath](const QString &newValue) {
                     UpdateValue(currentPath, newValue, false);
                 });
+        connect(value_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
 
         if (!searchText.isEmpty() && value_matches)
             found_widgets.append(value_txt);
@@ -947,6 +1041,12 @@ void MainWindow::on_tabWidget_currentChanged(int index)
         root = nodes.value(file_name);
         check_box_states = check_box_states_nodes.value(file_name);
         Displaykeys(root);
+
+        if (undo_stack) {
+            undo_stack->clear();
+            undo_stack->setClean();
+        }
+        value_edit_active_ = false;
     }
 }
 

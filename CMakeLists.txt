@@ -60,6 +60,7 @@ set(PROJECT_SOURCES
         src/customWidget/flowlayout.cpp
         src/customWidget/logpanel.h
         src/customWidget/logpanel.cpp
+        src/files/snapshotcommand.h
         src/images.qrc
 )
 

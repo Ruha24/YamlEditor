@@ -24,6 +24,9 @@ public:
     void RemoveKey(const QString &key);
     void RemoveValue(const QString &value);
 
+    bool operator==(const YamlNode &other) const;
+    bool operator!=(const YamlNode &other) const { return !(*this == other); }
+
 private:
     YamlNode *NavigateToParent(const QStringList &path_parts);
     YamlNode *FindOrCreateChild(const QString &part);

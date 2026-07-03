@@ -25,6 +25,7 @@ class SearchingWindow;
 class QDragEnterEvent;
 class QDropEvent;
 class LogPanel;
+class QUndoStack;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -148,13 +149,27 @@ private:
     LogPanel *log_panel = nullptr;
     void InitLogPanel();
 
+    QUndoStack *undo_stack = nullptr;
+    void InitUndoStack();
+
+    void PushUndoCommand(const QString &text, const YamlNode &before);
+    void ApplySnapshot(const YamlNode &snapshot);
+    void SlotUndo();
+    void SlotRedo();
+
+    YamlNode value_edit_before_;
+    bool value_edit_active_ = false;
+    bool applying_snapshot_ = false;
+    bool rebuild_scheduled_ = false;
+    void BeginValueEdit();
+    void CommitValueEdit();
+
     YamlNode root;
     QHash<QString, bool> check_box_states;
     QSet<QString> keys;
     QList<QWidget *> found_widgets;
     int current_found_index = -1;
     int starting_index = -1;
-    bool is_update_file = false;
     Qt::CaseSensitivity cs = Qt::CaseInsensitive;
 
     std::unique_ptr<QFileSystemWatcher> file_watcher;

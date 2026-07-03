@@ -26,6 +26,10 @@ private slots:
     void removeKey_removesNested();
     void removeKey_missing_isNoOp();
     void removeValue_clearsValueAndChildren();
+
+    void equality_identicalTrees();
+    void equality_differsByValue();
+    void equality_differsByStructure();
 };
 
 void TestYamlNode::defaultConstructed_isEmpty()
@@ -193,6 +197,43 @@ void TestYamlNode::removeValue_clearsValueAndChildren()
     QVERIFY(k != nullptr);
     QVERIFY(k->value.isEmpty());
     QVERIFY(k->children.isEmpty());
+}
+
+void TestYamlNode::equality_identicalTrees()
+{
+    YamlNode a;
+    a.AddKeyWithValue("db.host", "localhost");
+    a.AddKeyWithValue("db.port", "5432");
+
+    YamlNode b;
+    b.AddKeyWithValue("db.host", "localhost");
+    b.AddKeyWithValue("db.port", "5432");
+
+    QVERIFY(a == b);
+    QVERIFY(!(a != b));
+}
+
+void TestYamlNode::equality_differsByValue()
+{
+    YamlNode a;
+    a.AddKeyWithValue("host", "localhost");
+
+    YamlNode b;
+    b.AddKeyWithValue("host", "127.0.0.1");
+
+    QVERIFY(a != b);
+}
+
+void TestYamlNode::equality_differsByStructure()
+{
+    YamlNode a;
+    a.AddKeyWithValue("a", "1");
+
+    YamlNode b;
+    b.AddKeyWithValue("a", "1");
+    b.AddKeyWithValue("b", "2");
+
+    QVERIFY(a != b);
 }
 
 QTEST_APPLESS_MAIN(TestYamlNode)
