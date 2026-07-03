@@ -58,6 +58,8 @@ set(PROJECT_SOURCES
         src/files/filedownloadtask.cpp
         src/customWidget/flowlayout.h
         src/customWidget/flowlayout.cpp
+        src/customWidget/logpanel.h
+        src/customWidget/logpanel.cpp
         src/images.qrc
 )
 

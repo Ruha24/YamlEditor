@@ -24,6 +24,7 @@ class ReplaceWindow;
 class SearchingWindow;
 class QDragEnterEvent;
 class QDropEvent;
+class LogPanel;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -143,6 +144,9 @@ private:
     QWidget *previous_widget = nullptr;
     QString previous_widget_original_style_sheet;
     QString previous_text_cmb;
+
+    LogPanel *log_panel = nullptr;
+    void InitLogPanel();
 
     YamlNode root;
     QHash<QString, bool> check_box_states;

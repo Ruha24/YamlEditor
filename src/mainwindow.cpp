@@ -17,6 +17,7 @@
 #include "customWidget/customlineedit.h"
 #include "customWidget/flowlayout.h"
 #include "files/filesystem.h"
+#include "customWidget/logpanel.h"
 #include "files/yaml/yamlreader.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
@@ -28,6 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setAcceptDrops(true);
 
+    InitLogPanel();
     InitKeysLayout();
 
     file_local_system = std::make_unique<FileSystem>(QDir::currentPath() + "/ymlFiles");
@@ -63,17 +65,28 @@ void MainWindow::InitKeysLayout()
     flow_keys_layout = new FlowLayout(keys_container, 6, 8, 8);
 }
 
+void MainWindow::InitLogPanel()
+{
+    log_panel = new LogPanel(this);
+    addDockWidget(Qt::BottomDockWidgetArea, log_panel);
+    log_panel->logInfo(tr("Application started"));
+}
+
 void MainWindow::ConnectServices()
 {
     connect(yaml_reader.get(), &YamlReader::FileUploaded, this, [this](bool success) {
         if (success)
-            QMessageBox::information(this, tr("Saving"), tr("Your file is saved"));
+            log_panel->logInfo(tr("File saved"));
     });
     connect(yaml_reader.get(), &YamlReader::ErrorOccurred, this, [this](const QString &msg) {
+        log_panel->logError(msg);
         QMessageBox::warning(this, tr("Error"), msg);
     });
     connect(yandex_api.get(), &YandexApi::ErrorOccurred, this, [this](const QString &msg) {
-        QMessageBox::warning(this, tr("Network error"), msg);
+        log_panel->logWarning(tr("Network: %1").arg(msg));
+    });
+    connect(yandex_api.get(), &YandexApi::NewFile, this, [this](const QString &fileName) {
+        log_panel->logInfo(tr("Downloaded from cloud: %1").arg(fileName));
     });
     connect(yandex_api.get(), &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
@@ -893,6 +906,8 @@ void MainWindow::OpenFileByPath(const QString &local_path)
     ui->fileNamecmb->addItem(file_name);
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
     ReadFile();
+
+    log_panel->logInfo(tr("Opened %1").arg(file_name));
 }
 
 void MainWindow::on_OpenFolderYmlFilebtn_clicked()
