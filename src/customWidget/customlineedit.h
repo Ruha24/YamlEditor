@@ -17,6 +17,7 @@ public:
                             bool isKey = false);
 
     QString GetCurrentPath() const;
+    void SetCurrentPath(const QString &path);
     bool GetIsKey() const;
 
 protected:
@@ -34,4 +35,4 @@ private:
     bool is_key;
 };
 
-#endif // CUSTOMLINEEDIT_H
+#endif

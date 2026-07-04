@@ -61,6 +61,8 @@ set(PROJECT_SOURCES
         src/customWidget/logpanel.h
         src/customWidget/logpanel.cpp
         src/files/snapshotcommand.h
+        src/files/yaml/yamlvalidator.h
+        src/files/yaml/yamlvalidator.cpp
         src/images.qrc
 )
 

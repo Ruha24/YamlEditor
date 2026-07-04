@@ -40,6 +40,11 @@ QString CustomLineEdit::GetCurrentPath() const
     return current_path;
 }
 
+void CustomLineEdit::SetCurrentPath(const QString &path)
+{
+    current_path = path;
+}
+
 bool CustomLineEdit::GetIsKey() const
 {
     return is_key;

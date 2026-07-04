@@ -74,7 +74,7 @@ private:
     void switchLanguage(const QString &locale);
 
     void RefreshCurrentTree();
-    void UpdateValue(const QString &path, const QString &newValue, bool isKey);
+    QString UpdateValue(const QString &path, const QString &newValue, bool isKey);
     void Displaykeys(const YamlNode &root);
     void SaveData(const QString &fileName);
     void DisplayYamlData();
@@ -116,6 +116,10 @@ private:
 
     bool IsFileDirty(const QString &file_name) const;
     QStringList UnsavedFiles() const;
+
+    QSet<QWidget *> invalid_fields_;
+    void ValidateField(class QLineEdit *edit, const QString &text, bool isKey);
+    bool HasValidationErrors() const { return !invalid_fields_.isEmpty(); }
 
     void SaveExpandedState();
     void RestoreExpandedState();
@@ -189,4 +193,4 @@ private:
     QSet<QString> expanded_paths;
 };
 
-#endif // MAINWINDOW_H
+#endif

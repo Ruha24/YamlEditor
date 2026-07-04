@@ -9,6 +9,7 @@
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QLineEdit>
 #include <QListView>
 #include <QMessageBox>
 #include <QMimeData>
@@ -25,6 +26,7 @@
 #include "customWidget/logpanel.h"
 #include "files/snapshotcommand.h"
 #include "files/yaml/yamlreader.h"
+#include "files/yaml/yamlvalidator.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
 
@@ -70,6 +72,33 @@ void MainWindow::InitKeysLayout()
         delete old_layout;
     }
     flow_keys_layout = new FlowLayout(keys_container, 6, 8, 8);
+
+    if (ui->scrollArea_2) {
+        ui->scrollArea_2->setStyleSheet(R"(
+            QScrollBar:vertical {
+                background: #262626; width: 11px; margin: 0; border: none;
+            }
+            QScrollBar::handle:vertical {
+                background: #45596a; border-radius: 5px; min-height: 28px;
+            }
+            QScrollBar::handle:vertical:hover { background: #51b4d2; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0; background: none; border: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+            QScrollBar:horizontal {
+                background: #262626; height: 11px; margin: 0; border: none;
+            }
+            QScrollBar::handle:horizontal {
+                background: #45596a; border-radius: 5px; min-width: 28px;
+            }
+            QScrollBar::handle:horizontal:hover { background: #51b4d2; }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0; background: none; border: none;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
+        )");
+    }
 }
 
 void MainWindow::InitLogPanel()
@@ -86,6 +115,7 @@ void MainWindow::InitUndoStack()
 
 void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
 {
+
     const YamlNode after = root;
     undo_stack->push(new YamlSnapshotCommand(
         text, before, after, [this](const YamlNode &snapshot) { ApplySnapshot(snapshot); }));
@@ -93,6 +123,7 @@ void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
 
 void MainWindow::ApplySnapshot(const YamlNode &snapshot)
 {
+
     applying_snapshot_ = true;
 
     if (QWidget *focused = QApplication::focusWidget())
@@ -227,6 +258,14 @@ void MainWindow::SaveData(const QString &fileName)
 {
     if (!undo_stack || undo_stack->isClean())
         return;
+
+    if (HasValidationErrors()) {
+        log_panel->logError(tr("Cannot save: fix the highlighted fields first"));
+        QMessageBox::warning(this, tr("Invalid YAML"),
+                             tr("Some fields contain invalid values (highlighted in red).\n"
+                                "Please fix them before saving."));
+        return;
+    }
 
     const QString full_path = file_local_system->GetFilePath(fileName);
     const QString abs_path = QFileInfo(full_path).absoluteFilePath();
@@ -483,13 +522,44 @@ void MainWindow::CommitValueEdit()
     value_edit_active_ = false;
 }
 
-void MainWindow::UpdateValue(const QString &path, const QString &newValue, bool isKey)
+QString MainWindow::UpdateValue(const QString &path, const QString &newValue, bool isKey)
 {
     BeginValueEdit();
 
     const QStringList parts = path.split('.');
-    YamlNode *current_node = &root;
 
+    if (isKey) {
+        YamlNode *parent = &root;
+        for (int i = 0; i < parts.size() - 1; ++i) {
+            YamlNode *next = nullptr;
+            for (YamlNode &child : parent->children) {
+                if (child.key == parts[i]) {
+                    next = &child;
+                    break;
+                }
+            }
+            if (!next)
+                return path;
+            parent = next;
+        }
+
+        const QString last = parts.isEmpty() ? QString() : parts.last();
+        for (YamlNode &child : parent->children) {
+            if (child.key == last) {
+                child.key = newValue;
+                break;
+            }
+        }
+
+        nodes.insert(ui->fileNamecmb->currentText(), root);
+
+        QStringList new_parts = parts;
+        if (!new_parts.isEmpty())
+            new_parts.last() = newValue;
+        return new_parts.join('.');
+    }
+
+    YamlNode *current_node = &root;
     for (const QString &key : parts) {
         YamlNode *next = nullptr;
         for (YamlNode &child : current_node->children) {
@@ -499,16 +569,42 @@ void MainWindow::UpdateValue(const QString &path, const QString &newValue, bool 
             }
         }
         if (!next)
-            return;
+            return path;
         current_node = next;
     }
 
-    if (isKey)
-        current_node->key = newValue;
-    else
-        current_node->value = newValue;
-
+    current_node->value = newValue;
     nodes.insert(ui->fileNamecmb->currentText(), root);
+    return path;
+}
+
+void MainWindow::ValidateField(QLineEdit *edit, const QString &text, bool isKey)
+{
+    if (!edit)
+        return;
+
+    const YamlValidator::Result result =
+        isKey ? YamlValidator::validateKey(text) : YamlValidator::validateValue(text);
+
+    const QString base = isKey ? "QLineEdit { border: none; background: transparent; "
+                                 "font-size: 16px; color: #7aa2ff; }"
+                               : "QLineEdit { border: none; background: transparent; "
+                                 "font-size: 14px; color: #e6e6e6; }";
+
+    if (result.ok) {
+        edit->setStyleSheet(base);
+        edit->setToolTip(QString());
+        invalid_fields_.remove(edit);
+    } else {
+        const QString color = isKey ? "#7aa2ff" : "#e6e6e6";
+        const int font = isKey ? 16 : 14;
+        edit->setStyleSheet(QString("QLineEdit { border: 1px solid #e06c6c; border-radius: 4px; "
+                                    "background: #3a2b2b; font-size: %1px; color: %2; }")
+                                .arg(font)
+                                .arg(color));
+        edit->setToolTip(result.message);
+        invalid_fields_.insert(edit);
+    }
 }
 
 void MainWindow::HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey)
@@ -572,10 +668,17 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
 
     connect(key_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
     connect(key_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
-    connect(key_txt, &QLineEdit::textChanged, this, [this, currentPath](const QString &newValue) {
-        UpdateValue(currentPath, newValue, true);
-    });
+    connect(key_txt, &QLineEdit::textChanged, this,
+            [this, key_txt](const QString &newValue) {
+                const QString new_path = UpdateValue(key_txt->GetCurrentPath(), newValue, true);
+                key_txt->SetCurrentPath(new_path);
+                if (!key_txt->isReadOnly())
+                    ValidateField(key_txt, newValue, true);
+            });
     connect(key_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
+
+    if (!key_txt->isReadOnly())
+        ValidateField(key_txt, key_txt->text(), true);
 
     bool key_matches = false;
     bool value_matches = false;
@@ -600,10 +703,13 @@ void MainWindow::DisplayTreeNode(const YamlNode &node,
         connect(value_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
         connect(value_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
         connect(value_txt, &QLineEdit::textChanged, this,
-                [this, currentPath](const QString &newValue) {
-                    UpdateValue(currentPath, newValue, false);
+                [this, value_txt](const QString &newValue) {
+                    UpdateValue(value_txt->GetCurrentPath(), newValue, false);
+                    ValidateField(value_txt, newValue, false);
                 });
         connect(value_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
+
+        ValidateField(value_txt, value_txt->text(), false);
 
         if (!searchText.isEmpty() && value_matches)
             found_widgets.append(value_txt);
@@ -709,6 +815,9 @@ void MainWindow::ClearKeysArea()
 
 void MainWindow::ClearTreeWidget()
 {
+
+    invalid_fields_.clear();
+
     tree_widget = new QTreeWidget(this);
     tree_widget->setColumnCount(2);
     tree_widget->setHeaderLabels(QStringList{tr("Key"), tr("Value")});
@@ -1117,8 +1226,26 @@ void MainWindow::closeEvent(QCloseEvent *event)
     }
 
     if (choice == QMessageBox::SaveAll) {
+
         const QString active = ui->fileNamecmb->currentText();
+        if (HasValidationErrors()) {
+            const auto proceed = QMessageBox::warning(
+                this, tr("Invalid YAML"),
+                tr("The current file has invalid fields and cannot be saved.\n"
+                   "Exit without saving it?"),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (proceed != QMessageBox::Yes) {
+                event->ignore();
+                return;
+            }
+        }
+
         for (const QString &file_name : dirty) {
+
+            if (file_name == active && HasValidationErrors()) {
+                log_panel->logWarning(tr("Skipped %1 (invalid)").arg(file_name));
+                continue;
+            }
             root = nodes.value(file_name);
             const QString full_path = file_local_system->GetFilePath(file_name);
             const QString abs_path = QFileInfo(full_path).absoluteFilePath();
