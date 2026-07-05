@@ -5,14 +5,13 @@
 #include <QFileSystemWatcher>
 #include <QHash>
 #include <QMainWindow>
+#include <QModelIndex>
 #include <QRegularExpression>
 #include <memory>
 #include <QSet>
 #include <QShortcut>
 #include <QStringList>
 #include <QTranslator>
-#include <QTreeWidget>
-#include <QTreeWidgetItem>
 
 #include "files/yaml/yamlnode.h"
 
@@ -26,6 +25,8 @@ class QDragEnterEvent;
 class QDropEvent;
 class LogPanel;
 class QUndoStack;
+class YamlTreeModel;
+class QTreeView;
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -73,14 +74,11 @@ private:
 
     void switchLanguage(const QString &locale);
 
-    void RefreshCurrentTree();
-    QString UpdateValue(const QString &path, const QString &newValue, bool isKey);
     void Displaykeys(const YamlNode &root);
     void SaveData(const QString &fileName);
     void DisplayYamlData();
-    void DisplayTreeNode(const YamlNode &node, const QString &parentPath, const QString &searchText,
-                         QTreeWidgetItem *parentItem, QTreeWidget *treeWidget,
-                         const QRegularExpression &regex, bool useRegex);
+    void ShowTreeInTab(const QString &fileName);
+
 
     void CollectKeys(const YamlNode &node, QSet<QString> &keys) const;
     void ReadFile();
@@ -90,14 +88,10 @@ private:
     void SlotShortcutCtrlS();
     void SlotShortcutCtrlR();
 
-    void HighlightCurrentFound();
-    void ScrollIntoView(QWidget *widget);
-
     void CreateCheckBox(const QString &name);
 
     void ClearKeysArea();
-    void ClearTreeWidget();
-    void ClearTabWidget(QWidget *tab);
+
 
     void RemoveTab(const QString &tabText);
 
@@ -118,14 +112,17 @@ private:
     QStringList UnsavedFiles() const;
 
     QSet<QWidget *> invalid_fields_;
-    void ValidateField(class QLineEdit *edit, const QString &text, bool isKey);
     bool HasValidationErrors() const { return !invalid_fields_.isEmpty(); }
-
-    void SaveExpandedState();
-    void RestoreExpandedState();
 
     void RunSearch(const QString &text, bool useRegex, bool resetSelection);
     bool BuildRegex(const QString &text, bool isSensitive, QRegularExpression &out) const;
+    void CollectMatches(const QModelIndex &parent, const QString &text, bool useRegex);
+    void SelectMatch(int index);
+    void ShowTreeContextMenu(const QPoint &pos);
+    void SaveExpandedState();
+    void RestoreExpandedState();
+    void ReplaceInIndex(const QModelIndex &index, const QString &findText,
+                        const QString &replaceText, bool useRegex);
 
     Ui::MainWindow *ui;
 
@@ -140,23 +137,22 @@ private:
 
     QRegularExpression searching_regex;
 
-    ReplaceWindow *replace_wnd = nullptr;
-    void ReplaceInWidget(QWidget *widget, const QString &findText, const QString &replaceText,
-                         bool useRegex);
-
     SearchingWindow *search_wnd = nullptr;
     QString searching_text;
+
+    ReplaceWindow *replace_wnd = nullptr;
 
     std::unique_ptr<YamlReader> yaml_reader;
     std::unique_ptr<YandexApi> yandex_api;
     std::unique_ptr<FileSystem> file_local_system;
 
-    QTreeWidget *tree_widget = nullptr;
+
+    QTreeView *tree_view = nullptr;
+    YamlTreeModel *tree_model = nullptr;
+
     QHash<QString, YamlNode> nodes;
     QHash<QString, QHash<QString, bool>> check_box_states_nodes;
 
-    QWidget *previous_widget = nullptr;
-    QString previous_widget_original_style_sheet;
     QString previous_text_cmb;
 
     LogPanel *log_panel = nullptr;
@@ -170,17 +166,14 @@ private:
     void SlotUndo();
     void SlotRedo();
 
-    YamlNode value_edit_before_;
+    YamlNode last_committed_tree_;
     bool value_edit_active_ = false;
     bool applying_snapshot_ = false;
     bool rebuild_scheduled_ = false;
-    void BeginValueEdit();
-    void CommitValueEdit();
 
-    YamlNode root;
     QHash<QString, bool> check_box_states;
     QSet<QString> keys;
-    QList<QWidget *> found_widgets;
+    QList<QModelIndex> found_indexes_;
     int current_found_index = -1;
     int starting_index = -1;
     Qt::CaseSensitivity cs = Qt::CaseInsensitive;

@@ -63,6 +63,10 @@ set(PROJECT_SOURCES
         src/files/snapshotcommand.h
         src/files/yaml/yamlvalidator.h
         src/files/yaml/yamlvalidator.cpp
+        src/files/yaml/yamltreemodel.h
+        src/files/yaml/yamltreemodel.cpp
+        src/files/yaml/yamlitemdelegate.h
+        src/files/yaml/yamlitemdelegate.cpp
         src/images.qrc
 )
 

@@ -11,11 +11,15 @@
 #include <QFileInfo>
 #include <QLineEdit>
 #include <QListView>
+#include <QMenu>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QTimer>
 #include <QUndoStack>
+#include <QTreeView>
 #include <QVBoxLayout>
+
+#include <functional>
 
 #include <algorithm>
 
@@ -25,8 +29,9 @@
 #include "files/filesystem.h"
 #include "customWidget/logpanel.h"
 #include "files/snapshotcommand.h"
+#include "files/yaml/yamlitemdelegate.h"
 #include "files/yaml/yamlreader.h"
-#include "files/yaml/yamlvalidator.h"
+#include "files/yaml/yamltreemodel.h"#include "files/yaml/yamlvalidator.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
 
@@ -36,6 +41,87 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setAcceptDrops(true);
+
+    tree_model = new YamlTreeModel(this);
+    tree_view  = new QTreeView(this);
+    tree_view->setModel(tree_model);
+    tree_view->setItemDelegate(new YamlItemDelegate(this));
+    tree_view->setEditTriggers(QAbstractItemView::DoubleClicked
+                               | QAbstractItemView::SelectedClicked);
+
+    tree_view->setColumnWidth(0, 280);
+    tree_view->setAlternatingRowColors(true);
+    tree_view->setRootIsDecorated(true);
+    tree_view->setIndentation(20);
+    tree_view->setUniformRowHeights(true);
+    tree_view->setStyleSheet(R"(
+        QTreeView {
+            background-color: #2f2f2f;
+            border: none;
+            outline: 0;
+            font-size: 14px;
+            alternate-background-color: #333333;
+        }
+        QTreeView::item {
+            min-height: 30px;
+            padding: 3px 6px;
+            border-bottom: 1px solid #3a3a3a;
+            color: #e6e6e6;
+        }
+        QTreeView::item:hover { background-color: #3f3f3f; }
+        QTreeView::item:selected { background-color: #33405c; }
+        QHeaderView::section {
+            background-color: #262626;
+            color: #9a9a93;
+            padding: 8px 10px;
+            border: none;
+            font-weight: 500;
+        }
+        QScrollBar:vertical {
+            background: #262626; width: 11px; margin: 0; border: none;
+        }
+        QScrollBar::handle:vertical {
+            background: #45596a; border-radius: 5px; min-height: 28px;
+        }
+        QScrollBar::handle:vertical:hover { background: #51b4d2; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0; background: none; border: none;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+        QScrollBar:horizontal {
+            background: #262626; height: 11px; margin: 0; border: none;
+        }
+        QScrollBar::handle:horizontal {
+            background: #45596a; border-radius: 5px; min-width: 28px;
+        }
+        QScrollBar::handle:horizontal:hover { background: #51b4d2; }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            width: 0; background: none; border: none;
+        }
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
+    )");
+
+           // Not in any layout until a file is opened; hide so it doesn't float
+           // in the window corner.
+    tree_view->hide();
+
+    tree_view->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tree_view, &QWidget::customContextMenuRequested,
+            this, &MainWindow::ShowTreeContextMenu);
+
+           // Editing through the delegate changes the model. Snapshot the tree
+           // before each edit (via the last committed state) so undo works, and
+           // keep the per-file cache and dirty-tracking in sync.
+    connect(tree_model, &QAbstractItemModel::dataChanged, this,
+            [this](const QModelIndex &, const QModelIndex &, const QList<int> &) {
+                if (applying_snapshot_)
+                    return;
+                PushUndoCommand(tr("Edit"), last_committed_tree_);
+                last_committed_tree_ = tree_model->ToYamlNode();
+                nodes.insert(ui->fileNamecmb->currentText(), last_committed_tree_);
+                Displaykeys(last_committed_tree_);
+            });
+
 
     InitLogPanel();
     InitUndoStack();
@@ -115,32 +201,56 @@ void MainWindow::InitUndoStack()
 
 void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
 {
-
-    const YamlNode after = root;
-    undo_stack->push(new YamlSnapshotCommand(
-        text, before, after, [this](const YamlNode &snapshot) { ApplySnapshot(snapshot); }));
+    const YamlNode after = tree_model->ToYamlNode();
+    undo_stack->push(new YamlSnapshotCommand(text, before, after, [this](const YamlNode &snapshot) {
+        applying_snapshot_ = true;
+        SaveExpandedState();
+        tree_model->SetRoot(snapshot);
+        RestoreExpandedState();
+        last_committed_tree_ = snapshot;
+        nodes.insert(ui->fileNamecmb->currentText(), snapshot);
+        Displaykeys(snapshot);
+        applying_snapshot_ = false;
+    }));
 }
 
-void MainWindow::ApplySnapshot(const YamlNode &snapshot)
+void MainWindow::SaveExpandedState()
 {
-
-    applying_snapshot_ = true;
-
-    if (QWidget *focused = QApplication::focusWidget())
-        focused->clearFocus();
-
-    root = snapshot;
-    nodes.insert(ui->fileNamecmb->currentText(), root);
-
-    if (rebuild_scheduled_)
+    expanded_paths.clear();
+    if (!tree_view || !tree_model)
         return;
-    rebuild_scheduled_ = true;
 
-    QTimer::singleShot(0, this, [this]() {
-        RefreshCurrentTree();
-        rebuild_scheduled_ = false;
-        applying_snapshot_ = false;
-    });
+    std::function<void(const QModelIndex &)> walk = [&](const QModelIndex &parent) {
+        const int rows = tree_model->rowCount(parent);
+        for (int r = 0; r < rows; ++r) {
+            const QModelIndex idx = tree_model->index(r, 0, parent);
+            if (tree_view->isExpanded(idx)) {
+                const QString path = tree_model->data(idx, YamlTreeModel::PathRole).toString();
+                if (!path.isEmpty())
+                    expanded_paths.insert(path);
+            }
+            walk(idx);
+        }
+    };
+    walk(QModelIndex());
+}
+
+void MainWindow::RestoreExpandedState()
+{
+    if (!tree_view || !tree_model)
+        return;
+
+    std::function<void(const QModelIndex &)> walk = [&](const QModelIndex &parent) {
+        const int rows = tree_model->rowCount(parent);
+        for (int r = 0; r < rows; ++r) {
+            const QModelIndex idx = tree_model->index(r, 0, parent);
+            const QString path = tree_model->data(idx, YamlTreeModel::PathRole).toString();
+            if (expanded_paths.contains(path))
+                tree_view->expand(idx);
+            walk(idx);
+        }
+    };
+    walk(QModelIndex());
 }
 
 void MainWindow::SlotUndo()
@@ -240,7 +350,7 @@ void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
 {
     ui->fileNamecmb->setCurrentIndex(index);
 
-    if (undo_stack && !undo_stack->isClean() && !root.children.isEmpty()) {
+    if (undo_stack && !undo_stack->isClean() && tree_model->rowCount() > 0) {
         const auto reply = QMessageBox::question(this,
                                                  tr("Save File"),
                                                  tr("Do you want to save the file?"),
@@ -272,7 +382,7 @@ void MainWindow::SaveData(const QString &fileName)
 
     self_saved_paths_.insert(abs_path);
 
-    yaml_reader->SaveValues(root, full_path);
+    yaml_reader->SaveValues(tree_model->ToYamlNode(), full_path);
     yandex_api->UploadFile(full_path, [](bool) {});
     undo_stack->setClean();
 
@@ -296,8 +406,11 @@ bool MainWindow::CheckOpenTab(const QString &file)
     if (existing_tab_index == -1)
         return false;
 
-    root = nodes.value(file);
-    Displaykeys(root);
+    if (nodes.contains(file))
+        tree_model->SetRoot(nodes.value(file));
+    last_committed_tree_ = tree_model->ToYamlNode();
+    Displaykeys(tree_model->ToYamlNode());
+    ShowTreeInTab(file);
     ui->tabWidget->setCurrentIndex(existing_tab_index);
     return true;
 }
@@ -319,27 +432,6 @@ void MainWindow::CloseTab(int index)
     QWidget *tab = ui->tabWidget->widget(index);
     ui->tabWidget->removeTab(index);
     delete tab;
-}
-
-void MainWindow::DisplayYamlData()
-{
-    root = yaml_reader->GetRootNode();
-    Displaykeys(root);
-
-    QWidget *new_tab = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(new_tab);
-
-    ClearTreeWidget();
-
-    static const QRegularExpression kNoRegex;
-    for (const YamlNode &node : root.children)
-        DisplayTreeNode(node, "", "", nullptr, tree_widget, kNoRegex, false);
-
-    layout->addWidget(tree_widget);
-    new_tab->setLayout(layout);
-
-    ui->tabWidget->addTab(new_tab, ui->fileNamecmb->currentText());
-    ui->tabWidget->setCurrentWidget(new_tab);
 }
 
 int MainWindow::FindTabByName(const QString &fileName) const
@@ -370,47 +462,23 @@ void MainWindow::ReadFile()
     const QString file_path = file_local_system->GetFilePath(file_name);
 
     if (!CheckOpenTab(file_name)) {
-        if (yaml_reader->ReadFile(file_path))
+        if (yaml_reader->ReadFile(file_path)) {
+            tree_model->SetRoot(yaml_reader->GetRootNode());
             DisplayYamlData();
+            Displaykeys(tree_model->ToYamlNode());
+        }
     }
 
-    nodes.insert(file_name, root);
+    nodes.insert(file_name, tree_model->ToYamlNode());
     check_box_states_nodes.insert(file_name, check_box_states);
+
+    last_committed_tree_ = tree_model->ToYamlNode();
 
     if (undo_stack) {
         undo_stack->clear();
         undo_stack->setClean();
     }
     value_edit_active_ = false;
-}
-
-void MainWindow::RefreshCurrentTree()
-{
-    SaveExpandedState();
-
-    QWidget *current_tab = ui->tabWidget->currentWidget();
-    if (!current_tab)
-        return;
-
-    if (QLayout *layout = current_tab->layout()) {
-        QLayoutItem *item;
-        while ((item = layout->takeAt(0)) != nullptr) {
-            delete item->widget();
-            delete item;
-        }
-    }
-
-    Displaykeys(root);
-    ClearTreeWidget();
-
-    static const QRegularExpression kNoRegex;
-    for (const YamlNode &node : root.children)
-        DisplayTreeNode(node, "", "", nullptr, tree_widget, kNoRegex, false);
-
-    RestoreExpandedState();
-    current_tab->layout()->addWidget(tree_widget);
-
-    nodes.insert(ui->fileNamecmb->currentText(), root);
 }
 
 void MainWindow::SlotShortcutCtrlF()
@@ -467,6 +535,41 @@ void MainWindow::SlotShortcutCtrlR()
     replace_wnd->show();
 }
 
+void MainWindow::DisplayYamlData()
+{
+    const QString file_name = ui->fileNamecmb->currentText();
+
+    QWidget *tab = new QWidget();
+    new QVBoxLayout(tab);
+    ui->tabWidget->addTab(tab, file_name);
+    ui->tabWidget->setCurrentWidget(tab);
+
+    ShowTreeInTab(file_name);
+}
+
+void MainWindow::ShowTreeInTab(const QString &fileName)
+{
+    const int index = FindTabByName(fileName);
+    if (index == -1)
+        return;
+
+    QWidget *tab = ui->tabWidget->widget(index);
+    if (!tab)
+        return;
+
+    QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(tab->layout());
+    if (!layout)
+        layout = new QVBoxLayout(tab);
+
+           // A single QTreeView is reused across tabs: reparent it into the
+           // active tab's layout. The model is swapped to the tab's document
+           // in on_tabWidget_currentChanged / ReadFile.
+    if (tree_view->parentWidget() != tab) {
+        layout->addWidget(tree_view);
+        tree_view->show();
+    }
+}
+
 void MainWindow::Displaykeys(const YamlNode &root)
 {
     ClearKeysArea();
@@ -489,7 +592,10 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    RefreshCurrentTree();
+    // "Display" refreshes the key checkboxes and expands the tree; it must
+    // not reset the model from the reader (that would drop current edits).
+    Displaykeys(tree_model->ToYamlNode());
+    tree_view->expandAll();
 }
 
 void MainWindow::onCheckBoxStateChanged(int state)
@@ -498,258 +604,48 @@ void MainWindow::onCheckBoxStateChanged(int state)
         check_box_states[check_box->text()] = (state == Qt::Checked);
 }
 
-void MainWindow::BeginValueEdit()
-{
-    if (applying_snapshot_)
-        return;
-
-    if (!value_edit_active_) {
-        value_edit_before_ = root;
-        value_edit_active_ = true;
-    }
-}
-
-void MainWindow::CommitValueEdit()
-{
-    if (applying_snapshot_) {
-        value_edit_active_ = false;
-        return;
-    }
-
-    if (value_edit_active_ && root != value_edit_before_) {
-        PushUndoCommand(tr("Edit value"), value_edit_before_);
-    }
-    value_edit_active_ = false;
-}
-
-QString MainWindow::UpdateValue(const QString &path, const QString &newValue, bool isKey)
-{
-    BeginValueEdit();
-
-    const QStringList parts = path.split('.');
-
-    if (isKey) {
-        YamlNode *parent = &root;
-        for (int i = 0; i < parts.size() - 1; ++i) {
-            YamlNode *next = nullptr;
-            for (YamlNode &child : parent->children) {
-                if (child.key == parts[i]) {
-                    next = &child;
-                    break;
-                }
-            }
-            if (!next)
-                return path;
-            parent = next;
-        }
-
-        const QString last = parts.isEmpty() ? QString() : parts.last();
-        for (YamlNode &child : parent->children) {
-            if (child.key == last) {
-                child.key = newValue;
-                break;
-            }
-        }
-
-        nodes.insert(ui->fileNamecmb->currentText(), root);
-
-        QStringList new_parts = parts;
-        if (!new_parts.isEmpty())
-            new_parts.last() = newValue;
-        return new_parts.join('.');
-    }
-
-    YamlNode *current_node = &root;
-    for (const QString &key : parts) {
-        YamlNode *next = nullptr;
-        for (YamlNode &child : current_node->children) {
-            if (child.key == key) {
-                next = &child;
-                break;
-            }
-        }
-        if (!next)
-            return path;
-        current_node = next;
-    }
-
-    current_node->value = newValue;
-    nodes.insert(ui->fileNamecmb->currentText(), root);
-    return path;
-}
-
-void MainWindow::ValidateField(QLineEdit *edit, const QString &text, bool isKey)
-{
-    if (!edit)
-        return;
-
-    const YamlValidator::Result result =
-        isKey ? YamlValidator::validateKey(text) : YamlValidator::validateValue(text);
-
-    const QString base = isKey ? "QLineEdit { border: none; background: transparent; "
-                                 "font-size: 16px; color: #7aa2ff; }"
-                               : "QLineEdit { border: none; background: transparent; "
-                                 "font-size: 14px; color: #e6e6e6; }";
-
-    if (result.ok) {
-        edit->setStyleSheet(base);
-        edit->setToolTip(QString());
-        invalid_fields_.remove(edit);
-    } else {
-        const QString color = isKey ? "#7aa2ff" : "#e6e6e6";
-        const int font = isKey ? 16 : 14;
-        edit->setStyleSheet(QString("QLineEdit { border: 1px solid #e06c6c; border-radius: 4px; "
-                                    "background: #3a2b2b; font-size: %1px; color: %2; }")
-                                .arg(font)
-                                .arg(color));
-        edit->setToolTip(result.message);
-        invalid_fields_.insert(edit);
-    }
-}
-
 void MainWindow::HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey)
 {
-    const YamlNode before = root;
-
-    if (isKey)
-        root.AddValueToKey(path, newValue);
-    else
-        root.AddKeyWithValue(path, newValue);
-
-    PushUndoCommand(tr("Add %1").arg(isKey ? tr("value") : tr("key")), before);
+    Q_UNUSED(path);
+    Q_UNUSED(newValue);
+    Q_UNUSED(isKey);
 }
 
 void MainWindow::HandleDeleteElement(const QString &path, bool isKey)
 {
-    const YamlNode before = root;
-
-    if (isKey)
-        root.RemoveKey(path);
-    else
-        root.RemoveValue(path);
-
-    PushUndoCommand(tr("Delete %1").arg(isKey ? tr("value") : tr("key")), before);
+    Q_UNUSED(path);
+    Q_UNUSED(isKey);
 }
 
-void MainWindow::DisplayTreeNode(const YamlNode &node,
-                                 const QString &parentPath,
-                                 const QString &searchText,
-                                 QTreeWidgetItem *parentItem,
-                                 QTreeWidget *treeWidget,
-                                 const QRegularExpression &regex,
-                                 bool useRegex)
+void MainWindow::ShowTreeContextMenu(const QPoint &pos)
 {
-    if (check_box_states.contains(node.key) && !check_box_states[node.key])
+    const QModelIndex index = tree_view->indexAt(pos);
+
+    QMenu menu(this);
+    QAction *add_child = menu.addAction(tr("Add child"));
+    QAction *remove = index.isValid() ? menu.addAction(tr("Delete")) : nullptr;
+
+    QAction *chosen = menu.exec(tree_view->viewport()->mapToGlobal(pos));
+    if (!chosen)
         return;
 
-    const QString currentPath = parentPath.isEmpty() ? node.key : parentPath + "." + node.key;
+    const YamlNode before = tree_model->ToYamlNode();
 
-    QTreeWidgetItem *tree_item = new QTreeWidgetItem();
-    tree_item->setData(0, Qt::UserRole, currentPath);
-
-    if (expanded_paths.contains(currentPath))
-        tree_item->setExpanded(true);
-
-    if (parentItem)
-        parentItem->addChild(tree_item);
-    else
-        treeWidget->addTopLevelItem(tree_item);
-
-    CustomLineEdit *key_txt = new CustomLineEdit(this, currentPath, true);
-    if (node.key.isEmpty()) {
-        key_txt->setText("-");
-        key_txt->setReadOnly(true);
+    if (chosen == add_child) {
+        const QModelIndex parent = index.isValid() ? index.siblingAtColumn(0) : QModelIndex();
+        tree_model->AddChild(parent, tr("new_key"), QString());
+        if (parent.isValid())
+            tree_view->expand(parent);
+    } else if (remove && chosen == remove) {
+        tree_model->RemoveNode(index.siblingAtColumn(0));
     } else {
-        key_txt->setText(node.key);
-    }
-    key_txt->setStyleSheet("QLineEdit { border: none; background: transparent; "
-                           "font-size: 16px; color: #7aa2ff; }");
-    treeWidget->setItemWidget(tree_item, 0, key_txt);
-
-    connect(key_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
-    connect(key_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
-    connect(key_txt, &QLineEdit::textChanged, this,
-            [this, key_txt](const QString &newValue) {
-                const QString new_path = UpdateValue(key_txt->GetCurrentPath(), newValue, true);
-                key_txt->SetCurrentPath(new_path);
-                if (!key_txt->isReadOnly())
-                    ValidateField(key_txt, newValue, true);
-            });
-    connect(key_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
-
-    if (!key_txt->isReadOnly())
-        ValidateField(key_txt, key_txt->text(), true);
-
-    bool key_matches = false;
-    bool value_matches = false;
-    if (useRegex) {
-        key_matches = regex.match(node.key).hasMatch();
-        value_matches = regex.match(node.value).hasMatch();
-    } else {
-        key_matches = node.key.contains(searchText, cs);
-        value_matches = node.value.contains(searchText, cs);
-    }
-
-    if (!searchText.isEmpty() && key_matches)
-        found_widgets.append(key_txt);
-
-    if (!node.value.isEmpty() || node.children.isEmpty()) {
-        CustomLineEdit *value_txt = new CustomLineEdit(this, currentPath, false);
-        value_txt->setText(node.value);
-        value_txt->setStyleSheet("QLineEdit { border: none; background: transparent; "
-                                 "font-size: 14px; color: #e6e6e6; }");
-        treeWidget->setItemWidget(tree_item, 1, value_txt);
-
-        connect(value_txt, &CustomLineEdit::AddKeyValue, this, &MainWindow::HandleAddKeyValue);
-        connect(value_txt, &CustomLineEdit::DeleteElement, this, &MainWindow::HandleDeleteElement);
-        connect(value_txt, &QLineEdit::textChanged, this,
-                [this, value_txt](const QString &newValue) {
-                    UpdateValue(value_txt->GetCurrentPath(), newValue, false);
-                    ValidateField(value_txt, newValue, false);
-                });
-        connect(value_txt, &QLineEdit::editingFinished, this, [this]() { CommitValueEdit(); });
-
-        ValidateField(value_txt, value_txt->text(), false);
-
-        if (!searchText.isEmpty() && value_matches)
-            found_widgets.append(value_txt);
-    }
-
-    for (const YamlNode &child : node.children)
-        DisplayTreeNode(child, currentPath, searchText, tree_item, treeWidget, regex, useRegex);
-}
-
-void MainWindow::RestoreExpandedState()
-{
-    if (!tree_widget)
         return;
-
-    QTreeWidgetItemIterator it(tree_widget);
-    while (*it) {
-        QTreeWidgetItem *item = *it;
-        const QString path = item->data(0, Qt::UserRole).toString();
-        if (expanded_paths.contains(path))
-            item->setExpanded(true);
-        ++it;
     }
-}
 
-void MainWindow::SaveExpandedState()
-{
-    expanded_paths.clear();
-    if (!tree_widget)
-        return;
-
-    QTreeWidgetItemIterator it(tree_widget);
-    while (*it) {
-        QTreeWidgetItem *item = *it;
-        if (item->isExpanded()) {
-            const QString path = item->data(0, Qt::UserRole).toString();
-            if (!path.isEmpty())
-                expanded_paths.insert(path);
-        }
-        ++it;
-    }
+    PushUndoCommand(tr("Structure change"), before);
+    last_committed_tree_ = tree_model->ToYamlNode();
+    nodes.insert(ui->fileNamecmb->currentText(), last_committed_tree_);
+    Displaykeys(last_committed_tree_);
 }
 
 void MainWindow::CreateCheckBox(const QString &name)
@@ -813,83 +709,7 @@ void MainWindow::ClearKeysArea()
     }
 }
 
-void MainWindow::ClearTreeWidget()
-{
 
-    invalid_fields_.clear();
-
-    tree_widget = new QTreeWidget(this);
-    tree_widget->setColumnCount(2);
-    tree_widget->setHeaderLabels(QStringList{tr("Key"), tr("Value")});
-    tree_widget->setColumnWidth(0, 280);
-    tree_widget->setMinimumHeight(200);
-    tree_widget->setRootIsDecorated(true);
-    tree_widget->setIndentation(20);
-    tree_widget->setAlternatingRowColors(true);
-
-    tree_widget->setStyleSheet(R"(
-        QTreeWidget {
-            background-color: #2f2f2f;
-            border: none;
-            outline: 0;
-            font-size: 14px;
-            alternate-background-color: #333333;
-        }
-        QTreeView::item {
-            min-height: 30px;
-            padding: 3px 6px;
-            border-bottom: 1px solid #3a3a3a;
-            color: #e6e6e6;
-        }
-        QTreeView::item:hover { background-color: #3f3f3f; }
-        QTreeView::item:selected { background-color: #33405c; }
-        QHeaderView::section {
-            background-color: #262626;
-            color: #9a9a93;
-            padding: 8px 10px;
-            border: none;
-            font-weight: 500;
-        }
-        QTreeView { show-decoration-selected: 1; }
-        QScrollBar:vertical {
-            background: #262626; width: 11px; margin: 0; border: none;
-        }
-        QScrollBar::handle:vertical {
-            background: #45596a; border-radius: 5px; min-height: 28px;
-        }
-        QScrollBar::handle:vertical:hover { background: #51b4d2; }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            height: 0; background: none; border: none;
-        }
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
-        QScrollBar:horizontal {
-            background: #262626; height: 11px; margin: 0; border: none;
-        }
-        QScrollBar::handle:horizontal {
-            background: #45596a; border-radius: 5px; min-width: 28px;
-        }
-        QScrollBar::handle:horizontal:hover { background: #51b4d2; }
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            width: 0; background: none; border: none;
-        }
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
-    )");
-}
-
-void MainWindow::ClearTabWidget(QWidget *tab)
-{
-    if (!tab)
-        return;
-
-    if (QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(tab->layout())) {
-        QLayoutItem *item;
-        while ((item = layout->takeAt(0)) != nullptr) {
-            delete item->widget();
-            delete item;
-        }
-        layout->addWidget(tree_widget);
-    }
-}
 
 void MainWindow::RemoveTab(const QString &tabText)
 {
@@ -910,21 +730,62 @@ bool MainWindow::BuildRegex(const QString &text, bool isSensitive, QRegularExpre
 
 void MainWindow::RunSearch(const QString &text, bool useRegex, bool resetSelection)
 {
-    ClearTreeWidget();
-    found_widgets.clear();
+    found_indexes_.clear();
     current_found_index = -1;
     starting_index = -1;
-    previous_widget = nullptr;
 
-    for (const YamlNode &node : root.children)
-        DisplayTreeNode(node, "", text, nullptr, tree_widget, searching_regex, useRegex);
+    if (!text.isEmpty())
+        CollectMatches(QModelIndex(), text, useRegex);
 
-    ClearTabWidget(ui->tabWidget->currentWidget());
-
-    if (!found_widgets.isEmpty()) {
-        current_found_index = resetSelection ? 0 : found_widgets.size() - 1;
-        HighlightCurrentFound();
+    if (!found_indexes_.isEmpty()) {
+        current_found_index = resetSelection ? 0 : found_indexes_.size() - 1;
+        SelectMatch(current_found_index);
+    } else {
+        QMessageBox::information(this, tr("Search"),
+                                 tr("Can't find it ") + text + "\n");
     }
+}
+
+void MainWindow::CollectMatches(const QModelIndex &parent, const QString &text, bool useRegex)
+{
+    const int rows = tree_model->rowCount(parent);
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < tree_model->columnCount(parent); ++c) {
+            const QModelIndex idx = tree_model->index(r, c, parent);
+            const QString cell = tree_model->data(idx, Qt::DisplayRole).toString();
+
+            bool match = false;
+            if (useRegex)
+                match = searching_regex.match(cell).hasMatch();
+            else
+                match = !cell.isEmpty() && cell.contains(text, cs);
+
+            if (match)
+                found_indexes_.append(idx);
+        }
+        // Recurse into children (column 0 index is the parent for rows).
+        const QModelIndex child_parent = tree_model->index(r, 0, parent);
+        CollectMatches(child_parent, text, useRegex);
+    }
+}
+
+void MainWindow::SelectMatch(int index)
+{
+    if (index < 0 || index >= found_indexes_.size())
+        return;
+
+    const QModelIndex idx = found_indexes_[index];
+    if (!idx.isValid())
+        return;
+
+           // Expand ancestors so the match is visible, then select and scroll.
+    QModelIndex p = idx.parent();
+    while (p.isValid()) {
+        tree_view->expand(p);
+        p = p.parent();
+    }
+    tree_view->setCurrentIndex(idx);
+    tree_view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
 }
 
 void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex)
@@ -951,13 +812,13 @@ void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDow
     if (starting_index == -1)
         starting_index = current_found_index;
 
-    if (found_widgets.isEmpty())
+    if (found_indexes_.isEmpty())
         return;
 
     if (isDownward)
-        current_found_index = (current_found_index + 1) % found_widgets.size();
+        current_found_index = (current_found_index + 1) % found_indexes_.size();
     else
-        current_found_index = (current_found_index - 1 + found_widgets.size()) % found_widgets.size();
+        current_found_index = (current_found_index - 1 + found_indexes_.size()) % found_indexes_.size();
 
     if (current_found_index == starting_index) {
         QMessageBox::information(this, tr("Search"), tr("Reached the end of the search results."));
@@ -965,7 +826,7 @@ void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDow
         return;
     }
 
-    HighlightCurrentFound();
+    SelectMatch(current_found_index);
 }
 
 void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool useRegex)
@@ -992,16 +853,16 @@ void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool u
     if (starting_index == -1)
         starting_index = current_found_index;
 
-    if (found_widgets.isEmpty())
+    if (found_indexes_.isEmpty())
         return;
 
-    current_found_index = (current_found_index + 1) % found_widgets.size();
+    current_found_index = (current_found_index + 1) % found_indexes_.size();
     if (current_found_index == starting_index) {
         starting_index = -1;
         return;
     }
 
-    HighlightCurrentFound();
+    SelectMatch(current_found_index);
 }
 
 void MainWindow::ReplaceText(const QString &findText,
@@ -1012,75 +873,28 @@ void MainWindow::ReplaceText(const QString &findText,
     SearchReplaceText(findText, cs == Qt::CaseSensitive, useRegex);
 
     if (allText) {
-        for (QWidget *widget : std::as_const(found_widgets))
-            ReplaceInWidget(widget, findText, replaceText, useRegex);
+        for (const QModelIndex &idx : std::as_const(found_indexes_))
+            ReplaceInIndex(idx, findText, replaceText, useRegex);
         searching_text.clear();
-    } else if (current_found_index >= 0 && current_found_index < found_widgets.size()) {
-        ReplaceInWidget(found_widgets[current_found_index], findText, replaceText, useRegex);
+    } else if (current_found_index >= 0 && current_found_index < found_indexes_.size()) {
+        ReplaceInIndex(found_indexes_[current_found_index], findText, replaceText, useRegex);
     }
 }
 
-void MainWindow::HighlightCurrentFound()
+void MainWindow::ReplaceInIndex(const QModelIndex &index,
+                                const QString &findText,
+                                const QString &replaceText,
+                                bool useRegex)
 {
-    if (current_found_index < 0 || current_found_index >= found_widgets.size()) {
-        QMessageBox::information(this, tr("Editor"), tr("Can't find it ") + searching_text + "\n");
+    if (!index.isValid())
         return;
-    }
 
-    QWidget *current_widget = found_widgets[current_found_index];
-    if (!current_widget) {
-        qWarning() << "Current widget is null!";
-        return;
-    }
-
-    if (previous_widget)
-        previous_widget->setStyleSheet(previous_widget_original_style_sheet);
-
-    QString current_style_sheet = current_widget->styleSheet();
-    previous_widget = current_widget;
-    previous_widget_original_style_sheet = current_style_sheet;
-
-    static const QRegularExpression color_regex("color:\\s*[^;]+;");
-    const QString newColor = "color: blue;";
-    if (color_regex.match(current_style_sheet).hasMatch())
-        current_style_sheet.replace(color_regex, newColor);
+    QString text = tree_model->data(index, Qt::EditRole).toString();
+    if (useRegex)
+        text.replace(searching_regex, replaceText);
     else
-        current_style_sheet += " " + newColor;
-
-    current_widget->setStyleSheet(current_style_sheet);
-    ScrollIntoView(current_widget);
-}
-
-void MainWindow::ScrollIntoView(QWidget *widget)
-{
-    QTreeWidgetItemIterator it(tree_widget);
-    while (*it) {
-        QTreeWidgetItem *item = *it;
-        if (tree_widget->itemWidget(item, 0) == widget
-            || tree_widget->itemWidget(item, 1) == widget) {
-            tree_widget->scrollToItem(item, QAbstractItemView::PositionAtCenter);
-            return;
-        }
-        ++it;
-    }
-}
-
-void MainWindow::ReplaceInWidget(QWidget *widget,
-                                 const QString &findText,
-                                 const QString &replaceText,
-                                 bool useRegex)
-{
-    if (!widget)
-        return;
-
-    if (QLineEdit *line_edit = qobject_cast<QLineEdit *>(widget)) {
-        QString text = line_edit->text();
-        if (useRegex)
-            text.replace(searching_regex, replaceText);
-        else
-            text.replace(findText, replaceText, cs);
-        line_edit->setText(text);
-    }
+        text.replace(findText, replaceText, cs);
+    tree_model->setData(index, text, Qt::EditRole);
 }
 
 void MainWindow::WatchFile(const QString &path)
@@ -1159,9 +973,9 @@ void MainWindow::ReloadFileFromDisk(const QString &file_name)
     nodes.insert(file_name, reloaded);
 
     if (file_name == ui->fileNamecmb->currentText()) {
-        root = reloaded;
-        Displaykeys(root);
-        RefreshCurrentTree();
+        tree_model->SetRoot(reloaded);
+        last_committed_tree_ = reloaded;
+        Displaykeys(reloaded);
         if (undo_stack) {
             undo_stack->clear();
             undo_stack->setClean();
@@ -1184,7 +998,10 @@ bool MainWindow::IsFileDirty(const QString &file_name) const
     if (!disk_reader.ReadFile(path))
         return true;
 
-    return nodes.value(file_name) != disk_reader.GetRootNode();
+    const YamlNode current = (file_name == ui->fileNamecmb->currentText())
+                                 ? tree_model->ToYamlNode()
+                                 : nodes.value(file_name);
+    return current != disk_reader.GetRootNode();
 }
 
 QStringList MainWindow::UnsavedFiles() const
@@ -1246,17 +1063,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 log_panel->logWarning(tr("Skipped %1 (invalid)").arg(file_name));
                 continue;
             }
-            root = nodes.value(file_name);
+            const YamlNode tree =
+                (file_name == active) ? tree_model->ToYamlNode() : nodes.value(file_name);
             const QString full_path = file_local_system->GetFilePath(file_name);
             const QString abs_path = QFileInfo(full_path).absoluteFilePath();
             self_saved_paths_.insert(abs_path);
-            yaml_reader->SaveValues(root, full_path);
+            yaml_reader->SaveValues(tree, full_path);
             yandex_api->UploadFile(full_path, [](bool) {});
             log_panel->logInfo(tr("Saved %1 on exit").arg(file_name));
         }
-
-        if (nodes.contains(active))
-            root = nodes.value(active);
     }
 
     event->accept();
@@ -1339,9 +1154,11 @@ void MainWindow::on_tabWidget_currentChanged(int index)
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
 
     if (nodes.contains(file_name)) {
-        root = nodes.value(file_name);
+        tree_model->SetRoot(nodes.value(file_name));
+        last_committed_tree_ = tree_model->ToYamlNode();
         check_box_states = check_box_states_nodes.value(file_name);
-        Displaykeys(root);
+        Displaykeys(tree_model->ToYamlNode());
+        ShowTreeInTab(file_name);
 
         if (undo_stack) {
             undo_stack->clear();

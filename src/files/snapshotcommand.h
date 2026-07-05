@@ -24,12 +24,20 @@ public:
     {}
 
     void undo() override { apply_(before_); }
-    void redo() override { apply_(after_); }
+    void redo() override
+    {
+        if (first_redo_) {
+            first_redo_ = false;
+            return;
+        }
+        apply_(after_);
+    }
 
 private:
     YamlNode before_;
     YamlNode after_;
     ApplyFn apply_;
+    bool first_redo_ = true;
 };
 
 #endif // SNAPSHOTCOMMAND_H
