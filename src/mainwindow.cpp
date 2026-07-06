@@ -12,6 +12,8 @@
 #include <QLineEdit>
 #include <QListView>
 #include <QMenu>
+#include <QMenuBar>
+#include <QAction>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QTimer>
@@ -31,7 +33,11 @@
 #include "files/snapshotcommand.h"
 #include "files/yaml/yamlitemdelegate.h"
 #include "files/yaml/yamlreader.h"
-#include "files/yaml/yamltreemodel.h"#include "files/yaml/yamlvalidator.h"
+#include "files/yaml/yamltreemodel.h"
+#include "files/yaml/yamlvalidator.h"
+#include "controller/searchcontroller.h"
+#include "controller/filewatchservice.h"
+#include "customWidget/connectdialog.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
 
@@ -101,24 +107,19 @@ MainWindow::MainWindow(QWidget *parent)
         QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
     )");
 
-           // Not in any layout until a file is opened; hide so it doesn't float
-           // in the window corner.
     tree_view->hide();
 
     tree_view->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(tree_view, &QWidget::customContextMenuRequested,
             this, &MainWindow::ShowTreeContextMenu);
 
-           // Editing through the delegate changes the model. Snapshot the tree
-           // before each edit (via the last committed state) so undo works, and
-           // keep the per-file cache and dirty-tracking in sync.
     connect(tree_model, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex &, const QModelIndex &, const QList<int> &) {
                 if (applying_snapshot_)
                     return;
                 PushUndoCommand(tr("Edit"), last_committed_tree_);
                 last_committed_tree_ = tree_model->ToYamlNode();
-                nodes.insert(ui->fileNamecmb->currentText(), last_committed_tree_);
+                doc_store.set(ui->fileNamecmb->currentText(), last_committed_tree_);
                 Displaykeys(last_committed_tree_);
             });
 
@@ -127,6 +128,13 @@ MainWindow::MainWindow(QWidget *parent)
     InitUndoStack();
     InitKeysLayout();
 
+    search_controller = new SearchController(this);
+    search_controller->setTargets(tree_model, tree_view);
+    connect(search_controller, &SearchController::info, this,
+            [this](const QString &msg) { QMessageBox::information(this, tr("Search"), msg); });
+    connect(search_controller, &SearchController::warning, this,
+            [this](const QString &msg) { QMessageBox::warning(this, tr("Search"), msg); });
+
     file_local_system = std::make_unique<FileSystem>(QDir::currentPath() + "/ymlFiles");
     yandex_api = std::make_unique<YandexApi>();
     yaml_reader = std::make_unique<YamlReader>();
@@ -134,6 +142,7 @@ MainWindow::MainWindow(QWidget *parent)
     ConnectServices();
     ConnectShortCut();
     InitLanguageCmb();
+    InitAccountMenu();
 
     yandex_api->GetFiles();
 }
@@ -208,7 +217,7 @@ void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
         tree_model->SetRoot(snapshot);
         RestoreExpandedState();
         last_committed_tree_ = snapshot;
-        nodes.insert(ui->fileNamecmb->currentText(), snapshot);
+        doc_store.set(ui->fileNamecmb->currentText(), snapshot);
         Displaykeys(snapshot);
         applying_snapshot_ = false;
     }));
@@ -287,12 +296,14 @@ void MainWindow::ConnectServices()
     });
     connect(yandex_api.get(), &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
-    file_watcher = std::make_unique<QFileSystemWatcher>();
-    file_watcher->addPath(QDir::currentPath() + "/ymlFiles");
-    connect(file_watcher.get(), &QFileSystemWatcher::directoryChanged,
-            this, &MainWindow::OnFolderChanged);
-    connect(file_watcher.get(), &QFileSystemWatcher::fileChanged,
-            this, &MainWindow::OnFileChangedOnDisk);
+    file_watch = new FileWatchService(this);
+    file_watch->watchFolder(QDir::currentPath() + "/ymlFiles");
+    connect(file_watch, &FileWatchService::folderChanged, this, &MainWindow::OnFolderChanged);
+    connect(file_watch, &FileWatchService::fileModified, this, &MainWindow::OnFileModified);
+    connect(file_watch, &FileWatchService::fileRemoved, this,
+            [this](const QString &fileName, const QString &) {
+                log_panel->logWarning(tr("File removed on disk: %1").arg(fileName));
+            });
 
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
     ui->fileNamecmb->setView(new QListView(ui->fileNamecmb));
@@ -330,6 +341,28 @@ void MainWindow::InitLanguageCmb()
     connect(ui->langCombo, &QComboBox::currentIndexChanged, this, [this](int) {
         switchLanguage(ui->langCombo->currentData().toString());
     });
+}
+
+void MainWindow::InitAccountMenu()
+{
+    if (!menuBar())
+        return;
+
+    QMenu *account_menu = menuBar()->addMenu(tr("Account"));
+    QAction *connect_action = account_menu->addAction(tr("Connect Yandex Disk..."));
+    connect(connect_action, &QAction::triggered, this, &MainWindow::openConnectDialog);
+}
+
+void MainWindow::openConnectDialog()
+{
+    ConnectDialog dialog(&token_store, this);
+    connect(&dialog, &ConnectDialog::tokenSaved, this, [this]() {
+        if (yandex_api) {
+            yandex_api->reloadToken();
+            log_panel->logInfo(tr("Yandex Disk token updated"));
+        }
+    });
+    dialog.exec();
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -380,13 +413,13 @@ void MainWindow::SaveData(const QString &fileName)
     const QString full_path = file_local_system->GetFilePath(fileName);
     const QString abs_path = QFileInfo(full_path).absoluteFilePath();
 
-    self_saved_paths_.insert(abs_path);
+    file_watch->markSelfSaved(abs_path);
 
     yaml_reader->SaveValues(tree_model->ToYamlNode(), full_path);
     yandex_api->UploadFile(full_path, [](bool) {});
     undo_stack->setClean();
 
-    WatchFile(abs_path);
+    file_watch->watchFile(abs_path);
 }
 
 void MainWindow::UploadFileOnCmb(const QString &file)
@@ -406,8 +439,8 @@ bool MainWindow::CheckOpenTab(const QString &file)
     if (existing_tab_index == -1)
         return false;
 
-    if (nodes.contains(file))
-        tree_model->SetRoot(nodes.value(file));
+    if (doc_store.contains(file))
+        tree_model->SetRoot(doc_store.get(file));
     last_committed_tree_ = tree_model->ToYamlNode();
     Displaykeys(tree_model->ToYamlNode());
     ShowTreeInTab(file);
@@ -423,10 +456,10 @@ void MainWindow::CloseTab(int index)
     const QString file_name = ui->tabWidget->tabText(index);
     SaveData(file_name);
 
-    UnwatchFile(file_local_system->GetFilePath(file_name));
+    file_watch->unwatchFile(file_local_system->GetFilePath(file_name));
 
     check_box_states_nodes.remove(file_name);
-    nodes.remove(file_name);
+    doc_store.remove(file_name);
     check_box_states.clear();
 
     QWidget *tab = ui->tabWidget->widget(index);
@@ -469,7 +502,7 @@ void MainWindow::ReadFile()
         }
     }
 
-    nodes.insert(file_name, tree_model->ToYamlNode());
+    doc_store.set(file_name, tree_model->ToYamlNode());
     check_box_states_nodes.insert(file_name, check_box_states);
 
     last_committed_tree_ = tree_model->ToYamlNode();
@@ -479,6 +512,8 @@ void MainWindow::ReadFile()
         undo_stack->setClean();
     }
     value_edit_active_ = false;
+    if (search_controller)
+        search_controller->reset();
 }
 
 void MainWindow::SlotShortcutCtrlF()
@@ -497,7 +532,7 @@ void MainWindow::SlotShortcutCtrlF()
     search_wnd->setWindowFlag(Qt::Window);
     search_wnd->setAttribute(Qt::WA_DeleteOnClose);
     connect(search_wnd, &QObject::destroyed, this, [this]() { search_wnd = nullptr; });
-    connect(search_wnd, &SearchingWindow::searchingText, this, &MainWindow::SearchingText);
+    connect(search_wnd, &SearchingWindow::searchingText, search_controller, &SearchController::search);
     search_wnd->show();
 }
 
@@ -530,8 +565,10 @@ void MainWindow::SlotShortcutCtrlR()
     replace_wnd->setWindowFlag(Qt::Window);
     replace_wnd->setAttribute(Qt::WA_DeleteOnClose);
     connect(replace_wnd, &QObject::destroyed, this, [this]() { replace_wnd = nullptr; });
-    connect(replace_wnd, &ReplaceWindow::searchReplaceText, this, &MainWindow::SearchReplaceText);
-    connect(replace_wnd, &ReplaceWindow::replaceText, this, &MainWindow::ReplaceText);
+    connect(replace_wnd, &ReplaceWindow::searchReplaceText, search_controller,
+            &SearchController::searchForReplace);
+    connect(replace_wnd, &ReplaceWindow::replaceText, search_controller,
+            &SearchController::replace);
     replace_wnd->show();
 }
 
@@ -561,9 +598,6 @@ void MainWindow::ShowTreeInTab(const QString &fileName)
     if (!layout)
         layout = new QVBoxLayout(tab);
 
-           // A single QTreeView is reused across tabs: reparent it into the
-           // active tab's layout. The model is swapped to the tab's document
-           // in on_tabWidget_currentChanged / ReadFile.
     if (tree_view->parentWidget() != tab) {
         layout->addWidget(tree_view);
         tree_view->show();
@@ -592,8 +626,6 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    // "Display" refreshes the key checkboxes and expands the tree; it must
-    // not reset the model from the reader (that would drop current edits).
     Displaykeys(tree_model->ToYamlNode());
     tree_view->expandAll();
 }
@@ -644,7 +676,7 @@ void MainWindow::ShowTreeContextMenu(const QPoint &pos)
 
     PushUndoCommand(tr("Structure change"), before);
     last_committed_tree_ = tree_model->ToYamlNode();
-    nodes.insert(ui->fileNamecmb->currentText(), last_committed_tree_);
+    doc_store.set(ui->fileNamecmb->currentText(), last_committed_tree_);
     Displaykeys(last_committed_tree_);
 }
 
@@ -720,231 +752,20 @@ void MainWindow::RemoveTab(const QString &tabText)
         qWarning() << "Tab with text" << tabText << "not found!";
 }
 
-bool MainWindow::BuildRegex(const QString &text, bool isSensitive, QRegularExpression &out) const
+void MainWindow::OnFileModified(const QString &fileName, const QString &absPath)
 {
-    const auto option = isSensitive ? QRegularExpression::NoPatternOption
-                                    : QRegularExpression::CaseInsensitiveOption;
-    out = QRegularExpression(text, option);
-    return out.isValid();
-}
-
-void MainWindow::RunSearch(const QString &text, bool useRegex, bool resetSelection)
-{
-    found_indexes_.clear();
-    current_found_index = -1;
-    starting_index = -1;
-
-    if (!text.isEmpty())
-        CollectMatches(QModelIndex(), text, useRegex);
-
-    if (!found_indexes_.isEmpty()) {
-        current_found_index = resetSelection ? 0 : found_indexes_.size() - 1;
-        SelectMatch(current_found_index);
-    } else {
-        QMessageBox::information(this, tr("Search"),
-                                 tr("Can't find it ") + text + "\n");
-    }
-}
-
-void MainWindow::CollectMatches(const QModelIndex &parent, const QString &text, bool useRegex)
-{
-    const int rows = tree_model->rowCount(parent);
-    for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < tree_model->columnCount(parent); ++c) {
-            const QModelIndex idx = tree_model->index(r, c, parent);
-            const QString cell = tree_model->data(idx, Qt::DisplayRole).toString();
-
-            bool match = false;
-            if (useRegex)
-                match = searching_regex.match(cell).hasMatch();
-            else
-                match = !cell.isEmpty() && cell.contains(text, cs);
-
-            if (match)
-                found_indexes_.append(idx);
-        }
-        // Recurse into children (column 0 index is the parent for rows).
-        const QModelIndex child_parent = tree_model->index(r, 0, parent);
-        CollectMatches(child_parent, text, useRegex);
-    }
-}
-
-void MainWindow::SelectMatch(int index)
-{
-    if (index < 0 || index >= found_indexes_.size())
-        return;
-
-    const QModelIndex idx = found_indexes_[index];
-    if (!idx.isValid())
-        return;
-
-           // Expand ancestors so the match is visible, then select and scroll.
-    QModelIndex p = idx.parent();
-    while (p.isValid()) {
-        tree_view->expand(p);
-        p = p.parent();
-    }
-    tree_view->setCurrentIndex(idx);
-    tree_view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-}
-
-void MainWindow::SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex)
-{
-    const Qt::CaseSensitivity new_cs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
-
-    QRegularExpression regex;
-    if (useRegex && !BuildRegex(text, isSensitive, regex)) {
-        QMessageBox::warning(this, tr("Search"), tr("Invalid regular expression"));
-        return;
-    }
-
-    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern())
-                               || (!useRegex && searching_text != text) || new_cs != cs;
-
-    if (query_changed) {
-        cs = new_cs;
-        searching_text = text;
-        searching_regex = regex;
-        RunSearch(text, useRegex, isDownward);
-        return;
-    }
-
-    if (starting_index == -1)
-        starting_index = current_found_index;
-
-    if (found_indexes_.isEmpty())
-        return;
-
-    if (isDownward)
-        current_found_index = (current_found_index + 1) % found_indexes_.size();
-    else
-        current_found_index = (current_found_index - 1 + found_indexes_.size()) % found_indexes_.size();
-
-    if (current_found_index == starting_index) {
-        QMessageBox::information(this, tr("Search"), tr("Reached the end of the search results."));
-        starting_index = -1;
-        return;
-    }
-
-    SelectMatch(current_found_index);
-}
-
-void MainWindow::SearchReplaceText(const QString &text, bool isSensitive, bool useRegex)
-{
-    const Qt::CaseSensitivity new_cs = isSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
-
-    QRegularExpression regex;
-    if (useRegex && !BuildRegex(text, isSensitive, regex)) {
-        QMessageBox::warning(this, tr("Replace"), tr("Invalid regular expression"));
-        return;
-    }
-
-    const bool query_changed = (useRegex && regex.pattern() != searching_regex.pattern())
-                               || (!useRegex && searching_text != text) || new_cs != cs;
-
-    if (query_changed) {
-        cs = new_cs;
-        searching_text = text;
-        searching_regex = regex;
-        RunSearch(text, useRegex, true);
-        return;
-    }
-
-    if (starting_index == -1)
-        starting_index = current_found_index;
-
-    if (found_indexes_.isEmpty())
-        return;
-
-    current_found_index = (current_found_index + 1) % found_indexes_.size();
-    if (current_found_index == starting_index) {
-        starting_index = -1;
-        return;
-    }
-
-    SelectMatch(current_found_index);
-}
-
-void MainWindow::ReplaceText(const QString &findText,
-                             const QString &replaceText,
-                             bool allText,
-                             bool useRegex)
-{
-    SearchReplaceText(findText, cs == Qt::CaseSensitive, useRegex);
-
-    if (allText) {
-        for (const QModelIndex &idx : std::as_const(found_indexes_))
-            ReplaceInIndex(idx, findText, replaceText, useRegex);
-        searching_text.clear();
-    } else if (current_found_index >= 0 && current_found_index < found_indexes_.size()) {
-        ReplaceInIndex(found_indexes_[current_found_index], findText, replaceText, useRegex);
-    }
-}
-
-void MainWindow::ReplaceInIndex(const QModelIndex &index,
-                                const QString &findText,
-                                const QString &replaceText,
-                                bool useRegex)
-{
-    if (!index.isValid())
-        return;
-
-    QString text = tree_model->data(index, Qt::EditRole).toString();
-    if (useRegex)
-        text.replace(searching_regex, replaceText);
-    else
-        text.replace(findText, replaceText, cs);
-    tree_model->setData(index, text, Qt::EditRole);
-}
-
-void MainWindow::WatchFile(const QString &path)
-{
-    if (path.isEmpty() || !file_watcher)
-        return;
-    const QString abs = QFileInfo(path).absoluteFilePath();
-
-    if (!file_watcher->files().contains(abs) && QFileInfo::exists(abs))
-        file_watcher->addPath(abs);
-}
-
-void MainWindow::UnwatchFile(const QString &path)
-{
-    if (path.isEmpty() || !file_watcher)
-        return;
-    const QString abs = QFileInfo(path).absoluteFilePath();
-    if (file_watcher->files().contains(abs))
-        file_watcher->removePath(abs);
-    self_saved_paths_.remove(abs);
-}
-
-void MainWindow::OnFileChangedOnDisk(const QString &path)
-{
-    const QString abs = QFileInfo(path).absoluteFilePath();
-
-    if (self_saved_paths_.remove(abs)) {
-        WatchFile(abs);
-        return;
-    }
-
-    if (!QFileInfo::exists(abs)) {
-        log_panel->logWarning(tr("File removed on disk: %1").arg(QFileInfo(abs).fileName()));
-        return;
-    }
-
-    const QString file_name = QFileInfo(abs).fileName();
-
-    WatchFile(abs);
+    Q_UNUSED(absPath);
 
     const bool has_unsaved =
-        (file_name == ui->fileNamecmb->currentText()) && undo_stack && !undo_stack->isClean();
+        (fileName == ui->fileNamecmb->currentText()) && undo_stack && !undo_stack->isClean();
 
-    QString question = tr("The file \"%1\" was changed on disk.").arg(file_name);
+    QString question = tr("The file \"%1\" was changed on disk.").arg(fileName);
     if (has_unsaved)
         question += "\n\n" + tr("You have unsaved changes. Reload and discard them?");
     else
         question += "\n\n" + tr("Reload it?");
 
-    log_panel->logWarning(tr("Changed on disk: %1").arg(file_name));
+    log_panel->logWarning(tr("Changed on disk: %1").arg(fileName));
 
     if (reload_prompt_active_)
         return;
@@ -955,7 +776,7 @@ void MainWindow::OnFileChangedOnDisk(const QString &path)
     reload_prompt_active_ = false;
 
     if (reply == QMessageBox::Yes)
-        ReloadFileFromDisk(file_name);
+        ReloadFileFromDisk(fileName);
 }
 
 void MainWindow::ReloadFileFromDisk(const QString &file_name)
@@ -970,7 +791,7 @@ void MainWindow::ReloadFileFromDisk(const QString &file_name)
     }
 
     const YamlNode reloaded = yaml_reader->GetRootNode();
-    nodes.insert(file_name, reloaded);
+    doc_store.set(file_name, reloaded);
 
     if (file_name == ui->fileNamecmb->currentText()) {
         tree_model->SetRoot(reloaded);
@@ -987,21 +808,15 @@ void MainWindow::ReloadFileFromDisk(const QString &file_name)
 
 bool MainWindow::IsFileDirty(const QString &file_name) const
 {
-    if (!nodes.contains(file_name))
+    if (!doc_store.contains(file_name))
         return false;
 
     const QString path = file_local_system->GetFilePath(file_name);
-    if (path.isEmpty() || !QFileInfo::exists(path))
-        return true;
-
-    YamlReader disk_reader;
-    if (!disk_reader.ReadFile(path))
-        return true;
 
     const YamlNode current = (file_name == ui->fileNamecmb->currentText())
                                  ? tree_model->ToYamlNode()
-                                 : nodes.value(file_name);
-    return current != disk_reader.GetRootNode();
+                                 : doc_store.get(file_name);
+    return DocumentStore::differsFromDisk(current, path);
 }
 
 QStringList MainWindow::UnsavedFiles() const
@@ -1064,10 +879,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
                 continue;
             }
             const YamlNode tree =
-                (file_name == active) ? tree_model->ToYamlNode() : nodes.value(file_name);
+                (file_name == active) ? tree_model->ToYamlNode() : doc_store.get(file_name);
             const QString full_path = file_local_system->GetFilePath(file_name);
             const QString abs_path = QFileInfo(full_path).absoluteFilePath();
-            self_saved_paths_.insert(abs_path);
+            file_watch->markSelfSaved(abs_path);
             yaml_reader->SaveValues(tree, full_path);
             yandex_api->UploadFile(full_path, [](bool) {});
             log_panel->logInfo(tr("Saved %1 on exit").arg(file_name));
@@ -1116,7 +931,7 @@ void MainWindow::OpenFileByPath(const QString &local_path)
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
     ReadFile();
 
-    WatchFile(info.absoluteFilePath());
+    file_watch->watchFile(info.absoluteFilePath());
     log_panel->logInfo(tr("Opened %1").arg(file_name));
 }
 
@@ -1153,8 +968,8 @@ void MainWindow::on_tabWidget_currentChanged(int index)
     const QString file_name = ui->tabWidget->tabText(index);
     ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
 
-    if (nodes.contains(file_name)) {
-        tree_model->SetRoot(nodes.value(file_name));
+    if (doc_store.contains(file_name)) {
+        tree_model->SetRoot(doc_store.get(file_name));
         last_committed_tree_ = tree_model->ToYamlNode();
         check_box_states = check_box_states_nodes.value(file_name);
         Displaykeys(tree_model->ToYamlNode());
@@ -1165,6 +980,8 @@ void MainWindow::on_tabWidget_currentChanged(int index)
             undo_stack->setClean();
         }
         value_edit_active_ = false;
+        if (search_controller)
+            search_controller->reset();
     }
 }
 

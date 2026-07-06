@@ -67,6 +67,16 @@ set(PROJECT_SOURCES
         src/files/yaml/yamltreemodel.cpp
         src/files/yaml/yamlitemdelegate.h
         src/files/yaml/yamlitemdelegate.cpp
+        src/controller/searchcontroller.h
+        src/controller/searchcontroller.cpp
+        src/controller/documentstore.h
+        src/controller/documentstore.cpp
+        src/controller/filewatchservice.h
+        src/controller/filewatchservice.cpp
+        src/security/tokenstore.h
+        src/security/tokenstore.cpp
+        src/customWidget/connectdialog.h
+        src/customWidget/connectdialog.cpp
         src/images.qrc
 )
 
@@ -99,6 +109,10 @@ else()
 endif()
 
 target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent)
+
+if(WIN32)
+    target_link_libraries(editor PRIVATE crypt32)
+endif()
 
 set_target_properties(editor PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com

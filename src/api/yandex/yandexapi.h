@@ -15,6 +15,8 @@
 
 #include <memory>
 
+#include "../../security/tokenstore.h"
+
 class QNetworkReply;
 
 class YandexApi : public QObject
@@ -27,6 +29,9 @@ public:
     void UploadFile(const QString &filePath, std::function<void(bool)> callback);
     void GetFiles();
 
+    void reloadToken();
+    bool hasToken() const { return !access_token.isEmpty(); }
+
 signals:
     void NewFile(const QString &fileName);
     void ErrorOccurred(const QString &message);
@@ -34,10 +39,9 @@ signals:
 private:
     QNetworkReply *sendAuthorizedGet(const QUrl &url);
 
-    // Single manager owned by this object; replies are parented to it
-    // and cleaned up via deleteLater in their finished handlers.
     std::unique_ptr<QNetworkAccessManager> network_manager;
 
+    TokenStore token_store;
     QString access_token;
     QString folder_path = QDir::currentPath() + "/ymlFiles/";
 

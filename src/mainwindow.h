@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QCheckBox>
-#include <QFileSystemWatcher>
 #include <QHash>
 #include <QMainWindow>
 #include <QModelIndex>
@@ -14,6 +13,8 @@
 #include <QTranslator>
 
 #include "files/yaml/yamlnode.h"
+#include "controller/documentstore.h"
+#include "security/tokenstore.h"
 
 class YamlReader;
 class YandexApi;
@@ -21,6 +22,8 @@ class FileSystem;
 class FlowLayout;
 class ReplaceWindow;
 class SearchingWindow;
+class SearchController;
+class FileWatchService;
 class QDragEnterEvent;
 class QDropEvent;
 class LogPanel;
@@ -57,10 +60,6 @@ private slots:
     void on_pushButton_2_clicked();
     void onCheckBoxStateChanged(int state);
 
-    void SearchingText(const QString &text, bool isSensitive, bool isDownward, bool useRegex);
-    void SearchReplaceText(const QString &text, bool isSensitive, bool useRegex);
-    void ReplaceText(const QString &findText, const QString &replaceText, bool allText,
-                     bool useRegex);
 
     void on_OpenFolderYmlFilebtn_clicked();
     void on_tabWidget_currentChanged(int index);
@@ -101,11 +100,9 @@ private:
     int FindTabByName(const QString &fileName) const;
 
     void OnFolderChanged(const QString &path);
-    void OnFileChangedOnDisk(const QString &path);
+    void OnFileModified(const QString &fileName, const QString &absPath);
     void OpenFileByPath(const QString &local_path);
 
-    void WatchFile(const QString &path);
-    void UnwatchFile(const QString &path);
     void ReloadFileFromDisk(const QString &file_name);
 
     bool IsFileDirty(const QString &file_name) const;
@@ -114,15 +111,9 @@ private:
     QSet<QWidget *> invalid_fields_;
     bool HasValidationErrors() const { return !invalid_fields_.isEmpty(); }
 
-    void RunSearch(const QString &text, bool useRegex, bool resetSelection);
-    bool BuildRegex(const QString &text, bool isSensitive, QRegularExpression &out) const;
-    void CollectMatches(const QModelIndex &parent, const QString &text, bool useRegex);
-    void SelectMatch(int index);
     void ShowTreeContextMenu(const QPoint &pos);
     void SaveExpandedState();
     void RestoreExpandedState();
-    void ReplaceInIndex(const QModelIndex &index, const QString &findText,
-                        const QString &replaceText, bool useRegex);
 
     Ui::MainWindow *ui;
 
@@ -135,10 +126,16 @@ private:
 
     FlowLayout *flow_keys_layout = nullptr;
 
-    QRegularExpression searching_regex;
 
     SearchingWindow *search_wnd = nullptr;
-    QString searching_text;
+
+    SearchController *search_controller = nullptr;
+    FileWatchService *file_watch = nullptr;
+
+    void InitAccountMenu();
+    void openConnectDialog();
+
+    TokenStore token_store;
 
     ReplaceWindow *replace_wnd = nullptr;
 
@@ -150,7 +147,7 @@ private:
     QTreeView *tree_view = nullptr;
     YamlTreeModel *tree_model = nullptr;
 
-    QHash<QString, YamlNode> nodes;
+    DocumentStore doc_store;
     QHash<QString, QHash<QString, bool>> check_box_states_nodes;
 
     QString previous_text_cmb;
@@ -173,14 +170,7 @@ private:
 
     QHash<QString, bool> check_box_states;
     QSet<QString> keys;
-    QList<QModelIndex> found_indexes_;
-    int current_found_index = -1;
-    int starting_index = -1;
-    Qt::CaseSensitivity cs = Qt::CaseInsensitive;
 
-    std::unique_ptr<QFileSystemWatcher> file_watcher;
-
-    QSet<QString> self_saved_paths_;
     bool reload_prompt_active_ = false;
 
     QSet<QString> expanded_paths;

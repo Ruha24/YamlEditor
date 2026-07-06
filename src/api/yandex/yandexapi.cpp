@@ -4,21 +4,20 @@
 #include <QFileInfo>
 #include <QNetworkReply>
 #include <QNetworkRequest>
-#include <QSettings>
 #include <QThreadPool>
 #include <QUrlQuery>
 
 #include "../../files/filedownloadtask.h"
+#include "../../security/tokenstore.h"
 
 YandexApi::YandexApi(QObject *parent)
     : QObject(parent)
     , network_manager(std::make_unique<QNetworkAccessManager>(this))
 {
-    QSettings settings("config.ini", QSettings::IniFormat);
-    access_token = settings.value("yandex/token").toString();
+    access_token = token_store.load();
 
     if (access_token.isEmpty())
-        qWarning() << "YANDEX_DISK_TOKEN not found";
+        qWarning() << "Yandex Disk token not configured";
 
     connect(network_manager.get(), &QNetworkAccessManager::sslErrors, this,
             [this](QNetworkReply *reply, const QList<QSslError> &errors) {
@@ -161,4 +160,11 @@ void YandexApi::GetFiles()
             thread_pool->start(task);
         }
     });
+}
+
+void YandexApi::reloadToken()
+{
+    access_token = token_store.load();
+    if (!access_token.isEmpty())
+        GetFiles();
 }
