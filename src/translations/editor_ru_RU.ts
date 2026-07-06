@@ -18,8 +18,8 @@
     <name>MainWindow</name>
     <message>
         <location filename="../mainwindow.ui" line="19"/>
-        <source>Editor 1.3.1</source>
-        <translation>Редактор 1.3.1</translation>
+        <source>Editor 2.0.0</source>
+        <translation>Редактор 2.0.0</translation>
     </message>
     <message>
         <location filename="../mainwindow.ui" line="132"/>

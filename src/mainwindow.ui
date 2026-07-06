@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>Editor 1.3.1</string>
+   <string>Editor 2.0.0</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow {
@@ -728,7 +728,7 @@ QTabBar::close-button:pressed {
                  <x>0</x>
                  <y>0</y>
                  <width>784</width>
-                 <height>387</height>
+                 <height>385</height>
                 </rect>
                </property>
                <property name="styleSheet">
