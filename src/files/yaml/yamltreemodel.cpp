@@ -1,5 +1,6 @@
 #include "yamltreemodel.h"
 
+#include <QRegularExpression>
 #include <QStringList>
 
 #include <algorithm>
@@ -125,21 +126,80 @@ QVariant YamlTreeModel::data(const QModelIndex &index, int role) const
     if (!item)
         return QVariant();
 
+    const bool is_seq_item = item->is_sequence && item->key.isEmpty();
+
     switch (role) {
     case Qt::DisplayRole:
+        if (index.column() == KeyColumn)
+            return is_seq_item ? QStringLiteral("[%1]").arg(index.row()) : item->key;
+        if (!item->children.empty()) {
+            const bool is_list = item->children.front()->is_sequence;
+            return QString::fromLatin1(is_list ? "[%1]" : "{%1}").arg(item->children.size());
+        }
+        switch (item->type) {
+        case YamlNode::Type::Null:
+            return QStringLiteral("null");
+        case YamlNode::Type::Map:
+            return QStringLiteral("{}");
+        case YamlNode::Type::Sequence:
+            return QStringLiteral("[]");
+        case YamlNode::Type::Scalar:
+            break;
+        }
+        return item->value;
     case Qt::EditRole:
         if (index.column() == KeyColumn)
-            return item->is_sequence && item->key.isEmpty() ? QStringLiteral("-") : item->key;
+            return item->key;
         return item->value;
+    case Qt::ToolTipRole:
+        if (index.column() == ValueColumn && item->children.empty() && !item->value.isEmpty())
+            return item->value;
+        return PathFor(index);
     case PathRole:
         return PathFor(index);
     case IsSequenceItemRole:
-        return item->is_sequence && item->key.isEmpty();
+        return is_seq_item;
     case HasChildrenRole:
         return !item->children.empty();
+    case IsLeafKeyRole:
+        return !is_seq_item && item->children.empty();
+    case ValueKindRole: {
+        ValueKind kind = ValueKind::String;
+        if (!item->children.empty())
+            kind = item->children.front()->is_sequence ? ValueKind::Sequence : ValueKind::Map;
+        else if (item->type == YamlNode::Type::Null)
+            kind = ValueKind::Null;
+        else if (item->type == YamlNode::Type::Map)
+            kind = ValueKind::Map;
+        else if (item->type == YamlNode::Type::Sequence)
+            kind = ValueKind::Sequence;
+        else
+            kind = ScalarKind(item->value, item->quoted);
+        return static_cast<int>(kind);
+    }
     default:
         return QVariant();
     }
+}
+
+YamlTreeModel::ValueKind YamlTreeModel::ScalarKind(const QString &value, bool quoted)
+{
+    if (quoted)
+        return ValueKind::String;
+
+    static const QRegularExpression null_re(QStringLiteral("^(~|null|Null|NULL)$"));
+    static const QRegularExpression bool_re(QStringLiteral("^(true|True|TRUE|false|False|FALSE)$"));
+    static const QRegularExpression number_re(QStringLiteral(
+        R"(^([-+]?(\.[0-9]+|[0-9]+(\.[0-9]*)?)([eE][-+]?[0-9]+)?)"
+        R"(|0x[0-9a-fA-F]+|0o[0-7]+|[-+]?\.(inf|Inf|INF)|\.(nan|NaN|NAN))$)"));
+
+    if (null_re.match(value).hasMatch())
+        return ValueKind::Null;
+    if (bool_re.match(value).hasMatch())
+        return ValueKind::Bool;
+    if (number_re.match(value).hasMatch())
+        return ValueKind::Number;
+    return ValueKind::String;
 }
 
 bool YamlTreeModel::setData(const QModelIndex &index, const QVariant &value, int role)

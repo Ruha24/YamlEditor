@@ -25,182 +25,168 @@ void SearchController::reset()
 {
     found_.clear();
     current_ = -1;
-    starting_ = -1;
-    text_.clear();
-    regex_ = QRegularExpression();
+    valid_ = false;
 }
 
-bool SearchController::buildRegex(const QString &text, bool caseSensitive,
-                                  QRegularExpression &out) const
+bool SearchController::prepare(const QString &text, bool caseSensitive, bool useRegex)
 {
-    const auto option = caseSensitive ? QRegularExpression::NoPatternOption
-                                      : QRegularExpression::CaseInsensitiveOption;
-    out = QRegularExpression(text, option);
-    return out.isValid();
+    const Qt::CaseSensitivity cs = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    if (valid_ && text == text_ && cs == cs_ && useRegex == use_regex_)
+        return true;
+
+    reset();
+    text_ = text;
+    cs_ = cs;
+    use_regex_ = useRegex;
+
+    if (text.isEmpty() || !model_) {
+        emit resultChanged(-1, -1);
+        return false;
+    }
+
+    if (useRegex) {
+        regex_ = QRegularExpression(text, caseSensitive ? QRegularExpression::NoPatternOption
+                                                        : QRegularExpression::CaseInsensitiveOption);
+        if (!regex_.isValid()) {
+            emit warning(tr("Invalid regular expression"));
+            emit resultChanged(-1, 0);
+            return false;
+        }
+    }
+
+    // Matches are collected in tree order; anchor_ is the number of matches that come
+    // before the current row, so a fresh search starts where the user is.
+    anchor_ = -1;
+    anchor_row_ = view_ ? view_->currentIndex().siblingAtColumn(0) : QModelIndex();
+    collect(QModelIndex());
+    valid_ = true;
+    current_ = -1;
+    return true;
 }
 
-void SearchController::collectMatches(const QModelIndex &parent, const QString &text, bool useRegex)
+bool SearchController::matches(const QString &cell) const
 {
-    if (!model_)
-        return;
+    if (cell.isEmpty())
+        return false;
+    return use_regex_ ? regex_.match(cell).hasMatch() : cell.contains(text_, cs_);
+}
 
+void SearchController::collect(const QModelIndex &parent)
+{
     const int rows = model_->rowCount(parent);
+    const int cols = model_->columnCount(parent);
     for (int r = 0; r < rows; ++r) {
-        for (int c = 0; c < model_->columnCount(parent); ++c) {
+        if (view_ && view_->isRowHidden(r, parent))
+            continue;
+
+        const QModelIndex row = model_->index(r, 0, parent);
+        if (row == anchor_row_)
+            anchor_ = found_.size();
+
+        for (int c = 0; c < cols; ++c) {
             const QModelIndex idx = model_->index(r, c, parent);
-            const QString cell = model_->data(idx, Qt::DisplayRole).toString();
-
-            bool match = false;
-            if (useRegex)
-                match = regex_.match(cell).hasMatch();
-            else
-                match = !cell.isEmpty() && cell.contains(text, cs_);
-
-            if (match)
+            if (matches(model_->data(idx, Qt::EditRole).toString()))
                 found_.append(idx);
         }
-        const QModelIndex child_parent = model_->index(r, 0, parent);
-        collectMatches(child_parent, text, useRegex);
+        collect(row);
     }
 }
 
-void SearchController::runSearch(const QString &text, bool useRegex, bool resetSelection)
+void SearchController::select(int index)
 {
-    found_.clear();
-    current_ = -1;
-    starting_ = -1;
+    current_ = index;
+    emit resultChanged(current_, found_.size());
 
-    if (!text.isEmpty())
-        collectMatches(QModelIndex(), text, useRegex);
-
-    if (!found_.isEmpty()) {
-        current_ = resetSelection ? 0 : found_.size() - 1;
-        selectMatch(current_);
-    } else {
-        emit info(tr("Can't find it ") + text + "\n");
-    }
-}
-
-void SearchController::selectMatch(int index)
-{
     if (!view_ || index < 0 || index >= found_.size())
         return;
-
     const QModelIndex idx = found_[index];
     if (!idx.isValid() || idx.model() != model_)
         return;
 
-    QModelIndex p = idx.parent();
-    while (p.isValid()) {
+    for (QModelIndex p = idx.parent(); p.isValid(); p = p.parent())
         view_->expand(p);
-        p = p.parent();
-    }
     view_->setCurrentIndex(idx);
     view_->scrollTo(idx, QAbstractItemView::PositionAtCenter);
 }
 
-void SearchController::search(const QString &text, bool caseSensitive, bool downward, bool useRegex)
+void SearchController::find(const QString &text, bool caseSensitive, bool useRegex, bool forward)
 {
-    const Qt::CaseSensitivity new_cs = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    const bool fresh = !(valid_ && text == text_ && useRegex == use_regex_
+                         && (caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive) == cs_);
+    if (!prepare(text, caseSensitive, useRegex))
+        return;
 
-    QRegularExpression regex;
-    if (useRegex && !buildRegex(text, caseSensitive, regex)) {
-        emit warning(tr("Invalid regular expression"));
+    if (found_.isEmpty()) {
+        select(-1);
         return;
     }
 
-    const bool query_changed = (useRegex && regex.pattern() != regex_.pattern())
-                               || (!useRegex && text_ != text) || new_cs != cs_;
-
-    if (query_changed) {
-        cs_ = new_cs;
-        text_ = text;
-        regex_ = regex;
-        runSearch(text, useRegex, downward);
+    const int n = found_.size();
+    if (fresh || current_ < 0) {
+        int start = anchor_ < 0 ? 0 : anchor_;
+        if (!forward)
+            start -= 1;
+        select(((start % n) + n) % n);
         return;
     }
+    select(forward ? (current_ + 1) % n : (current_ - 1 + n) % n);
+}
 
-    if (starting_ == -1)
-        starting_ = current_;
-
-    if (found_.isEmpty())
-        return;
-
-    if (downward)
-        current_ = (current_ + 1) % found_.size();
+QString SearchController::replaced(const QString &cell, const QString &replacement) const
+{
+    QString out = cell;
+    if (use_regex_)
+        out.replace(regex_, replacement);
     else
-        current_ = (current_ - 1 + found_.size()) % found_.size();
-
-    if (current_ == starting_) {
-        emit info(tr("Reached the end of the search results."));
-        starting_ = -1;
-        return;
-    }
-
-    selectMatch(current_);
+        out.replace(text_, replacement, cs_);
+    return out;
 }
 
-void SearchController::searchForReplace(const QString &text, bool caseSensitive, bool useRegex)
+void SearchController::replaceCurrent(const QString &text, const QString &replacement,
+                                      bool caseSensitive, bool useRegex)
 {
-    const Qt::CaseSensitivity new_cs = caseSensitive ? Qt::CaseSensitive : Qt::CaseInsensitive;
+    if (!prepare(text, caseSensitive, useRegex) || found_.isEmpty())
+        return;
 
-    QRegularExpression regex;
-    if (useRegex && !buildRegex(text, caseSensitive, regex)) {
-        emit warning(tr("Invalid regular expression"));
+    if (current_ < 0) {
+        find(text, caseSensitive, useRegex, true);
         return;
     }
 
-    const bool query_changed = (useRegex && regex.pattern() != regex_.pattern())
-                               || (!useRegex && text_ != text) || new_cs != cs_;
+    const int position = current_;
+    const QPersistentModelIndex idx = found_[position];
+    if (idx.isValid())
+        model_->setData(idx, replaced(idx.data(Qt::EditRole).toString(), replacement), Qt::EditRole);
 
-    if (query_changed) {
-        cs_ = new_cs;
-        text_ = text;
-        regex_ = regex;
-        runSearch(text, useRegex, true);
+    // Rebuild the list; the next match now sits at the same position.
+    reset();
+    if (!prepare(text, caseSensitive, useRegex))
         return;
-    }
-
-    if (starting_ == -1)
-        starting_ = current_;
-
     if (found_.isEmpty())
-        return;
-
-    current_ = (current_ + 1) % found_.size();
-    if (current_ == starting_) {
-        starting_ = -1;
-        return;
-    }
-
-    selectMatch(current_);
-}
-
-void SearchController::replaceInIndex(const QModelIndex &index, const QString &findText,
-                                      const QString &replaceText, bool useRegex)
-{
-    if (!model_ || !index.isValid())
-        return;
-
-    QString text = model_->data(index, Qt::EditRole).toString();
-    if (useRegex)
-        text.replace(regex_, replaceText);
+        select(-1);
     else
-        text.replace(findText, replaceText, cs_);
-    model_->setData(index, text, Qt::EditRole);
+        select(qMin(position, int(found_.size()) - 1));
 }
 
-void SearchController::replace(const QString &findText, const QString &replaceText,
-                               bool allText, bool caseSensitive, bool useRegex)
+int SearchController::replaceAll(const QString &text, const QString &replacement,
+                                 bool caseSensitive, bool useRegex)
 {
-    searchForReplace(findText, caseSensitive, useRegex);
+    if (!prepare(text, caseSensitive, useRegex))
+        return 0;
 
-    if (allText) {
-        const QList<QPersistentModelIndex> targets = found_;
-        for (const QPersistentModelIndex &idx : targets)
-            replaceInIndex(idx, findText, replaceText, useRegex);
-        text_.clear();
-    } else if (current_ >= 0 && current_ < found_.size()) {
-        replaceInIndex(found_[current_], findText, replaceText, useRegex);
+    int changed = 0;
+    const QList<QPersistentModelIndex> targets = found_;
+    for (const QPersistentModelIndex &idx : targets) {
+        if (!idx.isValid())
+            continue;
+        const QString before = idx.data(Qt::EditRole).toString();
+        const QString after = replaced(before, replacement);
+        if (after != before && model_->setData(idx, after, Qt::EditRole))
+            ++changed;
     }
+
+    reset();
+    prepare(text, caseSensitive, useRegex);
+    select(found_.isEmpty() ? -1 : 0);
+    return changed;
 }

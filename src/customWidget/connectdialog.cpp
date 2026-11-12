@@ -23,17 +23,18 @@ ConnectDialog::ConnectDialog(TokenStore *store, QWidget *parent)
     root->setSpacing(12);
 
     QLabel *title = new QLabel(tr("Link your Yandex Disk account"), this);
-    title->setStyleSheet("font-size: 16px; font-weight: 600; color: #cfeefa;");
+    title->setProperty("role", "heading");
 
     QLabel *hint = new QLabel(
         tr("Paste your OAuth token below. It is stored encrypted on this "
            "computer and never leaves it except to authenticate with Yandex."),
         this);
     hint->setWordWrap(true);
-    hint->setStyleSheet("color: #9a9a93;");
+    hint->setProperty("role", "muted");
 
     QPushButton *get_token = new QPushButton(tr("How to get a token"), this);
     get_token->setCursor(Qt::PointingHandCursor);
+    get_token->setFlat(true);
     connect(get_token, &QPushButton::clicked, this, []() {
         QDesktopServices::openUrl(QUrl("https://yandex.ru/dev/disk/poligon/"));
     });
@@ -51,12 +52,13 @@ ConnectDialog::ConnectDialog(TokenStore *store, QWidget *parent)
         status_->setText(status_->text() + "\n"
                          + tr("Warning: encryption is unavailable on this platform; "
                               "the token is stored as plain text."));
-    status_->setStyleSheet("color: #e0b341;");
+    status_->setProperty("role", "muted");
 
     QPushButton *save_btn = new QPushButton(tr("Save"), this);
     QPushButton *clear_btn = new QPushButton(tr("Remove token"), this);
     QPushButton *close_btn = new QPushButton(tr("Close"), this);
     save_btn->setDefault(true);
+    save_btn->setProperty("primary", true);
     connect(save_btn, &QPushButton::clicked, this, &ConnectDialog::onSave);
     connect(clear_btn, &QPushButton::clicked, this, &ConnectDialog::onClear);
     connect(close_btn, &QPushButton::clicked, this, &QDialog::reject);
@@ -74,18 +76,6 @@ ConnectDialog::ConnectDialog(TokenStore *store, QWidget *parent)
     root->addWidget(status_);
     root->addLayout(buttons);
 
-    setStyleSheet(R"(
-        QDialog { background-color: #2b2b2b; }
-        QLineEdit {
-            background-color: #33414a; color: #eaf6fb;
-            border: 1px solid #51b4d2; border-radius: 6px; padding: 6px 10px;
-        }
-        QPushButton {
-            background-color: #33414a; color: #cfeefa;
-            border: 1px solid #51b4d2; border-radius: 6px; padding: 6px 14px;
-        }
-        QPushButton:hover { background-color: #3a4b55; }
-    )");
 }
 
 void ConnectDialog::onSave()

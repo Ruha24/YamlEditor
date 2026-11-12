@@ -17,8 +17,15 @@ public:
     enum Roles {
         PathRole = Qt::UserRole + 1,
         IsSequenceItemRole,
-        HasChildrenRole
+        HasChildrenRole,
+        ValueKindRole, // ValueKind of the node (value column styling)
+        IsLeafKeyRole  // map key without children (used by the key filter)
     };
+
+    enum class ValueKind { String, Number, Bool, Null, Map, Sequence };
+
+    // How a plain (unquoted) scalar is read by YAML 1.2 core schema.
+    static ValueKind ScalarKind(const QString &value, bool quoted);
 
     explicit YamlTreeModel(QObject *parent = nullptr);
     ~YamlTreeModel() override;

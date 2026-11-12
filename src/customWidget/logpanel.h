@@ -5,6 +5,8 @@
 
 class QListWidget;
 class QComboBox;
+class QLabel;
+class QPushButton;
 
 class LogPanel : public QDockWidget
 {
@@ -22,12 +24,22 @@ public slots:
 
     void clear();
 
+signals:
+    void entryAdded(LogPanel::Level level, const QString &message);
+
+protected:
+    void changeEvent(QEvent *event) override;
+
 private:
+    void retranslate();
+
     void append(Level level, const QString &message);
     void applyFilter();
 
     QListWidget *list_ = nullptr;
     QComboBox *filter_ = nullptr;
+    QLabel *filter_label_ = nullptr;
+    QPushButton *clear_btn_ = nullptr;
 };
 
 #endif // LOGPANEL_H

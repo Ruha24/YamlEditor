@@ -9,8 +9,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Concurrent)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Concurrent)
+# Qt 6.8+ is required (QStyleHints::setColorScheme drives the light/dark theme).
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets Network Concurrent Svg)
+find_package(Qt${QT_VERSION_MAJOR} 6.8 REQUIRED COMPONENTS Widgets Network Concurrent Svg)
 find_package(Qt6 REQUIRED COMPONENTS LinguistTools)
 
 
@@ -34,32 +35,18 @@ set(PROJECT_SOURCES
         src/main.cpp
         src/mainwindow.cpp
         src/mainwindow.h
-        src/mainwindow.ui
+        src/theme/theme.h
+        src/theme/theme.cpp
         src/api/yandex/yandexapi.h
         src/api/yandex/yandexapi.cpp
         src/files/yaml/yamlreader.h
         src/files/yaml/yamlreader.cpp
         src/files/yaml/yamlnode.h
         src/files/yaml/yamlnode.cpp
-        src/searchingwindow.h
-        src/searchingwindow.cpp
-        src/searchingwindow.ui
         src/files/filesystem.h
         src/files/filesystem.cpp
-        src/replacewindow.h
-        src/replacewindow.cpp
-        src/replacewindow.ui
-        src/customWidget/customlineedit.h
-        src/customWidget/customlineedit.cpp
-        src/editwidget.h
-        src/editwidget.cpp
-        src/editwidget.ui
         src/files/filedownloadtask.h
         src/files/filedownloadtask.cpp
-        src/customWidget/flowlayout.h
-        src/customWidget/flowlayout.cpp
-        src/customWidget/logpanel.h
-        src/customWidget/logpanel.cpp
         src/files/snapshotcommand.h
         src/files/yaml/yamlvalidator.h
         src/files/yaml/yamlvalidator.cpp
@@ -77,7 +64,15 @@ set(PROJECT_SOURCES
         src/security/tokenstore.cpp
         src/customWidget/connectdialog.h
         src/customWidget/connectdialog.cpp
-        src/images.qrc
+        src/customWidget/logpanel.h
+        src/customWidget/logpanel.cpp
+        src/customWidget/findbar.h
+        src/customWidget/findbar.cpp
+        src/customWidget/filelistpanel.h
+        src/customWidget/filelistpanel.cpp
+        src/customWidget/keyfilterpanel.h
+        src/customWidget/keyfilterpanel.cpp
+        src/resources.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -108,7 +103,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent)
+target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent Qt${QT_VERSION_MAJOR}::Svg)
 
 if(WIN32)
     target_link_libraries(editor PRIVATE crypt32)

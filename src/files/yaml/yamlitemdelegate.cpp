@@ -2,30 +2,33 @@
 
 #include <QLineEdit>
 
+#include "../../theme/theme.h"
+
 #include "yamltreemodel.h"
 #include "yamlvalidator.h"
+
+#include <QStyle>
 
 YamlItemDelegate::YamlItemDelegate(QObject *parent)
     : QStyledItemDelegate(parent)
 {}
 
-QWidget *YamlItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &,
+QWidget *YamlItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem &option,
                                         const QModelIndex &index) const
 {
     QLineEdit *editor = new QLineEdit(parent);
     const bool is_key = index.column() == YamlTreeModel::KeyColumn;
+    if (!is_key)
+        editor->setFont(Theme::monoFont(option.font));
 
     connect(editor, &QLineEdit::textChanged, editor, [editor, is_key]() {
         const QString text = editor->text();
         const auto result = is_key ? YamlValidator::validateKey(text)
                                    : YamlValidator::validateValue(text);
-        if (result.ok) {
-            editor->setStyleSheet(QString());
-            editor->setToolTip(QString());
-        } else {
-            editor->setStyleSheet("border: 1px solid #e06c6c; background: #3a2b2b;");
-            editor->setToolTip(result.message);
-        }
+        editor->setProperty("invalid", !result.ok);
+        editor->setToolTip(result.ok ? QString() : result.message);
+        editor->style()->unpolish(editor);
+        editor->style()->polish(editor);
     });
 
     return editor;
@@ -65,4 +68,53 @@ void YamlItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
 
     if (!model->setData(index, text, Qt::EditRole))
         emit editRejected(tr("This cell cannot be changed"));
+}
+
+void YamlItemDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option,
+                                            const QModelIndex &) const
+{
+    editor->setGeometry(option.rect.adjusted(0, 1, 0, -1));
+}
+
+void YamlItemDelegate::initStyleOption(QStyleOptionViewItem *option, const QModelIndex &index) const
+{
+    QStyledItemDelegate::initStyleOption(option, index);
+
+    const Theme::Colors &c = Theme::instance().colors();
+    const bool has_children = index.data(YamlTreeModel::HasChildrenRole).toBool();
+
+    if (index.column() == YamlTreeModel::KeyColumn) {
+        if (index.data(YamlTreeModel::IsSequenceItemRole).toBool()) {
+            option->palette.setColor(QPalette::Text, c.yaml_meta);
+            option->palette.setColor(QPalette::HighlightedText, c.yaml_meta);
+        } else if (has_children) {
+            option->font.setWeight(QFont::DemiBold);
+        }
+        return;
+    }
+
+    option->font = Theme::monoFont(option->font);
+
+    QColor color = c.yaml_string;
+    switch (static_cast<YamlTreeModel::ValueKind>(index.data(YamlTreeModel::ValueKindRole).toInt())) {
+    case YamlTreeModel::ValueKind::String:
+        color = c.yaml_string;
+        break;
+    case YamlTreeModel::ValueKind::Number:
+        color = c.yaml_number;
+        break;
+    case YamlTreeModel::ValueKind::Bool:
+        color = c.yaml_bool;
+        break;
+    case YamlTreeModel::ValueKind::Null:
+        color = c.yaml_null;
+        option->font.setItalic(true);
+        break;
+    case YamlTreeModel::ValueKind::Map:
+    case YamlTreeModel::ValueKind::Sequence:
+        color = c.yaml_meta;
+        break;
+    }
+    option->palette.setColor(QPalette::Text, color);
+    option->palette.setColor(QPalette::HighlightedText, color);
 }

@@ -1,14 +1,27 @@
 #include "mainwindow.h"
 
 #include <QApplication>
+#include <QSettings>
+
+#include "theme/theme.h"
 
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    a.setStyle("Fusion");
+    QApplication app(argc, argv);
+    QApplication::setOrganizationName("YamlEditor");
+    QApplication::setApplicationName("YamlEditor");
+    QApplication::setApplicationDisplayName("YAML Editor");
+    app.setStyle("Fusion");
 
-    MainWindow main;
-    main.show();
+    QFont font = QApplication::font();
+    font.setPointSizeF(qMax(font.pointSizeF(), 10.0));
+    QApplication::setFont(font);
 
-    return a.exec();
+    const QSettings settings;
+    Theme::instance().setMode(Theme::modeFromString(settings.value("ui/theme").toString()));
+
+    MainWindow window;
+    window.show();
+
+    return app.exec();
 }
