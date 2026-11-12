@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     QApplication::setOrganizationName("YamlEditor");
     QApplication::setApplicationName("YamlEditor");
-    QApplication::setApplicationDisplayName("YAML Editor");
+    QApplication::setApplicationVersion(QStringLiteral(APP_VERSION));
     app.setStyle("Fusion");
 
     QFont font = QApplication::font();

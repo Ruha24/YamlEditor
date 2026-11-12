@@ -677,7 +677,7 @@ void MainWindow::UpdateStatus()
     if (current_file_.isEmpty()) {
         status_file_->setText(tr("No file open"));
         status_stats_->clear();
-        setWindowTitle(QStringLiteral("YAML Editor"));
+        setWindowTitle(QStringLiteral("YAML Editor %1").arg(QApplication::applicationVersion()));
         setWindowModified(false);
     } else {
         const QString path =

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(editor VERSION 0.1 LANGUAGES CXX)
+project(editor VERSION 3.0.0 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -104,6 +104,8 @@ else()
 endif()
 
 target_link_libraries(editor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets yaml-cpp::yaml-cpp Qt${QT_VERSION_MAJOR}::Network Qt${QT_VERSION_MAJOR}::Concurrent Qt${QT_VERSION_MAJOR}::Svg)
+
+target_compile_definitions(editor PRIVATE APP_VERSION="${PROJECT_VERSION}")
 
 if(WIN32)
     target_link_libraries(editor PRIVATE crypt32)
