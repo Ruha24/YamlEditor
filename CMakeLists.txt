@@ -30,6 +30,12 @@ set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(yaml-cpp)
 
+# yaml-cpp 0.8.0 uses uint32_t/uint16_t without including <cstdint>; GCC 13+ no longer
+# pulls it in transitively, so force-include it when building the library.
+if(NOT MSVC)
+    target_compile_options(yaml-cpp PRIVATE -include cstdint)
+endif()
+
 
 set(PROJECT_SOURCES
         src/main.cpp
