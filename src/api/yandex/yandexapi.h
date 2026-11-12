@@ -38,6 +38,7 @@ signals:
 
 private:
     QNetworkReply *sendAuthorizedGet(const QUrl &url);
+    static QString md5Of(const QString &path);
 
     std::unique_ptr<QNetworkAccessManager> network_manager;
 

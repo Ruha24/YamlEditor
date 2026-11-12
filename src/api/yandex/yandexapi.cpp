@@ -1,5 +1,7 @@
 #include "yandexapi.h"
 
+#include <QCryptographicHash>
+#include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
 #include <QNetworkReply>
@@ -20,7 +22,7 @@ YandexApi::YandexApi(QObject *parent)
         qWarning() << "Yandex Disk token not configured";
 
     connect(network_manager.get(), &QNetworkAccessManager::sslErrors, this,
-            [this](QNetworkReply *reply, const QList<QSslError> &errors) {
+            [this](QNetworkReply *, const QList<QSslError> &errors) {
                 QStringList messages;
                 for (const QSslError &error : errors)
                     messages << error.errorString();
@@ -43,7 +45,7 @@ QNetworkReply *YandexApi::sendAuthorizedGet(const QUrl &url)
 void YandexApi::UploadFile(const QString &filePath, std::function<void(bool)> callback)
 {
     if (access_token.isEmpty()) {
-        emit ErrorOccurred(tr("No Yandex Disk token configured"));
+        // Cloud sync is optional: without a token there is nothing to report.
         if (callback)
             callback(false);
         return;
@@ -153,13 +155,43 @@ void YandexApi::GetFiles()
 
             const QString file_path = folder_path + file_name;
 
+            // Never overwrite a local copy that is identical or newer than the cloud one:
+            // it may hold edits whose upload failed.
+            const QFileInfo local(file_path);
+            if (local.exists()) {
+                const QString cloud_md5 = item.value("md5").toString();
+                if (!cloud_md5.isEmpty() && cloud_md5.compare(md5Of(file_path), Qt::CaseInsensitive) == 0)
+                    continue;
+                const QDateTime cloud_modified =
+                    QDateTime::fromString(item.value("modified").toString(), Qt::ISODate);
+                if (!cloud_modified.isValid() || local.lastModified() >= cloud_modified) {
+                    emit ErrorOccurred(
+                        tr("Kept local %1: it is newer than the copy on Yandex Disk").arg(file_name));
+                    continue;
+                }
+            }
+
             auto *task = new FileDownloadTask(download_url, file_path, access_token);
             connect(
                 task, &FileDownloadTask::FileDownloaded, this,
                 [this](const QString &fileName) { emit NewFile(fileName); }, Qt::QueuedConnection);
+            connect(
+                task, &FileDownloadTask::ErrorOccurred, this,
+                [this](const QString &message) { emit ErrorOccurred(message); },
+                Qt::QueuedConnection);
             thread_pool->start(task);
         }
     });
+}
+
+QString YandexApi::md5Of(const QString &path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return QString();
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(&file);
+    return QString::fromLatin1(hash.result().toHex());
 }
 
 void YandexApi::reloadToken()

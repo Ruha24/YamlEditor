@@ -39,8 +39,14 @@ public:
                         int role = Qt::DisplayRole) const override;
     Qt::ItemFlags flags(const QModelIndex &index) const override;
 
-    bool AddChild(const QModelIndex &parent, const QString &key, const QString &value);
+    // Appends a child to parent and returns its index (invalid if the parent holds a
+    // scalar value and therefore cannot have children). In a list the child becomes a
+    // list item; in a map it gets a unique key based on baseKey.
+    QModelIndex AddChild(const QModelIndex &parent, const QString &baseKey);
     bool RemoveNode(const QModelIndex &index);
+
+    bool CanHaveChildren(const QModelIndex &index) const;
+    bool HasSiblingWithKey(const QModelIndex &index, const QString &key) const;
 
     QString PathFor(const QModelIndex &index) const;
 
@@ -50,6 +56,8 @@ private:
         QString key;
         QString value;
         bool is_sequence = false;
+        YamlNode::Type type = YamlNode::Type::Scalar;
+        bool quoted = false;
         TreeItem *parent = nullptr;
         std::vector<std::unique_ptr<TreeItem>> children;
     };

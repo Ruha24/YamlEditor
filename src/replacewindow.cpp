@@ -28,7 +28,8 @@ void ReplaceWindow::on_replacebtn_clicked()
     if (text.isEmpty())
         return;
 
-    emit replaceText(text, ui->replacetxt->text(), false, ui->casechb_2->isChecked());
+    emit replaceText(text, ui->replacetxt->text(), false, ui->casechb->isChecked(),
+                     ui->casechb_2->isChecked());
 }
 
 void ReplaceWindow::on_replaceAllbtn_clicked()
@@ -37,7 +38,8 @@ void ReplaceWindow::on_replaceAllbtn_clicked()
     if (text.isEmpty())
         return;
 
-    emit replaceText(text, ui->replacetxt->text(), true, ui->casechb_2->isChecked());
+    emit replaceText(text, ui->replacetxt->text(), true, ui->casechb->isChecked(),
+                     ui->casechb_2->isChecked());
 }
 
 void ReplaceWindow::on_cancelbtn_clicked()

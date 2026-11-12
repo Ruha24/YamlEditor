@@ -4,29 +4,29 @@
 #include "./ui_mainwindow.h"
 
 #include <QApplication>
-#include <QDragEnterEvent>
+#include <QCheckBox>
 #include <QCloseEvent>
+#include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QLineEdit>
 #include <QListView>
 #include <QMenu>
 #include <QMenuBar>
 #include <QAction>
 #include <QMessageBox>
 #include <QMimeData>
-#include <QTimer>
+#include <QSignalBlocker>
+#include <QStatusBar>
+#include <QUndoGroup>
 #include <QUndoStack>
 #include <QTreeView>
 #include <QVBoxLayout>
 
+#include <algorithm>
 #include <functional>
 
-#include <algorithm>
-
 #include "api/yandex/yandexapi.h"
-#include "customWidget/customlineedit.h"
 #include "customWidget/flowlayout.h"
 #include "files/filesystem.h"
 #include "customWidget/logpanel.h"
@@ -34,12 +34,52 @@
 #include "files/yaml/yamlitemdelegate.h"
 #include "files/yaml/yamlreader.h"
 #include "files/yaml/yamltreemodel.h"
-#include "files/yaml/yamlvalidator.h"
 #include "controller/searchcontroller.h"
 #include "controller/filewatchservice.h"
 #include "customWidget/connectdialog.h"
 #include "replacewindow.h"
 #include "searchingwindow.h"
+
+namespace {
+
+QString YmlFolder()
+{
+    return QDir::currentPath() + "/ymlFiles";
+}
+
+bool IsYamlFile(const QString &path)
+{
+    const QString suffix = QFileInfo(path).suffix();
+    return suffix.compare("yml", Qt::CaseInsensitive) == 0
+           || suffix.compare("yaml", Qt::CaseInsensitive) == 0;
+}
+
+const char *kScrollBarStyle = R"(
+    QScrollBar:vertical {
+        background: #262626; width: 11px; margin: 0; border: none;
+    }
+    QScrollBar::handle:vertical {
+        background: #45596a; border-radius: 5px; min-height: 28px;
+    }
+    QScrollBar::handle:vertical:hover { background: #51b4d2; }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0; background: none; border: none;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+    QScrollBar:horizontal {
+        background: #262626; height: 11px; margin: 0; border: none;
+    }
+    QScrollBar::handle:horizontal {
+        background: #45596a; border-radius: 5px; min-width: 28px;
+    }
+    QScrollBar::handle:horizontal:hover { background: #51b4d2; }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0; background: none; border: none;
+    }
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
+)";
+
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -48,19 +88,60 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setAcceptDrops(true);
 
+    undo_group_ = new QUndoGroup(this);
+
+    InitTreeView();
+    InitLogPanel();
+    InitKeysLayout();
+
+    search_controller = new SearchController(this);
+    search_controller->setTargets(tree_model, tree_view);
+    connect(search_controller, &SearchController::info, this,
+            [this](const QString &msg) { QMessageBox::information(this, tr("Search"), msg); });
+    connect(search_controller, &SearchController::warning, this,
+            [this](const QString &msg) { QMessageBox::warning(this, tr("Search"), msg); });
+
+    file_local_system = std::make_unique<FileSystem>(YmlFolder());
+    yandex_api = std::make_unique<YandexApi>();
+    yaml_reader = std::make_unique<YamlReader>();
+
+    ConnectServices();
+    ConnectShortCut();
+    InitLanguageCmb();
+    InitAccountMenu();
+    PopulateFileList();
+
+    yandex_api->GetFiles();
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+void MainWindow::InitTreeView()
+{
     tree_model = new YamlTreeModel(this);
-    tree_view  = new QTreeView(this);
+    tree_view = new QTreeView(this);
     tree_view->setModel(tree_model);
-    tree_view->setItemDelegate(new YamlItemDelegate(this));
+
+    auto *delegate = new YamlItemDelegate(this);
+    tree_view->setItemDelegate(delegate);
+    connect(delegate, &YamlItemDelegate::editRejected, this, [this](const QString &reason) {
+        log_panel->logWarning(tr("Edit rejected: %1").arg(reason));
+        statusBar()->showMessage(reason, 5000);
+    });
+
     tree_view->setEditTriggers(QAbstractItemView::DoubleClicked
-                               | QAbstractItemView::SelectedClicked);
+                               | QAbstractItemView::SelectedClicked
+                               | QAbstractItemView::EditKeyPressed);
 
     tree_view->setColumnWidth(0, 280);
     tree_view->setAlternatingRowColors(true);
     tree_view->setRootIsDecorated(true);
     tree_view->setIndentation(20);
     tree_view->setUniformRowHeights(true);
-    tree_view->setStyleSheet(R"(
+    tree_view->setStyleSheet(QString(R"(
         QTreeView {
             background-color: #2f2f2f;
             border: none;
@@ -83,29 +164,7 @@ MainWindow::MainWindow(QWidget *parent)
             border: none;
             font-weight: 500;
         }
-        QScrollBar:vertical {
-            background: #262626; width: 11px; margin: 0; border: none;
-        }
-        QScrollBar::handle:vertical {
-            background: #45596a; border-radius: 5px; min-height: 28px;
-        }
-        QScrollBar::handle:vertical:hover { background: #51b4d2; }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            height: 0; background: none; border: none;
-        }
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
-        QScrollBar:horizontal {
-            background: #262626; height: 11px; margin: 0; border: none;
-        }
-        QScrollBar::handle:horizontal {
-            background: #45596a; border-radius: 5px; min-width: 28px;
-        }
-        QScrollBar::handle:horizontal:hover { background: #51b4d2; }
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            width: 0; background: none; border: none;
-        }
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
-    )");
+    )") + kScrollBarStyle);
 
     tree_view->hide();
 
@@ -113,43 +172,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(tree_view, &QWidget::customContextMenuRequested,
             this, &MainWindow::ShowTreeContextMenu);
 
+    // Cell edits (from the delegate or from Replace) become undoable steps.
     connect(tree_model, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex &, const QModelIndex &, const QList<int> &) {
-                if (applying_snapshot_)
+                if (applying_snapshot_ || current_file_.isEmpty())
                     return;
-                PushUndoCommand(tr("Edit"), last_committed_tree_);
-                last_committed_tree_ = tree_model->ToYamlNode();
-                doc_store.set(ui->fileNamecmb->currentText(), last_committed_tree_);
-                Displaykeys(last_committed_tree_);
+                CommitEdit(tr("Edit"), last_committed_tree_);
             });
-
-
-    InitLogPanel();
-    InitUndoStack();
-    InitKeysLayout();
-
-    search_controller = new SearchController(this);
-    search_controller->setTargets(tree_model, tree_view);
-    connect(search_controller, &SearchController::info, this,
-            [this](const QString &msg) { QMessageBox::information(this, tr("Search"), msg); });
-    connect(search_controller, &SearchController::warning, this,
-            [this](const QString &msg) { QMessageBox::warning(this, tr("Search"), msg); });
-
-    file_local_system = std::make_unique<FileSystem>(QDir::currentPath() + "/ymlFiles");
-    yandex_api = std::make_unique<YandexApi>();
-    yaml_reader = std::make_unique<YamlReader>();
-
-    ConnectServices();
-    ConnectShortCut();
-    InitLanguageCmb();
-    InitAccountMenu();
-
-    yandex_api->GetFiles();
-}
-
-MainWindow::~MainWindow()
-{
-    delete ui;
 }
 
 void MainWindow::InitKeysLayout()
@@ -168,32 +197,8 @@ void MainWindow::InitKeysLayout()
     }
     flow_keys_layout = new FlowLayout(keys_container, 6, 8, 8);
 
-    if (ui->scrollArea_2) {
-        ui->scrollArea_2->setStyleSheet(R"(
-            QScrollBar:vertical {
-                background: #262626; width: 11px; margin: 0; border: none;
-            }
-            QScrollBar::handle:vertical {
-                background: #45596a; border-radius: 5px; min-height: 28px;
-            }
-            QScrollBar::handle:vertical:hover { background: #51b4d2; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-                height: 0; background: none; border: none;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
-            QScrollBar:horizontal {
-                background: #262626; height: 11px; margin: 0; border: none;
-            }
-            QScrollBar::handle:horizontal {
-                background: #45596a; border-radius: 5px; min-width: 28px;
-            }
-            QScrollBar::handle:horizontal:hover { background: #51b4d2; }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-                width: 0; background: none; border: none;
-            }
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: none; }
-        )");
-    }
+    if (ui->scrollArea_2)
+        ui->scrollArea_2->setStyleSheet(kScrollBarStyle);
 }
 
 void MainWindow::InitLogPanel()
@@ -203,24 +208,51 @@ void MainWindow::InitLogPanel()
     log_panel->logInfo(tr("Application started"));
 }
 
-void MainWindow::InitUndoStack()
+// ---------------------------------------------------------------------------
+// Undo
+// ---------------------------------------------------------------------------
+
+QUndoStack *MainWindow::StackFor(const QString &file_name)
 {
-    undo_stack = new QUndoStack(this);
+    QUndoStack *&stack = undo_stacks_[file_name];
+    if (!stack) {
+        stack = new QUndoStack(undo_group_);
+        connect(stack, &QUndoStack::cleanChanged, this, [this, file_name](bool clean) {
+            const int tab = FindTabByName(file_name);
+            if (tab != -1)
+                ui->tabWidget->setTabToolTip(tab, clean ? QString() : tr("Unsaved changes"));
+        });
+    }
+    return stack;
 }
 
-void MainWindow::PushUndoCommand(const QString &text, const YamlNode &before)
+void MainWindow::CommitEdit(const QString &text, YamlNode before)
 {
+    const QString file_name = current_file_;
     const YamlNode after = tree_model->ToYamlNode();
-    undo_stack->push(new YamlSnapshotCommand(text, before, after, [this](const YamlNode &snapshot) {
-        applying_snapshot_ = true;
-        SaveExpandedState();
-        tree_model->SetRoot(snapshot);
-        RestoreExpandedState();
-        last_committed_tree_ = snapshot;
-        doc_store.set(ui->fileNamecmb->currentText(), snapshot);
-        Displaykeys(snapshot);
-        applying_snapshot_ = false;
-    }));
+
+    last_committed_tree_ = after;
+    doc_store.set(file_name, after);
+    Displaykeys(after);
+
+    StackFor(file_name)->push(new YamlSnapshotCommand(
+        text, std::move(before), after,
+        [this, file_name](const YamlNode &snapshot) { ApplySnapshot(file_name, snapshot); }));
+}
+
+void MainWindow::ApplySnapshot(const QString &file_name, const YamlNode &snapshot)
+{
+    doc_store.set(file_name, snapshot);
+    if (file_name != current_file_)
+        return;
+
+    applying_snapshot_ = true;
+    SaveExpandedState();
+    tree_model->SetRoot(snapshot);
+    RestoreExpandedState();
+    last_committed_tree_ = snapshot;
+    Displaykeys(snapshot);
+    applying_snapshot_ = false;
 }
 
 void MainWindow::SaveExpandedState()
@@ -262,28 +294,12 @@ void MainWindow::RestoreExpandedState()
     walk(QModelIndex());
 }
 
-void MainWindow::SlotUndo()
-{
-    if (undo_stack && undo_stack->canUndo()) {
-        log_panel->logInfo(tr("Undo: %1").arg(undo_stack->undoText()));
-        undo_stack->undo();
-    }
-}
-
-void MainWindow::SlotRedo()
-{
-    if (undo_stack && undo_stack->canRedo()) {
-        log_panel->logInfo(tr("Redo: %1").arg(undo_stack->redoText()));
-        undo_stack->redo();
-    }
-}
+// ---------------------------------------------------------------------------
+// Services, shortcuts, menus
+// ---------------------------------------------------------------------------
 
 void MainWindow::ConnectServices()
 {
-    connect(yaml_reader.get(), &YamlReader::FileUploaded, this, [this](bool success) {
-        if (success)
-            log_panel->logInfo(tr("File saved"));
-    });
     connect(yaml_reader.get(), &YamlReader::ErrorOccurred, this, [this](const QString &msg) {
         log_panel->logError(msg);
         QMessageBox::warning(this, tr("Error"), msg);
@@ -291,18 +307,20 @@ void MainWindow::ConnectServices()
     connect(yandex_api.get(), &YandexApi::ErrorOccurred, this, [this](const QString &msg) {
         log_panel->logWarning(tr("Network: %1").arg(msg));
     });
-    connect(yandex_api.get(), &YandexApi::NewFile, this, [this](const QString &fileName) {
-        log_panel->logInfo(tr("Downloaded from cloud: %1").arg(fileName));
+    connect(yandex_api.get(), &YandexApi::NewFile, this, [this](const QString &file_name) {
+        log_panel->logInfo(tr("Downloaded from cloud: %1").arg(file_name));
+        if (!file_local_system->Contains(file_name))
+            file_local_system->AddFile(QDir(YmlFolder()).absoluteFilePath(file_name));
+        AddToFileCombo(file_name);
     });
-    connect(yandex_api.get(), &YandexApi::NewFile, this, &MainWindow::UploadFileOnCmb);
 
     file_watch = new FileWatchService(this);
-    file_watch->watchFolder(QDir::currentPath() + "/ymlFiles");
+    file_watch->watchFolder(YmlFolder());
     connect(file_watch, &FileWatchService::folderChanged, this, &MainWindow::OnFolderChanged);
     connect(file_watch, &FileWatchService::fileModified, this, &MainWindow::OnFileModified);
     connect(file_watch, &FileWatchService::fileRemoved, this,
-            [this](const QString &fileName, const QString &) {
-                log_panel->logWarning(tr("File removed on disk: %1").arg(fileName));
+            [this](const QString &file_name, const QString &) {
+                log_panel->logWarning(tr("File removed on disk: %1").arg(file_name));
             });
 
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::CloseTab);
@@ -311,27 +329,27 @@ void MainWindow::ConnectServices()
 
 void MainWindow::ConnectShortCut()
 {
-    key_F11 = new QShortcut(this);
-    key_F11->setKey(Qt::Key_F11);
-    connect(key_F11, &QShortcut::activated, this, &MainWindow::SlotShortcutF11);
+    connect(new QShortcut(Qt::Key_F11, this), &QShortcut::activated,
+            this, &MainWindow::SlotShortcutF11);
+    connect(new QShortcut(QKeySequence::Find, this), &QShortcut::activated,
+            this, &MainWindow::SlotShortcutCtrlF);
+    connect(new QShortcut(QKeySequence::Save, this), &QShortcut::activated,
+            this, &MainWindow::SlotShortcutCtrlS);
+    connect(new QShortcut(Qt::CTRL | Qt::Key_R, this), &QShortcut::activated,
+            this, &MainWindow::SlotShortcutCtrlR);
 
-    key_ctrl_f = new QShortcut(this);
-    key_ctrl_f->setKey(Qt::CTRL | Qt::Key_F);
-    connect(key_ctrl_f, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlF);
-
-    key_ctrl_s = new QShortcut(this);
-    key_ctrl_s->setKey(Qt::CTRL | Qt::Key_S);
-    connect(key_ctrl_s, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlS);
-
-    key_ctrl_r = new QShortcut(this);
-    key_ctrl_r->setKey(Qt::CTRL | Qt::Key_R);
-    connect(key_ctrl_r, &QShortcut::activated, this, &MainWindow::SlotShortcutCtrlR);
-
-    auto *key_undo = new QShortcut(QKeySequence::Undo, this);
-    connect(key_undo, &QShortcut::activated, this, &MainWindow::SlotUndo);
-
-    auto *key_redo = new QShortcut(QKeySequence::Redo, this);
-    connect(key_redo, &QShortcut::activated, this, &MainWindow::SlotRedo);
+    connect(new QShortcut(QKeySequence::Undo, this), &QShortcut::activated, this, [this]() {
+        if (undo_group_->canUndo()) {
+            log_panel->logInfo(tr("Undo: %1").arg(undo_group_->undoText()));
+            undo_group_->undo();
+        }
+    });
+    connect(new QShortcut(QKeySequence::Redo, this), &QShortcut::activated, this, [this]() {
+        if (undo_group_->canRedo()) {
+            log_panel->logInfo(tr("Redo: %1").arg(undo_group_->redoText()));
+            undo_group_->redo();
+        }
+    });
 }
 
 void MainWindow::InitLanguageCmb()
@@ -348,9 +366,9 @@ void MainWindow::InitAccountMenu()
     if (!menuBar())
         return;
 
-    QMenu *account_menu = menuBar()->addMenu(tr("Account"));
-    QAction *connect_action = account_menu->addAction(tr("Connect Yandex Disk..."));
-    connect(connect_action, &QAction::triggered, this, &MainWindow::openConnectDialog);
+    account_menu_ = menuBar()->addMenu(tr("Account"));
+    connect_action_ = account_menu_->addAction(tr("Connect Yandex Disk..."));
+    connect(connect_action_, &QAction::triggered, this, &MainWindow::openConnectDialog);
 }
 
 void MainWindow::openConnectDialog()
@@ -365,9 +383,243 @@ void MainWindow::openConnectDialog()
     dialog.exec();
 }
 
+void MainWindow::switchLanguage(const QString &locale)
+{
+    qApp->removeTranslator(&translator_);
+
+    const QString path = ":/i18n/editor_" + locale;
+    if (translator_.load(path))
+        qApp->installTranslator(&translator_);
+
+    ui->retranslateUi(this);
+    ui->fileNamecmb->setPlaceholderText(tr("Select a file..."));
+    if (account_menu_)
+        account_menu_->setTitle(tr("Account"));
+    if (connect_action_)
+        connect_action_->setText(tr("Connect Yandex Disk..."));
+}
+
+// ---------------------------------------------------------------------------
+// File list and tabs
+// ---------------------------------------------------------------------------
+
+void MainWindow::PopulateFileList()
+{
+    QStringList names = file_local_system->GetFiles().keys();
+    std::sort(names.begin(), names.end(), [](const QString &a, const QString &b) {
+        return a.compare(b, Qt::CaseInsensitive) < 0;
+    });
+
+    const QSignalBlocker blocker(ui->fileNamecmb);
+    for (const QString &name : std::as_const(names))
+        ui->fileNamecmb->addItem(name);
+    ui->fileNamecmb->setPlaceholderText(tr("Select a file..."));
+    ui->fileNamecmb->setCurrentIndex(-1);
+}
+
+void MainWindow::AddToFileCombo(const QString &file_name)
+{
+    if (ui->fileNamecmb->findText(file_name) != -1)
+        return;
+    const QSignalBlocker blocker(ui->fileNamecmb);
+    ui->fileNamecmb->addItem(file_name);
+    // addItem on an empty combo selects the new item; keep showing the active file.
+    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(current_file_));
+}
+
+void MainWindow::SyncFileCombo(const QString &file_name)
+{
+    const QSignalBlocker blocker(ui->fileNamecmb);
+    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
+}
+
+int MainWindow::FindTabByName(const QString &file_name) const
+{
+    for (int i = 0; i < ui->tabWidget->count(); ++i) {
+        if (ui->tabWidget->tabText(i) == file_name)
+            return i;
+    }
+    return -1;
+}
+
+void MainWindow::ActivateFile(const QString &file_name)
+{
+    if (file_name.isEmpty())
+        return;
+
+    const int tab = FindTabByName(file_name);
+    if (tab == -1) {
+        if (!OpenInNewTab(file_name))
+            SyncFileCombo(current_file_);
+        return;
+    }
+
+    ui->tabWidget->setCurrentIndex(tab); // -> on_tabWidget_currentChanged -> ShowFile
+}
+
+bool MainWindow::OpenInNewTab(const QString &file_name)
+{
+    const QString path = file_local_system->GetFilePath(file_name);
+    if (path.isEmpty()) {
+        log_panel->logError(tr("Unknown file: %1").arg(file_name));
+        return false;
+    }
+    if (!yaml_reader->ReadFile(path)) {
+        log_panel->logError(tr("Failed to open %1").arg(file_name));
+        return false;
+    }
+
+    doc_store.set(file_name, yaml_reader->GetRootNode());
+    StackFor(file_name)->clear();
+    file_watch->watchFile(path);
+
+    QWidget *tab = new QWidget();
+    auto *layout = new QVBoxLayout(tab);
+    layout->setContentsMargins(0, 0, 0, 0);
+
+    const int index = ui->tabWidget->addTab(tab, file_name);
+    ui->tabWidget->setCurrentIndex(index); // the first tab is already current after addTab
+    if (current_file_ != file_name)
+        ShowFile(file_name);
+
+    log_panel->logInfo(tr("Opened %1").arg(file_name));
+    return true;
+}
+
+void MainWindow::ShowFile(const QString &file_name)
+{
+    if (!doc_store.contains(file_name))
+        return;
+
+    if (!current_file_.isEmpty())
+        check_box_states_nodes[current_file_] = check_box_states;
+
+    current_file_ = file_name;
+
+    applying_snapshot_ = true;
+    tree_model->SetRoot(doc_store.get(file_name));
+    applying_snapshot_ = false;
+    last_committed_tree_ = doc_store.get(file_name);
+
+    check_box_states = check_box_states_nodes.value(file_name);
+    Displaykeys(last_committed_tree_);
+
+    ShowTreeInTab(file_name);
+    undo_group_->setActiveStack(StackFor(file_name));
+    SyncFileCombo(file_name);
+    setWindowFilePath(file_local_system->GetFilePath(file_name));
+}
+
+void MainWindow::ShowNoFile()
+{
+    current_file_.clear();
+    check_box_states.clear();
+    DetachTreeView();
+    applying_snapshot_ = true;
+    tree_model->SetRoot(YamlNode());
+    applying_snapshot_ = false;
+    last_committed_tree_ = YamlNode();
+    ClearKeysArea();
+    undo_group_->setActiveStack(nullptr);
+    SyncFileCombo(QString());
+    setWindowFilePath(QString());
+}
+
+void MainWindow::ShowTreeInTab(const QString &file_name)
+{
+    const int index = FindTabByName(file_name);
+    if (index == -1)
+        return;
+
+    QWidget *tab = ui->tabWidget->widget(index);
+    if (!tab)
+        return;
+
+    if (tree_view->parentWidget() != tab) {
+        auto *layout = qobject_cast<QVBoxLayout *>(tab->layout());
+        if (!layout)
+            layout = new QVBoxLayout(tab);
+        layout->addWidget(tree_view);
+    }
+    tree_view->show();
+}
+
+void MainWindow::DetachTreeView()
+{
+    // The shared tree view lives inside whichever tab is active. Take it out before a
+    // tab is destroyed, otherwise the view would be deleted together with the tab.
+    if (tree_view->parentWidget() != this) {
+        tree_view->hide();
+        tree_view->setParent(this);
+        tree_view->hide();
+    }
+}
+
+void MainWindow::on_tabWidget_currentChanged(int index)
+{
+    if (index < 0 || index >= ui->tabWidget->count()) {
+        ShowNoFile();
+        return;
+    }
+    const QString file_name = ui->tabWidget->tabText(index);
+    if (file_name == current_file_) {
+        ShowTreeInTab(file_name); // only the index shifted (a tab before it was closed)
+        return;
+    }
+    ShowFile(file_name);
+}
+
+void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+    ActivateFile(ui->fileNamecmb->itemText(index));
+}
+
+void MainWindow::CloseTab(int index)
+{
+    if (index < 0 || index >= ui->tabWidget->count())
+        return;
+
+    const QString file_name = ui->tabWidget->tabText(index);
+
+    if (IsFileDirty(file_name)) {
+        const auto reply = QMessageBox::question(
+            this, tr("Save File"),
+            tr("\"%1\" has unsaved changes. Save them before closing?").arg(file_name),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel, QMessageBox::Save);
+        if (reply == QMessageBox::Cancel)
+            return;
+        if (reply == QMessageBox::Save && !WriteFile(file_name))
+            return;
+    }
+
+    file_watch->unwatchFile(file_local_system->GetFilePath(file_name));
+    check_box_states_nodes.remove(file_name);
+    doc_store.remove(file_name);
+    if (QUndoStack *stack = undo_stacks_.take(file_name)) {
+        undo_group_->removeStack(stack);
+        delete stack;
+    }
+
+    QWidget *tab = ui->tabWidget->widget(index);
+    if (tree_view->parentWidget() == tab)
+        DetachTreeView();
+    if (file_name == current_file_)
+        current_file_.clear();
+
+    ui->tabWidget->removeTab(index); // switches to a neighbour tab, or to "no file"
+    delete tab;
+}
+
+// ---------------------------------------------------------------------------
+// Opening files
+// ---------------------------------------------------------------------------
+
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    event->acceptProposedAction();
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
 }
 
 void MainWindow::dropEvent(QDropEvent *event)
@@ -379,149 +631,242 @@ void MainWindow::dropEvent(QDropEvent *event)
         OpenFileByPath(url.toLocalFile());
 }
 
-void MainWindow::on_fileNamecmb_currentIndexChanged(int index)
+void MainWindow::OpenFileByPath(const QString &local_path)
 {
-    ui->fileNamecmb->setCurrentIndex(index);
-
-    if (undo_stack && !undo_stack->isClean() && tree_model->rowCount() > 0) {
-        const auto reply = QMessageBox::question(this,
-                                                 tr("Save File"),
-                                                 tr("Do you want to save the file?"),
-                                                 QMessageBox::Yes | QMessageBox::No,
-                                                 QMessageBox::No);
-        if (reply == QMessageBox::Yes)
-            SaveData(previous_text_cmb);
-    }
-
-    previous_text_cmb = ui->fileNamecmb->currentText();
-    ReadFile();
-}
-
-void MainWindow::SaveData(const QString &fileName)
-{
-    if (!undo_stack || undo_stack->isClean())
+    const QFileInfo info(local_path);
+    if (!info.exists() || !info.isFile())
         return;
 
-    if (HasValidationErrors()) {
-        log_panel->logError(tr("Cannot save: fix the highlighted fields first"));
-        QMessageBox::warning(this, tr("Invalid YAML"),
-                             tr("Some fields contain invalid values (highlighted in red).\n"
-                                "Please fix them before saving."));
+    if (!IsYamlFile(local_path)) {
+        log_panel->logWarning(tr("Not a YAML file: %1").arg(info.fileName()));
         return;
     }
 
-    const QString full_path = file_local_system->GetFilePath(fileName);
-    const QString abs_path = QFileInfo(full_path).absoluteFilePath();
+    const QString file_name = info.fileName();
+    if (file_local_system->Contains(file_name)) {
+        const QString known = QFileInfo(file_local_system->GetFilePath(file_name)).absoluteFilePath();
+        if (known.compare(info.absoluteFilePath(), Qt::CaseInsensitive) != 0) {
+            QMessageBox::information(
+                this, tr("Open File"),
+                tr("Another file named \"%1\" is already in the list:\n%2").arg(file_name, known));
+            return;
+        }
+    } else {
+        file_local_system->AddFile(info.absoluteFilePath());
+    }
 
-    file_watch->markSelfSaved(abs_path);
-
-    yaml_reader->SaveValues(tree_model->ToYamlNode(), full_path);
-    yandex_api->UploadFile(full_path, [](bool) {});
-    undo_stack->setClean();
-
-    file_watch->watchFile(abs_path);
+    AddToFileCombo(file_name);
+    ActivateFile(file_name);
 }
 
-void MainWindow::UploadFileOnCmb(const QString &file)
+void MainWindow::on_OpenFolderYmlFilebtn_clicked()
 {
-    if (ui->fileNamecmb->findText(file) != -1)
+    const QString dir_path = QFileDialog::getExistingDirectory(
+        this, tr("Select a folder with YAML files"), QDir::currentPath());
+
+    if (dir_path.isEmpty())
         return;
 
-    const QString file_path = QDir::currentPath() + "/ymlFiles/" + file;
-    if (!file_local_system->Contains(file))
-        file_local_system->AddFile(file_path);
-    ui->fileNamecmb->addItem(file);
+    QDir dir(dir_path);
+    const QStringList files = dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
+
+    if (files.isEmpty()) {
+        QMessageBox::information(this, tr("Open Folder"), tr("No YAML files in the folder"));
+        return;
+    }
+
+    for (const QString &name : files)
+        OpenFileByPath(dir.absoluteFilePath(name));
 }
 
-bool MainWindow::CheckOpenTab(const QString &file)
+void MainWindow::on_OpenFilebtn_clicked()
 {
-    const int existing_tab_index = FindTabByName(file);
-    if (existing_tab_index == -1)
+    const QStringList paths = QFileDialog::getOpenFileNames(
+        this, tr("Select YAML file(s)"), YmlFolder(),
+        tr("YAML files (*.yml *.yaml);;All files (*)"));
+
+    for (const QString &path : paths)
+        OpenFileByPath(path);
+}
+
+void MainWindow::OnFolderChanged(const QString &path)
+{
+    const QDir dir(path);
+    const QString folder = dir.absolutePath();
+    const QStringList files = dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
+
+    for (const QString &file : files) {
+        if (!file_local_system->Contains(file))
+            file_local_system->AddFile(dir.absoluteFilePath(file));
+        AddToFileCombo(file);
+    }
+
+    // Drop entries that lived in this folder and are gone. Files opened from other
+    // folders are not affected, and an open tab is kept so its content can be saved.
+    for (int i = ui->fileNamecmb->count() - 1; i >= 0; --i) {
+        const QString name = ui->fileNamecmb->itemText(i);
+        const QFileInfo known(file_local_system->GetFilePath(name));
+        if (known.absolutePath().compare(folder, Qt::CaseInsensitive) != 0 || known.exists())
+            continue;
+        if (FindTabByName(name) != -1)
+            continue;
+
+        const QSignalBlocker blocker(ui->fileNamecmb);
+        ui->fileNamecmb->removeItem(i);
+        file_local_system->RemoveFile(name);
+    }
+    SyncFileCombo(current_file_);
+}
+
+void MainWindow::OnFileModified(const QString &file_name, const QString &abs_path)
+{
+    if (!doc_store.contains(file_name))
+        return; // not open, nothing to reload
+
+    const QString known = QFileInfo(file_local_system->GetFilePath(file_name)).absoluteFilePath();
+    if (known.compare(abs_path, Qt::CaseInsensitive) != 0)
+        return;
+
+    log_panel->logWarning(tr("Changed on disk: %1").arg(file_name));
+
+    if (reload_prompt_active_)
+        return;
+
+    QString question = tr("The file \"%1\" was changed on disk.").arg(file_name);
+    if (IsFileDirty(file_name))
+        question += "\n\n" + tr("You have unsaved changes. Reload and discard them?");
+    else
+        question += "\n\n" + tr("Reload it?");
+
+    reload_prompt_active_ = true;
+    const auto reply = QMessageBox::question(this, tr("File changed"), question,
+                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    reload_prompt_active_ = false;
+
+    if (reply == QMessageBox::Yes)
+        ReloadFileFromDisk(file_name);
+}
+
+void MainWindow::ReloadFileFromDisk(const QString &file_name)
+{
+    const QString path = file_local_system->GetFilePath(file_name);
+    if (path.isEmpty() || !QFileInfo::exists(path))
+        return;
+
+    if (!yaml_reader->ReadFile(path)) {
+        log_panel->logError(tr("Failed to reload %1").arg(file_name));
+        return;
+    }
+
+    doc_store.set(file_name, yaml_reader->GetRootNode());
+    StackFor(file_name)->clear();
+
+    if (file_name == current_file_) {
+        SaveExpandedState();
+        ShowFile(file_name);
+        RestoreExpandedState();
+    }
+
+    log_panel->logInfo(tr("Reloaded %1 from disk").arg(file_name));
+}
+
+// ---------------------------------------------------------------------------
+// Saving
+// ---------------------------------------------------------------------------
+
+bool MainWindow::WriteFile(const QString &file_name)
+{
+    const QString full_path = file_local_system->GetFilePath(file_name);
+    if (full_path.isEmpty() || !doc_store.contains(file_name)) {
+        log_panel->logError(tr("Cannot save %1: unknown file").arg(file_name));
+        return false;
+    }
+
+    if (!yaml_reader->SaveValues(doc_store.get(file_name), full_path))
         return false;
 
-    if (doc_store.contains(file))
-        tree_model->SetRoot(doc_store.get(file));
-    last_committed_tree_ = tree_model->ToYamlNode();
-    Displaykeys(tree_model->ToYamlNode());
-    ShowTreeInTab(file);
-    ui->tabWidget->setCurrentIndex(existing_tab_index);
+    file_watch->markSelfSaved(full_path);
+    StackFor(file_name)->setClean();
+    log_panel->logInfo(tr("Saved %1").arg(file_name));
+
+    yandex_api->UploadFile(full_path, [this, file_name](bool ok) {
+        if (ok)
+            log_panel->logInfo(tr("Uploaded %1 to Yandex Disk").arg(file_name));
+    });
     return true;
 }
 
-void MainWindow::CloseTab(int index)
+void MainWindow::SaveData(const QString &file_name)
 {
-    if (index < 0 || index >= ui->tabWidget->count())
+    if (file_name.isEmpty() || !IsFileDirty(file_name))
         return;
-
-    const QString file_name = ui->tabWidget->tabText(index);
-    SaveData(file_name);
-
-    file_watch->unwatchFile(file_local_system->GetFilePath(file_name));
-
-    check_box_states_nodes.remove(file_name);
-    doc_store.remove(file_name);
-    check_box_states.clear();
-
-    QWidget *tab = ui->tabWidget->widget(index);
-    ui->tabWidget->removeTab(index);
-    delete tab;
+    WriteFile(file_name);
 }
 
-int MainWindow::FindTabByName(const QString &fileName) const
+bool MainWindow::IsFileDirty(const QString &file_name) const
 {
+    const QUndoStack *stack = undo_stacks_.value(file_name);
+    return stack && !stack->isClean();
+}
+
+QStringList MainWindow::UnsavedFiles() const
+{
+    QStringList dirty;
     for (int i = 0; i < ui->tabWidget->count(); ++i) {
-        if (ui->tabWidget->tabText(i) == fileName)
-            return i;
+        const QString file_name = ui->tabWidget->tabText(i);
+        if (IsFileDirty(file_name))
+            dirty << file_name;
     }
-    return -1;
+    return dirty;
 }
 
-void MainWindow::CollectKeys(const YamlNode &node, QSet<QString> &keys) const
+void MainWindow::closeEvent(QCloseEvent *event)
 {
-    QString key = node.key;
-    if (key.isEmpty())
-        key = "-";
+    const QStringList dirty = UnsavedFiles();
+    if (dirty.isEmpty()) {
+        event->accept();
+        return;
+    }
 
-    if (node.children.isEmpty())
-        keys.insert(key);
+    const QString list = dirty.join("\n  • ");
+    const QString text =
+        tr("The following files have unsaved changes:") + "\n\n  • " + list;
 
-    for (const YamlNode &sub_node : node.children)
-        CollectKeys(sub_node, keys);
-}
+    QMessageBox box(this);
+    box.setWindowTitle(tr("Unsaved changes"));
+    box.setText(text);
+    box.setInformativeText(tr("Do you want to save them before exiting?"));
+    box.setStandardButtons(QMessageBox::SaveAll | QMessageBox::Discard | QMessageBox::Cancel);
+    box.setDefaultButton(QMessageBox::SaveAll);
+    box.setIcon(QMessageBox::Warning);
 
-void MainWindow::ReadFile()
-{
-    const QString file_name = ui->fileNamecmb->currentText();
-    const QString file_path = file_local_system->GetFilePath(file_name);
+    const int choice = box.exec();
 
-    if (!CheckOpenTab(file_name)) {
-        if (yaml_reader->ReadFile(file_path)) {
-            tree_model->SetRoot(yaml_reader->GetRootNode());
-            DisplayYamlData();
-            Displaykeys(tree_model->ToYamlNode());
+    if (choice == QMessageBox::Cancel) {
+        event->ignore();
+        return;
+    }
+
+    if (choice == QMessageBox::SaveAll) {
+        for (const QString &file_name : dirty) {
+            if (!WriteFile(file_name)) {
+                event->ignore(); // keep the window open so the data is not lost
+                return;
+            }
         }
     }
 
-    doc_store.set(file_name, tree_model->ToYamlNode());
-    check_box_states_nodes.insert(file_name, check_box_states);
-
-    last_committed_tree_ = tree_model->ToYamlNode();
-
-    if (undo_stack) {
-        undo_stack->clear();
-        undo_stack->setClean();
-    }
-    value_edit_active_ = false;
-    if (search_controller)
-        search_controller->reset();
+    event->accept();
 }
+
+// ---------------------------------------------------------------------------
+// Shortcuts and buttons
+// ---------------------------------------------------------------------------
 
 void MainWindow::SlotShortcutCtrlF()
 {
-    if (replace_wnd) {
+    if (replace_wnd)
         replace_wnd->close();
-        replace_wnd = nullptr;
-    }
 
     if (search_wnd) {
         search_wnd->activateWindow();
@@ -546,15 +891,13 @@ void MainWindow::SlotShortcutF11()
 
 void MainWindow::SlotShortcutCtrlS()
 {
-    SaveData(ui->fileNamecmb->currentText());
+    SaveData(current_file_);
 }
 
 void MainWindow::SlotShortcutCtrlR()
 {
-    if (search_wnd) {
+    if (search_wnd)
         search_wnd->close();
-        search_wnd = nullptr;
-    }
 
     if (replace_wnd) {
         replace_wnd->activateWindow();
@@ -572,36 +915,79 @@ void MainWindow::SlotShortcutCtrlR()
     replace_wnd->show();
 }
 
-void MainWindow::DisplayYamlData()
+void MainWindow::on_pushButton_clicked()
 {
-    const QString file_name = ui->fileNamecmb->currentText();
-
-    QWidget *tab = new QWidget();
-    new QVBoxLayout(tab);
-    ui->tabWidget->addTab(tab, file_name);
-    ui->tabWidget->setCurrentWidget(tab);
-
-    ShowTreeInTab(file_name);
+    SaveData(current_file_);
 }
 
-void MainWindow::ShowTreeInTab(const QString &fileName)
+void MainWindow::on_pushButton_2_clicked()
 {
-    const int index = FindTabByName(fileName);
-    if (index == -1)
+    Displaykeys(tree_model->ToYamlNode());
+    tree_view->expandAll();
+}
+
+// ---------------------------------------------------------------------------
+// Tree context menu
+// ---------------------------------------------------------------------------
+
+void MainWindow::ShowTreeContextMenu(const QPoint &pos)
+{
+    if (current_file_.isEmpty())
         return;
 
-    QWidget *tab = ui->tabWidget->widget(index);
-    if (!tab)
+    const QModelIndex index = tree_view->indexAt(pos);
+    const QModelIndex node = index.isValid() ? index.siblingAtColumn(0) : QModelIndex();
+
+    QMenu menu(this);
+    QAction *add_child = menu.addAction(tr("Add child"));
+    add_child->setEnabled(!node.isValid() || tree_model->CanHaveChildren(node));
+    QAction *remove = node.isValid() ? menu.addAction(tr("Delete")) : nullptr;
+
+    QAction *chosen = menu.exec(tree_view->viewport()->mapToGlobal(pos));
+    if (!chosen)
         return;
 
-    QVBoxLayout *layout = qobject_cast<QVBoxLayout *>(tab->layout());
-    if (!layout)
-        layout = new QVBoxLayout(tab);
+    const YamlNode before = last_committed_tree_;
+    QModelIndex to_edit;
 
-    if (tree_view->parentWidget() != tab) {
-        layout->addWidget(tree_view);
-        tree_view->show();
+    if (chosen == add_child) {
+        const QModelIndex added = tree_model->AddChild(node, tr("new_key"));
+        if (!added.isValid())
+            return;
+        if (node.isValid())
+            tree_view->expand(node);
+        const bool list_item = added.data(YamlTreeModel::IsSequenceItemRole).toBool();
+        to_edit = added.siblingAtColumn(list_item ? YamlTreeModel::ValueColumn
+                                                  : YamlTreeModel::KeyColumn);
+    } else if (remove && chosen == remove) {
+        tree_model->RemoveNode(node);
+    } else {
+        return;
     }
+
+    CommitEdit(tr("Structure change"), before);
+
+    if (to_edit.isValid()) {
+        tree_view->setCurrentIndex(to_edit);
+        tree_view->edit(to_edit);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Keys panel
+// ---------------------------------------------------------------------------
+
+void MainWindow::CollectKeys(const YamlNode &node, QSet<QString> &keys) const
+{
+    QString key = node.key;
+    if (key.isEmpty())
+        key = "-";
+
+    if (node.children.isEmpty())
+        keys.insert(key);
+
+    for (const YamlNode &sub_node : node.children)
+        CollectKeys(sub_node, keys);
 }
 
 void MainWindow::Displaykeys(const YamlNode &root)
@@ -617,67 +1003,6 @@ void MainWindow::Displaykeys(const YamlNode &root)
 
     for (const QString &key : std::as_const(sorted_keys))
         CreateCheckBox(key);
-}
-
-void MainWindow::on_pushButton_clicked()
-{
-    SaveData(ui->fileNamecmb->currentText());
-}
-
-void MainWindow::on_pushButton_2_clicked()
-{
-    Displaykeys(tree_model->ToYamlNode());
-    tree_view->expandAll();
-}
-
-void MainWindow::onCheckBoxStateChanged(int state)
-{
-    if (QCheckBox *check_box = qobject_cast<QCheckBox *>(sender()))
-        check_box_states[check_box->text()] = (state == Qt::Checked);
-}
-
-void MainWindow::HandleAddKeyValue(const QString &path, const QString &newValue, bool isKey)
-{
-    Q_UNUSED(path);
-    Q_UNUSED(newValue);
-    Q_UNUSED(isKey);
-}
-
-void MainWindow::HandleDeleteElement(const QString &path, bool isKey)
-{
-    Q_UNUSED(path);
-    Q_UNUSED(isKey);
-}
-
-void MainWindow::ShowTreeContextMenu(const QPoint &pos)
-{
-    const QModelIndex index = tree_view->indexAt(pos);
-
-    QMenu menu(this);
-    QAction *add_child = menu.addAction(tr("Add child"));
-    QAction *remove = index.isValid() ? menu.addAction(tr("Delete")) : nullptr;
-
-    QAction *chosen = menu.exec(tree_view->viewport()->mapToGlobal(pos));
-    if (!chosen)
-        return;
-
-    const YamlNode before = tree_model->ToYamlNode();
-
-    if (chosen == add_child) {
-        const QModelIndex parent = index.isValid() ? index.siblingAtColumn(0) : QModelIndex();
-        tree_model->AddChild(parent, tr("new_key"), QString());
-        if (parent.isValid())
-            tree_view->expand(parent);
-    } else if (remove && chosen == remove) {
-        tree_model->RemoveNode(index.siblingAtColumn(0));
-    } else {
-        return;
-    }
-
-    PushUndoCommand(tr("Structure change"), before);
-    last_committed_tree_ = tree_model->ToYamlNode();
-    doc_store.set(ui->fileNamecmb->currentText(), last_committed_tree_);
-    Displaykeys(last_committed_tree_);
 }
 
 void MainWindow::CreateCheckBox(const QString &name)
@@ -739,269 +1064,4 @@ void MainWindow::ClearKeysArea()
         delete item->widget();
         delete item;
     }
-}
-
-
-
-void MainWindow::RemoveTab(const QString &tabText)
-{
-    const int index = FindTabByName(tabText);
-    if (index != -1)
-        ui->tabWidget->removeTab(index);
-    else
-        qWarning() << "Tab with text" << tabText << "not found!";
-}
-
-void MainWindow::OnFileModified(const QString &fileName, const QString &absPath)
-{
-    Q_UNUSED(absPath);
-
-    const bool has_unsaved =
-        (fileName == ui->fileNamecmb->currentText()) && undo_stack && !undo_stack->isClean();
-
-    QString question = tr("The file \"%1\" was changed on disk.").arg(fileName);
-    if (has_unsaved)
-        question += "\n\n" + tr("You have unsaved changes. Reload and discard them?");
-    else
-        question += "\n\n" + tr("Reload it?");
-
-    log_panel->logWarning(tr("Changed on disk: %1").arg(fileName));
-
-    if (reload_prompt_active_)
-        return;
-    reload_prompt_active_ = true;
-
-    const auto reply = QMessageBox::question(this, tr("File changed"), question,
-                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-    reload_prompt_active_ = false;
-
-    if (reply == QMessageBox::Yes)
-        ReloadFileFromDisk(fileName);
-}
-
-void MainWindow::ReloadFileFromDisk(const QString &file_name)
-{
-    const QString path = file_local_system->GetFilePath(file_name);
-    if (path.isEmpty() || !QFileInfo::exists(path))
-        return;
-
-    if (!yaml_reader->ReadFile(path)) {
-        log_panel->logError(tr("Failed to reload %1").arg(file_name));
-        return;
-    }
-
-    const YamlNode reloaded = yaml_reader->GetRootNode();
-    doc_store.set(file_name, reloaded);
-
-    if (file_name == ui->fileNamecmb->currentText()) {
-        tree_model->SetRoot(reloaded);
-        last_committed_tree_ = reloaded;
-        Displaykeys(reloaded);
-        if (undo_stack) {
-            undo_stack->clear();
-            undo_stack->setClean();
-        }
-    }
-
-    log_panel->logInfo(tr("Reloaded %1 from disk").arg(file_name));
-}
-
-bool MainWindow::IsFileDirty(const QString &file_name) const
-{
-    if (!doc_store.contains(file_name))
-        return false;
-
-    const QString path = file_local_system->GetFilePath(file_name);
-
-    const YamlNode current = (file_name == ui->fileNamecmb->currentText())
-                                 ? tree_model->ToYamlNode()
-                                 : doc_store.get(file_name);
-    return DocumentStore::differsFromDisk(current, path);
-}
-
-QStringList MainWindow::UnsavedFiles() const
-{
-    QStringList dirty;
-    for (int i = 0; i < ui->tabWidget->count(); ++i) {
-        const QString file_name = ui->tabWidget->tabText(i);
-        if (IsFileDirty(file_name))
-            dirty << file_name;
-    }
-    return dirty;
-}
-
-void MainWindow::closeEvent(QCloseEvent *event)
-{
-    const QStringList dirty = UnsavedFiles();
-    if (dirty.isEmpty()) {
-        event->accept();
-        return;
-    }
-
-    const QString list = dirty.join("\n  \u2022 ");
-    const QString text =
-        tr("The following files have unsaved changes:") + "\n\n  \u2022 " + list;
-
-    QMessageBox box(this);
-    box.setWindowTitle(tr("Unsaved changes"));
-    box.setText(text);
-    box.setInformativeText(tr("Do you want to save them before exiting?"));
-    box.setStandardButtons(QMessageBox::SaveAll | QMessageBox::Discard | QMessageBox::Cancel);
-    box.setDefaultButton(QMessageBox::SaveAll);
-    box.setIcon(QMessageBox::Warning);
-
-    const int choice = box.exec();
-
-    if (choice == QMessageBox::Cancel) {
-        event->ignore();
-        return;
-    }
-
-    if (choice == QMessageBox::SaveAll) {
-
-        const QString active = ui->fileNamecmb->currentText();
-        if (HasValidationErrors()) {
-            const auto proceed = QMessageBox::warning(
-                this, tr("Invalid YAML"),
-                tr("The current file has invalid fields and cannot be saved.\n"
-                   "Exit without saving it?"),
-                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-            if (proceed != QMessageBox::Yes) {
-                event->ignore();
-                return;
-            }
-        }
-
-        for (const QString &file_name : dirty) {
-
-            if (file_name == active && HasValidationErrors()) {
-                log_panel->logWarning(tr("Skipped %1 (invalid)").arg(file_name));
-                continue;
-            }
-            const YamlNode tree =
-                (file_name == active) ? tree_model->ToYamlNode() : doc_store.get(file_name);
-            const QString full_path = file_local_system->GetFilePath(file_name);
-            const QString abs_path = QFileInfo(full_path).absoluteFilePath();
-            file_watch->markSelfSaved(abs_path);
-            yaml_reader->SaveValues(tree, full_path);
-            yandex_api->UploadFile(full_path, [](bool) {});
-            log_panel->logInfo(tr("Saved %1 on exit").arg(file_name));
-        }
-    }
-
-    event->accept();
-}
-
-void MainWindow::OnFolderChanged(const QString &path)
-{
-    QDir dir(path);
-    const QStringList files =
-        dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
-
-    for (const QString &file : files) {
-        if (ui->fileNamecmb->findText(file) == -1)
-            ui->fileNamecmb->addItem(file);
-    }
-
-    for (int i = 0; i < ui->fileNamecmb->count();) {
-        const QString combo_file = ui->fileNamecmb->itemText(i);
-        if (!files.contains(combo_file)) {
-            ui->fileNamecmb->removeItem(i);
-            RemoveTab(combo_file);
-        } else {
-            ++i;
-        }
-    }
-}
-
-void MainWindow::OpenFileByPath(const QString &local_path)
-{
-    const QFileInfo info(local_path);
-    if (!info.exists() || !info.isFile())
-        return;
-
-    const QString file_name = info.fileName();
-    if (ui->fileNamecmb->findText(file_name) != -1) {
-        QMessageBox::information(this, tr("Error"), tr("This file is already open"));
-        return;
-    }
-
-    file_local_system->AddFile(local_path);
-    ui->fileNamecmb->addItem(file_name);
-    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
-    ReadFile();
-
-    file_watch->watchFile(info.absoluteFilePath());
-    log_panel->logInfo(tr("Opened %1").arg(file_name));
-}
-
-void MainWindow::on_OpenFolderYmlFilebtn_clicked()
-{
-    const QString dir_path = QFileDialog::getExistingDirectory(
-        this, tr("Select a folder with YAML files"), QDir::currentPath(),
-        QFileDialog::DontUseNativeDialog);
-
-    if (dir_path.isEmpty())
-        return;
-
-    QDir dir(dir_path);
-    const QStringList files =
-        dir.entryList(QStringList{"*.yaml", "*.yml"}, QDir::Files);
-
-    if (files.isEmpty()) {
-        QMessageBox::information(this, tr("Open Folder"), tr("No YAML files in the folder"));
-        return;
-    }
-
-    for (const QString &name : files)
-        OpenFileByPath(dir.absoluteFilePath(name));
-}
-
-void MainWindow::on_tabWidget_currentChanged(int index)
-{
-    if (index < 0 || index >= ui->tabWidget->count())
-        return;
-
-    const QString previousFileName = ui->tabWidget->tabText(ui->tabWidget->currentIndex());
-    check_box_states_nodes[previousFileName] = check_box_states;
-
-    const QString file_name = ui->tabWidget->tabText(index);
-    ui->fileNamecmb->setCurrentIndex(ui->fileNamecmb->findText(file_name));
-
-    if (doc_store.contains(file_name)) {
-        tree_model->SetRoot(doc_store.get(file_name));
-        last_committed_tree_ = tree_model->ToYamlNode();
-        check_box_states = check_box_states_nodes.value(file_name);
-        Displaykeys(tree_model->ToYamlNode());
-        ShowTreeInTab(file_name);
-
-        if (undo_stack) {
-            undo_stack->clear();
-            undo_stack->setClean();
-        }
-        value_edit_active_ = false;
-        if (search_controller)
-            search_controller->reset();
-    }
-}
-
-void MainWindow::on_OpenFilebtn_clicked()
-{
-    const QStringList paths = QFileDialog::getOpenFileNames(
-        this, tr("Select YAML file(s)"), QDir::currentPath() + "/ymlFiles",
-        tr("YAML files (*.yml *.yaml);;All files (*)"));
-
-    for (const QString &path : paths)
-        OpenFileByPath(path);
-}
-
-void MainWindow::switchLanguage(const QString &locale)
-{
-    qApp->removeTranslator(&translator_);
-
-    const QString path = ":/i18n/editor_" + locale;
-    if (translator_.load(path))
-        qApp->installTranslator(&translator_);
-
-    ui->retranslateUi(this);
 }

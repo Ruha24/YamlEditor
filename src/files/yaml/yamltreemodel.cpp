@@ -2,6 +2,8 @@
 
 #include <QStringList>
 
+#include <algorithm>
+
 YamlTreeModel::YamlTreeModel(QObject *parent)
     : QAbstractItemModel(parent)
     , root_(std::make_unique<TreeItem>())
@@ -16,6 +18,8 @@ void YamlTreeModel::buildFrom(const YamlNode &node, TreeItem *item)
         ti->key = child.key;
         ti->value = child.value;
         ti->is_sequence = child.is_sequence;
+        ti->type = child.type;
+        ti->quoted = child.quoted;
         ti->parent = item;
         buildFrom(child, ti.get());
         item->children.push_back(std::move(ti));
@@ -26,6 +30,7 @@ void YamlTreeModel::SetRoot(const YamlNode &root)
 {
     beginResetModel();
     root_ = std::make_unique<TreeItem>();
+    root_->type = root.type;
     buildFrom(root, root_.get());
     endResetModel();
 }
@@ -37,6 +42,8 @@ void YamlTreeModel::exportTo(const TreeItem *item, YamlNode &node) const
         child_node.key = child->key;
         child_node.value = child->value;
         child_node.is_sequence = child->is_sequence;
+        child_node.type = child->type;
+        child_node.quoted = child->quoted;
         exportTo(child.get(), child_node);
         node.children.append(child_node);
     }
@@ -45,6 +52,7 @@ void YamlTreeModel::exportTo(const TreeItem *item, YamlNode &node) const
 YamlNode YamlTreeModel::ToYamlNode() const
 {
     YamlNode root;
+    root.type = root_->type;
     exportTo(root_.get(), root);
     return root;
 }
@@ -149,11 +157,17 @@ bool YamlTreeModel::setData(const QModelIndex &index, const QVariant &value, int
             return false;
         if (item->key == text)
             return true;
+        if (HasSiblingWithKey(index, text))
+            return false;
         item->key = text;
     } else {
+        if (!item->children.empty())
+            return false;
         if (item->value == text)
             return true;
         item->value = text;
+        if (!text.isEmpty())
+            item->type = YamlNode::Type::Scalar;
     }
 
     emit dataChanged(index, index, {Qt::DisplayRole, Qt::EditRole});
@@ -181,27 +195,69 @@ Qt::ItemFlags YamlTreeModel::flags(const QModelIndex &index) const
     TreeItem *item = itemFor(index);
     const bool is_seq_marker = item && item->is_sequence && item->key.isEmpty();
 
-    if (!(index.column() == KeyColumn && is_seq_marker))
+    const bool is_container = item && !item->children.empty();
+    if (index.column() == KeyColumn ? !is_seq_marker : !is_container)
         f |= Qt::ItemIsEditable;
 
     return f;
 }
 
-bool YamlTreeModel::AddChild(const QModelIndex &parent, const QString &key, const QString &value)
+bool YamlTreeModel::CanHaveChildren(const QModelIndex &index) const
 {
-    TreeItem *parent_item = itemFor(parent);
-    if (!parent_item)
+    const TreeItem *item = itemFor(index);
+    return item && (!item->children.empty() || item->value.isEmpty());
+}
+
+bool YamlTreeModel::HasSiblingWithKey(const QModelIndex &index, const QString &key) const
+{
+    const TreeItem *item = itemFor(index);
+    if (!item || !item->parent)
         return false;
+    for (const auto &sibling : item->parent->children) {
+        if (sibling.get() != item && !sibling->is_sequence && sibling->key == key)
+            return true;
+    }
+    return false;
+}
+
+QModelIndex YamlTreeModel::AddChild(const QModelIndex &parent, const QString &baseKey)
+{
+    const QModelIndex parent0 = parent.isValid() ? parent.siblingAtColumn(0) : QModelIndex();
+    if (parent0.isValid() && !CanHaveChildren(parent0))
+        return QModelIndex();
+
+    TreeItem *parent_item = itemFor(parent0);
+    if (!parent_item)
+        return QModelIndex();
+
+    const bool as_list_item = parent_item->children.empty()
+                                  ? parent_item->type == YamlNode::Type::Sequence
+                                  : parent_item->children.front()->is_sequence;
+
+    auto ti = std::make_unique<TreeItem>();
+    ti->parent = parent_item;
+    if (as_list_item) {
+        ti->is_sequence = true;
+    } else {
+        QString key = baseKey;
+        for (int n = 2;; ++n) {
+            const bool taken = std::any_of(parent_item->children.begin(),
+                                           parent_item->children.end(),
+                                           [&](const auto &c) { return c->key == key; });
+            if (!taken)
+                break;
+            key = QStringLiteral("%1_%2").arg(baseKey).arg(n);
+        }
+        ti->key = key;
+    }
 
     const int row = static_cast<int>(parent_item->children.size());
-    beginInsertRows(parent, row, row);
-    auto ti = std::make_unique<TreeItem>();
-    ti->key = key;
-    ti->value = value;
-    ti->parent = parent_item;
+    beginInsertRows(parent0, row, row);
     parent_item->children.push_back(std::move(ti));
+    if (parent_item->type != YamlNode::Type::Sequence && parent_item->type != YamlNode::Type::Map)
+        parent_item->type = as_list_item ? YamlNode::Type::Sequence : YamlNode::Type::Map;
     endInsertRows();
-    return true;
+    return index(row, 0, parent0);
 }
 
 bool YamlTreeModel::RemoveNode(const QModelIndex &index)

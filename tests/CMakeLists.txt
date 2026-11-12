@@ -5,6 +5,7 @@ qt_add_library(yamleditor_core STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/files/yaml/yamlreader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/files/filesystem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/files/yaml/yamlvalidator.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/files/yaml/yamltreemodel.cpp
 )
 target_include_directories(yamleditor_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
@@ -28,6 +29,7 @@ add_core_test(tst_yamlnode    tst_yamlnode.cpp)
 add_core_test(tst_yamlreader  tst_yamlreader.cpp)
 add_core_test(tst_filesystem  tst_filesystem.cpp)
 add_core_test(tst_yamlvalidator tst_yamlvalidator.cpp)
+add_core_test(tst_yamltreemodel tst_yamltreemodel.cpp)
 
 set_tests_properties(tst_filesystem PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"

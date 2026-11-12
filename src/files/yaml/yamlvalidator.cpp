@@ -36,19 +36,9 @@ bool YamlValidator::hasBalancedQuotes(const QString &text)
 
 YamlValidator::Result YamlValidator::validateValue(const QString &value)
 {
-
-    if (value.isEmpty())
-        return Result::valid();
-
-    if (!hasBalancedQuotes(value))
-        return Result::invalid(QObject::tr("Unbalanced quotes"));
-
-    if (!hasBalancedPairs(value))
-        return Result::invalid(QObject::tr("Unbalanced brackets { } or [ ]"));
-
-    if (value.endsWith('\\'))
-        return Result::invalid(QObject::tr("Value ends with a backslash"));
-
+    // Any text is a valid value: the writer quotes and escapes it when needed
+    // (e.g. "It's", "a: b", "[1, 2"), so there is nothing to reject here.
+    Q_UNUSED(value);
     return Result::valid();
 }
 

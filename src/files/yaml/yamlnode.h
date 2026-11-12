@@ -7,10 +7,18 @@
 class YamlNode
 {
 public:
+    // What the node held in the source document. Only matters for nodes without
+    // children: it decides whether an empty node is written as "", ~, {} or [].
+    enum class Type { Scalar, Null, Map, Sequence };
+
     QList<YamlNode> children;
     QString value;
     QString key;
-    bool is_sequence = false;
+    bool is_sequence = false; // true for an element of a sequence (written as "- ...")
+    Type type = Type::Scalar;
+    bool quoted = false;      // scalar was quoted in the source, so it stays a string
+
+    bool IsSequenceContainer() const;
 
     YamlNode() = default;
     explicit YamlNode(const QString &key, const QString &value = QString());

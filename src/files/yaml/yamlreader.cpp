@@ -1,68 +1,97 @@
 #include "yamlreader.h"
 
-#include <QFileInfo>
-
-#include <fstream>
+#include <QFile>
+#include <QSaveFile>
 
 YamlReader::YamlReader(QObject *parent)
     : QObject(parent)
 {
 }
 
-void YamlReader::CollectKeys(const YAML::Node &node, YamlNode &yamlNode, int depth)
+bool YamlReader::Fill(const YAML::Node &source, YamlNode &target, int depth)
 {
     if (depth > kMaxDepth) {
         emit ErrorOccurred(tr("YAML nesting too deep; aborting parse"));
-        return;
+        return false;
     }
 
-    if (node.IsMap()) {
-        for (const auto &kv : node) {
-            const QString key = QString::fromStdString(kv.first.as<std::string>());
-            YamlNode child(key);
+    switch (source.Type()) {
+    case YAML::NodeType::Null:
+    case YAML::NodeType::Undefined:
+        target.type = YamlNode::Type::Null;
+        return true;
 
-            if (kv.second.IsScalar()) {
-                child.value = QString::fromStdString(kv.second.as<std::string>());
-            } else if (kv.second.IsSequence()) {
-                for (std::size_t i = 0; i < kv.second.size(); ++i) {
-                    YamlNode seq_child;
-                    if (kv.second[i].IsScalar())
-                        seq_child.value = QString::fromStdString(kv.second[i].as<std::string>());
-                    child.children.append(seq_child);
-                }
-            } else {
-                CollectKeys(kv.second, child, depth + 1);
-            }
+    case YAML::NodeType::Scalar:
+        target.type = YamlNode::Type::Scalar;
+        target.value = QString::fromStdString(source.Scalar());
+        // yaml-cpp tags plain scalars with "?" and quoted ones with "!".
+        target.quoted = source.Tag() == "!";
+        return true;
 
-            yamlNode.children.append(child);
-        }
-    } else if (node.IsSequence()) {
-        for (std::size_t i = 0; i < node.size(); ++i) {
+    case YAML::NodeType::Sequence:
+        target.type = YamlNode::Type::Sequence;
+        for (const YAML::Node &element : source) {
             YamlNode child;
-            if (node[i].IsScalar())
-                child.value = QString::fromStdString(node[i].as<std::string>());
-            else
-                CollectKeys(node[i], child, depth + 1);
-            yamlNode.children.append(child);
+            child.is_sequence = true;
+            if (!Fill(element, child, depth + 1))
+                return false;
+            target.children.append(child);
         }
+        return true;
+
+    case YAML::NodeType::Map:
+        target.type = YamlNode::Type::Map;
+        for (const auto &kv : source) {
+            if (!kv.first.IsScalar()) {
+                emit ErrorOccurred(tr("Complex (non-scalar) map keys are not supported"));
+                return false;
+            }
+            YamlNode child(QString::fromStdString(kv.first.Scalar()));
+            if (!Fill(kv.second, child, depth + 1))
+                return false;
+            target.children.append(child);
+        }
+        return true;
     }
+    return true;
 }
 
 bool YamlReader::ReadFile(const QString &file)
 {
+    // Read through QFile: yaml-cpp's LoadFile cannot open non-ASCII paths on Windows.
+    QFile in(file);
+    if (!in.open(QIODevice::ReadOnly)) {
+        emit ErrorOccurred(tr("Cannot open file: %1").arg(file));
+        return false;
+    }
+    const QByteArray bytes = in.readAll();
+    in.close();
+
     YAML::Node config;
     try {
-        config = YAML::LoadFile(file.toStdString());
+        config = YAML::Load(bytes.toStdString());
     } catch (const YAML::Exception &e) {
         emit ErrorOccurred(tr("Failed to parse YAML: %1").arg(QString::fromStdString(e.what())));
         return false;
     }
 
-    if (config.IsNull() || !config.IsDefined())
+    YamlNode parsed;
+    try {
+        if (!config.IsDefined() || config.IsNull()) {
+            // Empty document: treat as an empty map so the user can start adding keys.
+            parsed.type = YamlNode::Type::Map;
+        } else if (config.IsScalar()) {
+            emit ErrorOccurred(tr("The document root must be a map or a list"));
+            return false;
+        } else if (!Fill(config, parsed, 0)) {
+            return false;
+        }
+    } catch (const YAML::Exception &e) {
+        emit ErrorOccurred(tr("Failed to parse YAML: %1").arg(QString::fromStdString(e.what())));
         return false;
+    }
 
-    root = YamlNode();
-    CollectKeys(config, root, 0);
+    root = parsed;
     return true;
 }
 
@@ -71,61 +100,77 @@ const YamlNode &YamlReader::GetRootNode() const
     return root;
 }
 
-void YamlReader::BuildNode(YAML::Emitter &out, const YamlNode &node)
+void YamlReader::EmitValue(YAML::Emitter &out, const YamlNode &node)
 {
-    if (node.children.isEmpty())
-        return;
-
-    for (const YamlNode &child : node.children) {
-        out << YAML::Key << child.key.toStdString();
-        out << YAML::Value;
-
-        if (!child.children.isEmpty()) {
-            if (!child.children.first().key.isEmpty()) {
-                out << YAML::BeginMap;
-                BuildNode(out, child);
-                out << YAML::EndMap;
-            } else {
-                out << YAML::BeginSeq;
-                for (const YamlNode &element : child.children)
-                    out << YAML::DoubleQuoted << element.value.toStdString();
-                out << YAML::EndSeq;
-            }
-        } else if (!child.value.isEmpty()) {
-            if (child.value.contains(':') || child.value.contains('{') ||
-                child.value.contains('}') || child.value.contains('[') ||
-                child.value.contains(']')) {
-                out << YAML::DoubleQuoted << child.value.toStdString();
-            } else {
-                out << child.value.toStdString();
-            }
+    if (!node.children.isEmpty()) {
+        if (node.IsSequenceContainer()) {
+            out << YAML::BeginSeq;
+            for (const YamlNode &child : node.children)
+                EmitValue(out, child);
+            out << YAML::EndSeq;
         } else {
-            out << YAML::DoubleQuoted << "";
+            out << YAML::BeginMap;
+            for (const YamlNode &child : node.children) {
+                out << YAML::Key << child.key.toStdString() << YAML::Value;
+                EmitValue(out, child);
+            }
+            out << YAML::EndMap;
         }
+        return;
+    }
+
+    switch (node.type) {
+    case YamlNode::Type::Null:
+        out << YAML::Null;
+        break;
+    case YamlNode::Type::Map:
+        out << YAML::Flow << YAML::BeginMap << YAML::EndMap;
+        break;
+    case YamlNode::Type::Sequence:
+        out << YAML::Flow << YAML::BeginSeq << YAML::EndSeq;
+        break;
+    case YamlNode::Type::Scalar:
+        // Plain output lets yaml-cpp quote only when needed, so numbers and bools keep
+        // their type; values that were quoted in the source stay strings.
+        if (node.quoted)
+            out << YAML::DoubleQuoted;
+        out << node.value.toStdString();
+        break;
     }
 }
 
-void YamlReader::SaveValues(const YamlNode &rootNode, const QString &filePath)
+QByteArray YamlReader::Serialize(const YamlNode &rootNode)
 {
     YAML::Emitter out;
-    out << YAML::BeginMap;
-    BuildNode(out, rootNode);
-    out << YAML::EndMap;
+    out.SetIndent(2);
+    YamlNode top = rootNode;
+    if (top.children.isEmpty() && top.type != YamlNode::Type::Sequence)
+        top.type = YamlNode::Type::Map;
+    EmitValue(out, top);
+    QByteArray bytes(out.c_str());
+    if (!bytes.endsWith('\n'))
+        bytes.append('\n');
+    return bytes;
+}
 
-    std::ofstream ofstream(filePath.toStdString());
-    if (!ofstream.is_open()) {
+bool YamlReader::SaveValues(const YamlNode &rootNode, const QString &filePath)
+{
+    const QByteArray bytes = Serialize(rootNode);
+
+    // QSaveFile writes to a temp file and renames it, so a failed save never
+    // leaves a truncated document behind.
+    QSaveFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly)) {
         emit ErrorOccurred(tr("Cannot open file for writing: %1").arg(filePath));
         emit FileUploaded(false);
-        return;
+        return false;
     }
-
-    ofstream << out.c_str();
-    ofstream.close();
-    if (ofstream.fail()) {
+    if (file.write(bytes) != bytes.size() || !file.commit()) {
         emit ErrorOccurred(tr("Failed writing file: %1").arg(filePath));
         emit FileUploaded(false);
-        return;
+        return false;
     }
 
     emit FileUploaded(true);
+    return true;
 }

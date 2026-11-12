@@ -17,7 +17,8 @@ public:
                       const QModelIndex &index) const override;
 
 signals:
-    void validationChanged(int invalidCount) const;
+    // Emitted when an edit is thrown away because the text is not acceptable.
+    void editRejected(const QString &reason) const;
 };
 
 #endif // YAMLITEMDELEGATE_H

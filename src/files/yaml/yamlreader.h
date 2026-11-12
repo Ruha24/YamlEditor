@@ -19,15 +19,18 @@ public:
 
     const YamlNode &GetRootNode() const;
 
-    void SaveValues(const YamlNode &rootNode, const QString &filePath);
+    // Returns true when the file was written completely.
+    bool SaveValues(const YamlNode &rootNode, const QString &filePath);
+
+    static QByteArray Serialize(const YamlNode &rootNode);
 
 signals:
     void FileUploaded(bool success);
     void ErrorOccurred(const QString &message);
 
 private:
-    void CollectKeys(const YAML::Node &node, YamlNode &yamlNode, int depth);
-    void BuildNode(YAML::Emitter &out, const YamlNode &node);
+    bool Fill(const YAML::Node &source, YamlNode &target, int depth);
+    static void EmitValue(YAML::Emitter &out, const YamlNode &node);
 
     YamlNode root;
 

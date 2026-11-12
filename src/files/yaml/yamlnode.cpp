@@ -139,8 +139,15 @@ YamlNode *YamlNode::NavigateToParent(const QStringList &path_parts)
     return current_node;
 }
 
+bool YamlNode::IsSequenceContainer() const
+{
+    if (children.isEmpty())
+        return type == Type::Sequence;
+    return children.first().is_sequence;
+}
+
 bool YamlNode::operator==(const YamlNode &other) const
 {
     return key == other.key && value == other.value && is_sequence == other.is_sequence
-           && children == other.children;
+           && type == other.type && quoted == other.quoted && children == other.children;
 }

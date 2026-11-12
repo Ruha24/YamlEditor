@@ -3,6 +3,7 @@
 
 #include <QList>
 #include <QModelIndex>
+#include <QPersistentModelIndex>
 #include <QObject>
 #include <QRegularExpression>
 
@@ -18,13 +19,14 @@ public:
 
     void setTargets(QAbstractItemModel *model, QTreeView *view);
 
-           // Reset transient state (e.g. when the active document changes).
+    // Reset transient state (e.g. when the active document changes).
     void reset();
 
 public slots:
     void search(const QString &text, bool caseSensitive, bool downward, bool useRegex);
     void searchForReplace(const QString &text, bool caseSensitive, bool useRegex);
-    void replace(const QString &findText, const QString &replaceText, bool allText, bool useRegex);
+    void replace(const QString &findText, const QString &replaceText, bool allText,
+                 bool caseSensitive, bool useRegex);
 
 signals:
     void info(const QString &message);
@@ -41,7 +43,8 @@ private:
     QAbstractItemModel *model_ = nullptr;
     QTreeView *view_ = nullptr;
 
-    QList<QModelIndex> found_;
+    // Persistent indexes stay valid (or become invalid) when rows move or are removed.
+    QList<QPersistentModelIndex> found_;
     int current_ = -1;
     int starting_ = -1;
     QRegularExpression regex_;

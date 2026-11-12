@@ -25,7 +25,7 @@ bool FileSystem::CheckFolder(const QString &path) const
 bool FileSystem::InstanceFolder(const QString &path) const
 {
     QDir dir;
-    return dir.mkdir(path);
+    return dir.mkpath(path);
 }
 
 QString FileSystem::CalculateFileCheckSum(const QString &file_path,
@@ -63,8 +63,14 @@ void FileSystem::AddFile(const QString &path)
 {
     const QFileInfo file_info(path);
     const QString suffix = file_info.suffix();
-    if (suffix == "yml" || suffix == "yaml")
-        files.insert(file_info.fileName(), path);
+    if (suffix.compare("yml", Qt::CaseInsensitive) == 0
+        || suffix.compare("yaml", Qt::CaseInsensitive) == 0)
+        files.insert(file_info.fileName(), file_info.absoluteFilePath());
+}
+
+void FileSystem::RemoveFile(const QString &fileName)
+{
+    files.remove(fileName);
 }
 
 void FileSystem::GetFilesDirectory(const QString &path_dir)
@@ -76,5 +82,5 @@ void FileSystem::GetFilesDirectory(const QString &path_dir)
         dir.entryInfoList(QStringList{"*.yml", "*.yaml"}, QDir::Files);
 
     for (const QFileInfo &file : dirContent)
-        files.insert(file.fileName(), file.filePath());
+        files.insert(file.fileName(), file.absoluteFilePath());
 }

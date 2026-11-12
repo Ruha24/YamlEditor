@@ -10,9 +10,7 @@ private slots:
 
     void value_plain_ok();
     void value_empty_ok();
-    void value_unbalancedQuote_fails();
-    void value_unbalancedBracket_fails();
-    void value_trailingBackslash_fails();
+    void value_arbitraryText_ok();
     void value_balancedQuotes_ok();
 
     void key_plain_ok();
@@ -36,22 +34,14 @@ void TestYamlValidator::value_empty_ok()
     QVERIFY(YamlValidator::validateValue("").ok);
 }
 
-void TestYamlValidator::value_unbalancedQuote_fails()
+void TestYamlValidator::value_arbitraryText_ok()
 {
-    const auto r = YamlValidator::validateValue("he said \"hi");
-    QVERIFY(!r.ok);
-    QVERIFY(!r.message.isEmpty());
-}
-
-void TestYamlValidator::value_unbalancedBracket_fails()
-{
-    QVERIFY(!YamlValidator::validateValue("[1, 2, 3").ok);
-    QVERIFY(!YamlValidator::validateValue("a}").ok);
-}
-
-void TestYamlValidator::value_trailingBackslash_fails()
-{
-    QVERIFY(!YamlValidator::validateValue("path\\").ok);
+    // The writer quotes/escapes values itself, so free text must be accepted.
+    QVERIFY(YamlValidator::validateValue("It's").ok);
+    QVERIFY(YamlValidator::validateValue("he said \"hi").ok);
+    QVERIFY(YamlValidator::validateValue("[1, 2, 3").ok);
+    QVERIFY(YamlValidator::validateValue("a}").ok);
+    QVERIFY(YamlValidator::validateValue("path\\").ok);
 }
 
 void TestYamlValidator::value_balancedQuotes_ok()

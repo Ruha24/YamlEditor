@@ -21,6 +21,7 @@ public:
     QString GetFilePath(const QString &fileName) const;
     bool Contains(const QString &fileName) const;
     void AddFile(const QString &path);
+    void RemoveFile(const QString &fileName);
 
 private:
     void GetFilesDirectory(const QString &path_dir);

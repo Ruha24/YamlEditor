@@ -1,7 +1,7 @@
 #include "filedownloadtask.h"
 
 #include <QEventLoop>
-#include <QFile>
+#include <QSaveFile>
 #include <QFileInfo>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -38,17 +38,17 @@ void FileDownloadTask::run()
         return;
     }
 
-    QFile file(file_path);
+    // Write atomically so an interrupted download never leaves a truncated file.
+    QSaveFile file(file_path);
     if (!file.open(QIODevice::WriteOnly)) {
         emit ErrorOccurred(tr("Cannot open file for writing: %1").arg(file_path));
         return;
     }
 
-    if (file.write(reply->readAll()) < 0) {
+    if (file.write(reply->readAll()) < 0 || !file.commit()) {
         emit ErrorOccurred(tr("Failed writing file: %1").arg(file_path));
         return;
     }
-    file.close();
 
     emit FileDownloaded(QFileInfo(file_path).fileName());
 }

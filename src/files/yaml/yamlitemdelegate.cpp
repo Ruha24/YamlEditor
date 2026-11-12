@@ -50,8 +50,19 @@ void YamlItemDelegate::setModelData(QWidget *editor, QAbstractItemModel *model,
     const auto result = is_key ? YamlValidator::validateKey(text)
                                : YamlValidator::validateValue(text);
 
-    if (!result.ok)
+    if (!result.ok) {
+        emit editRejected(result.message);
         return;
+    }
 
-    model->setData(index, text, Qt::EditRole);
+    if (is_key) {
+        if (const auto *yaml_model = qobject_cast<const YamlTreeModel *>(model);
+            yaml_model && yaml_model->HasSiblingWithKey(index, text)) {
+            emit editRejected(tr("Key \"%1\" already exists at this level").arg(text));
+            return;
+        }
+    }
+
+    if (!model->setData(index, text, Qt::EditRole))
+        emit editRejected(tr("This cell cannot be changed"));
 }

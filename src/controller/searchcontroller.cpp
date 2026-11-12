@@ -9,8 +9,16 @@ SearchController::SearchController(QObject *parent)
 
 void SearchController::setTargets(QAbstractItemModel *model, QTreeView *view)
 {
+    if (model_)
+        disconnect(model_, nullptr, this, nullptr);
     model_ = model;
     view_ = view;
+    if (model_) {
+        // Any structural change invalidates the result list.
+        connect(model_, &QAbstractItemModel::modelReset, this, &SearchController::reset);
+        connect(model_, &QAbstractItemModel::rowsInserted, this, &SearchController::reset);
+        connect(model_, &QAbstractItemModel::rowsRemoved, this, &SearchController::reset);
+    }
 }
 
 void SearchController::reset()
@@ -79,7 +87,7 @@ void SearchController::selectMatch(int index)
         return;
 
     const QModelIndex idx = found_[index];
-    if (!idx.isValid())
+    if (!idx.isValid() || idx.model() != model_)
         return;
 
     QModelIndex p = idx.parent();
@@ -183,12 +191,13 @@ void SearchController::replaceInIndex(const QModelIndex &index, const QString &f
 }
 
 void SearchController::replace(const QString &findText, const QString &replaceText,
-                               bool allText, bool useRegex)
+                               bool allText, bool caseSensitive, bool useRegex)
 {
-    searchForReplace(findText, cs_ == Qt::CaseSensitive, useRegex);
+    searchForReplace(findText, caseSensitive, useRegex);
 
     if (allText) {
-        for (const QModelIndex &idx : std::as_const(found_))
+        const QList<QPersistentModelIndex> targets = found_;
+        for (const QPersistentModelIndex &idx : targets)
             replaceInIndex(idx, findText, replaceText, useRegex);
         text_.clear();
     } else if (current_ >= 0 && current_ < found_.size()) {

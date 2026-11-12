@@ -23,7 +23,7 @@
     </message>
     <message>
         <location filename="../mainwindow.ui" line="132"/>
-        <source>Сonfigs</source>
+        <source>Configs</source>
         <translation>Конфиги</translation>
     </message>
     <message>
